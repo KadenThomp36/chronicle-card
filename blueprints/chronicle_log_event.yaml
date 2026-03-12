@@ -1,0 +1,99 @@
+blueprint:
+  name: Chronicle — Log Event to Timeline
+  description: >
+    Log an event to a calendar entity so it appears in the Chronicle Card timeline.
+    Triggered by any entity state change — customize the title, category, and severity
+    to control how the event appears on the timeline.
+  domain: automation
+  author: chronicle-card
+  source_url: https://github.com/USER/chronicle-card/blob/main/blueprints/chronicle_log_event.yaml
+
+  input:
+    trigger_entity:
+      name: Trigger Entity
+      description: The entity whose state change triggers a timeline event.
+      selector:
+        entity: {}
+
+    trigger_state:
+      name: Trigger State (optional)
+      description: >
+        Only log an event when the entity transitions to this state.
+        Leave empty to log every state change.
+      default: ""
+      selector:
+        text: {}
+
+    calendar_entity:
+      name: Target Calendar
+      description: The calendar entity to write events to. Chronicle Card reads from this calendar.
+      selector:
+        entity:
+          filter:
+            domain: calendar
+
+    event_title:
+      name: Event Title
+      description: >
+        Title of the timeline event. You can use templates.
+        The title is used by Chronicle's fuzzy icon matching — include keywords
+        like "person", "motion", "door" for automatic icon assignment.
+      default: "{{ trigger.to_state.attributes.friendly_name }} — {{ trigger.to_state.state }}"
+      selector:
+        text:
+          multiline: true
+
+    event_description:
+      name: Event Description (optional)
+      description: >
+        Additional details shown in the event detail popup. Supports templates.
+      default: "State changed from {{ trigger.from_state.state }} to {{ trigger.to_state.state }}"
+      selector:
+        text:
+          multiline: true
+
+    event_duration:
+      name: Event Duration (minutes)
+      description: How long the event should appear on the calendar. Minimum 1 minute.
+      default: 1
+      selector:
+        number:
+          min: 1
+          max: 1440
+          unit_of_measurement: min
+
+    condition_enabled:
+      name: Additional Condition (optional)
+      description: An optional condition that must be true for the event to be logged.
+      default: []
+      selector:
+        condition: {}
+
+mode: queued
+max_queued: 20
+
+trigger:
+  - platform: state
+    entity_id: !input trigger_entity
+
+variables:
+  trigger_state_filter: !input trigger_state
+  evt_title: !input event_title
+  evt_description: !input event_description
+  evt_duration: !input event_duration
+
+condition:
+  - condition: template
+    value_template: >
+      {{ trigger_state_filter == '' or trigger.to_state.state == trigger_state_filter }}
+  - !input condition_enabled
+
+action:
+  - service: calendar.create_event
+    target:
+      entity_id: !input calendar_entity
+    data:
+      summary: "{{ evt_title }}"
+      description: "{{ evt_description }}"
+      start_date_time: "{{ now().strftime('%Y-%m-%dT%H:%M:%S') }}"
+      end_date_time: "{{ (now() + timedelta(minutes=evt_duration | int)).strftime('%Y-%m-%dT%H:%M:%S') }}"
