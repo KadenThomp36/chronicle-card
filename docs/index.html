@@ -450,7 +450,6 @@
       width: 36px; height: 36px;
       border-radius: 8px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 16px;
       border: 1px solid var(--border);
       background: var(--surface-3);
       transition: all 0.2s;
@@ -497,6 +496,9 @@
       border-radius: 8px;
       font-size: 14px;
       font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
       cursor: pointer;
       color: var(--text-dim);
       background: transparent;
@@ -1591,9 +1593,38 @@
         transform: none;
       }
     }
+
+    /* MDI SVG icons inside icon wraps */
+    .cc-icon-wrap svg, .cc-uc-icon svg, .cc-group-icon-wrap svg,
+    .source-icon svg, .cc-dialog-icon svg { display: block; flex-shrink: 0; }
+    .cc-thumbnail svg { display: block; opacity: 0.5; }
+    .source-tab svg { display: inline-block; vertical-align: -2px; margin-right: 4px; }
   </style>
 </head>
 <body>
+
+<!-- MDI Icon Sprites -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <symbol id="i-person" viewBox="0 0 24 24"><path fill="currentColor" d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"/></symbol>
+  <symbol id="i-door" viewBox="0 0 24 24"><path fill="currentColor" d="M12,3C10.89,3 10,3.89 10,5H3V19H2V21H22V19H21V5C21,3.89 20.11,3 19,3H12M12,5H19V19H12V5M5,11H7V13H5V11Z"/></symbol>
+  <symbol id="i-car" viewBox="0 0 24 24"><path fill="currentColor" d="M5,11L6.5,6.5H17.5L19,11M17.5,16A1.5,1.5 0 0,1 16,14.5A1.5,1.5 0 0,1 17.5,13A1.5,1.5 0 0,1 19,14.5A1.5,1.5 0 0,1 17.5,16M6.5,16A1.5,1.5 0 0,1 5,14.5A1.5,1.5 0 0,1 6.5,13A1.5,1.5 0 0,1 8,14.5A1.5,1.5 0 0,1 6.5,16M18.92,6C18.72,5.42 18.16,5 17.5,5H6.5C5.84,5 5.28,5.42 5.08,6L3,12V20A1,1 0 0,0 4,21H5A1,1 0 0,0 6,20V19H18V20A1,1 0 0,0 19,21H20A1,1 0 0,0 21,20V12L18.92,6Z"/></symbol>
+  <symbol id="i-runner" viewBox="0 0 24 24"><path fill="currentColor" d="M16.5,5.5A2,2 0 0,0 18.5,3.5A2,2 0 0,0 16.5,1.5A2,2 0 0,0 14.5,3.5A2,2 0 0,0 16.5,5.5M12.9,19.4L13.9,15L16,17V23H18V15.5L15.9,13.5L16.5,10.5C17.89,12.09 19.89,13 22,13V11C20.24,11.03 18.6,10.11 17.7,8.6L16.7,7C16.34,6.4 15.7,6 15,6C14.7,6 14.5,6.1 14.2,6.1L9,8.3V13H11V9.6L12.8,8.9L11.2,17L6.3,16L5.9,18L12.9,19.4M4,9A1,1 0 0,1 3,8A1,1 0 0,1 4,7H7V9H4M5,5A1,1 0 0,1 4,4A1,1 0 0,1 5,3H10V5H5M3,13A1,1 0 0,1 2,12A1,1 0 0,1 3,11H7V13H3Z"/></symbol>
+  <symbol id="i-calendar" viewBox="0 0 24 24"><path fill="currentColor" d="M19,19H5V8H19M16,1V3H8V1H6V3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3H18V1M17,12H12V17H17V12Z"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><path fill="currentColor" d="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z"/></symbol>
+  <symbol id="i-motion" viewBox="0 0 24 24"><path fill="currentColor" d="M10,0.2C9,0.2 8.2,1 8.2,2C8.2,3 9,3.8 10,3.8C11,3.8 11.8,3 11.8,2C11.8,1 11,0.2 10,0.2M15.67,1A7.33,7.33 0 0,0 23,8.33V7A6,6 0 0,1 17,1H15.67M18.33,1C18.33,3.58 20.42,5.67 23,5.67V4.33C21.16,4.33 19.67,2.84 19.67,1H18.33M21,1A2,2 0 0,0 23,3V1H21M7.92,4.03C7.75,4.03 7.58,4.06 7.42,4.11L2,5.8V11H3.8V7.33L5.91,6.67L2,22H3.8L6.67,13.89L9,17V22H10.8V15.59L8.31,11.05L9.04,8.18L10.12,10H15V8.2H11.38L9.38,4.87C9.08,4.37 8.54,4.03 7.92,4.03Z"/></symbol>
+  <symbol id="i-package" viewBox="0 0 24 24"><path fill="currentColor" d="M21,16.5C21,16.88 20.79,17.21 20.47,17.38L12.57,21.82C12.41,21.94 12.21,22 12,22C11.79,22 11.59,21.94 11.43,21.82L3.53,17.38C3.21,17.21 3,16.88 3,16.5V7.5C3,7.12 3.21,6.79 3.53,6.62L11.43,2.18C11.59,2.06 11.79,2 12,2C12.21,2 12.41,2.06 12.57,2.18L20.47,6.62C20.79,6.79 21,7.12 21,7.5V16.5M12,4.15L10.11,5.22L16,8.61L17.96,7.5L12,4.15M6.04,7.5L12,10.85L13.96,9.75L8.08,6.35L6.04,7.5M5,15.91L11,19.29V12.58L5,9.21V15.91M19,15.91V9.21L13,12.58V19.29L19,15.91Z"/></symbol>
+  <symbol id="i-thermo" viewBox="0 0 24 24"><path fill="currentColor" d="M15 13V5A3 3 0 0 0 9 5V13A5 5 0 1 0 15 13M12 4A1 1 0 0 1 13 5V8H11V5A1 1 0 0 1 12 4Z"/></symbol>
+  <symbol id="i-dog" viewBox="0 0 24 24"><path fill="currentColor" d="M18,4C16.29,4 15.25,4.33 14.65,4.61C13.88,4.23 13,4 12,4C11,4 10.12,4.23 9.35,4.61C8.75,4.33 7.71,4 6,4C3,4 1,12 1,14C1,14.83 2.32,15.59 4.14,15.9C4.78,18.14 7.8,19.85 11.5,20V15.72C10.91,15.35 10,14.68 10,14C10,13 12,13 12,13C12,13 14,13 14,14C14,14.68 13.09,15.35 12.5,15.72V20C16.2,19.85 19.22,18.14 19.86,15.9C21.68,15.59 23,14.83 23,14C23,12 21,4 18,4M4.15,13.87C3.65,13.75 3.26,13.61 3,13.5C3.25,10.73 5.2,6.4 6.05,6C6.59,6 7,6.06 7.37,6.11C5.27,8.42 4.44,12.04 4.15,13.87M9,12A1,1 0 0,1 8,11C8,10.46 8.45,10 9,10A1,1 0 0,1 10,11C10,11.56 9.55,12 9,12M15,12A1,1 0 0,1 14,11C14,10.46 14.45,10 15,10A1,1 0 0,1 16,11C16,11.56 15.55,12 15,12M19.85,13.87C19.56,12.04 18.73,8.42 16.63,6.11C17,6.06 17.41,6 17.95,6C18.8,6.4 20.75,10.73 21,13.5C20.75,13.61 20.36,13.75 19.85,13.87Z"/></symbol>
+  <symbol id="i-cctv" viewBox="0 0 24 24"><path fill="currentColor" d="M6.03 12.03L8.03 15.5L5.5 18.68L2 12.62L6.03 12.03M17 18V15.29C17.88 14.9 18.5 14.03 18.5 13C18.5 12.43 18.3 11.9 17.97 11.5L19.94 10.35C20.95 9.76 21.3 8.47 20.71 7.46L19.33 5.06C18.74 4.05 17.45 3.7 16.44 4.28L8.31 9C7.36 9.53 7.03 10.75 7.58 11.71L9.08 14.31C9.63 15.26 10.86 15.59 11.81 15.04L13.69 13.96C13.94 14.55 14.41 15.03 15 15.29V18C15 19.1 15.9 20 17 20H22V18H17Z"/></symbol>
+  <symbol id="i-bulb" viewBox="0 0 24 24"><path fill="currentColor" d="M12,2A7,7 0 0,0 5,9C5,11.47 6.19,13.64 8,14.93V18H16V14.93C17.81,13.64 19,11.47 19,9A7,7 0 0,0 12,2M14.85,13.36L14,14V16H10V14L9.15,13.36C7.8,12.36 7,10.73 7,9A5,5 0 0,1 12,4A5,5 0 0,1 17,9C17,10.73 16.2,12.36 14.85,13.36M8,20V19H16V20A2,2 0 0,1 14,22H10A2,2 0 0,1 8,20Z"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path fill="currentColor" d="M11,13H13V16H16V11H18L12,6L6,11H8V16H11V13M12,1L21,5V11C21,16.55 17.16,21.74 12,23C6.84,21.74 3,16.55 3,11V5L12,1Z"/></symbol>
+  <symbol id="i-garage" viewBox="0 0 24 24"><path fill="currentColor" d="M19,20H17V11H7V20H5V9L12,5L19,9V20M8,12H16V14H8V12M8,15H16V17H8V15M16,18V20H8V18H16Z"/></symbol>
+  <symbol id="i-camera" viewBox="0 0 24 24"><path fill="currentColor" d="M4,4H7L9,2H15L17,4H20A2,2 0 0,1 22,6V18A2,2 0 0,1 20,20H4A2,2 0 0,1 2,18V6A2,2 0 0,1 4,4M12,7A5,5 0 0,0 7,12A5,5 0 0,0 12,17A5,5 0 0,0 17,12A5,5 0 0,0 12,7M12,9A3,3 0 0,1 15,12A3,3 0 0,1 12,15A3,3 0 0,1 9,12A3,3 0 0,1 12,9Z"/></symbol>
+  <symbol id="i-api" viewBox="0 0 24 24"><path fill="currentColor" d="M21,3H3A2,2 0 0,0 1,5V19A2,2 0 0,0 3,21H21A2,2 0 0,0 23,19V5A2,2 0 0,0 21,3M21,19H3V5H21V19M6,13H10V15H6V13M12,13H18V15H12V13M6,9H18V11H6V9Z"/></symbol>
+  <symbol id="i-history" viewBox="0 0 24 24"><path fill="currentColor" d="M13.5,8H12V13L16.28,15.54L17,14.33L13.5,12.25V8M13,3A9,9 0 0,0 4,12H1L4.96,16.03L9,12H6A7,7 0 0,1 13,5A7,7 0 0,1 20,12A7,7 0 0,1 13,19C11.07,19 9.32,18.21 8.06,16.94L6.64,18.36C8.27,20 10.5,21 13,21A9,9 0 0,0 22,12A9,9 0 0,0 13,3Z"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path fill="currentColor" d="M13,9V3.5L18.5,9M6,2C4.89,2 4,2.89 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2H6Z"/></symbol>
+</svg>
+
 
   <!-- HEADER -->
   <header id="header">
@@ -1676,19 +1707,19 @@
           </div>
           <div style="padding:8px 0;">
             <div style="display:flex;align-items:center;padding:4px 12px;gap:8px;">
-              <div style="width:28px;height:28px;border-radius:50%;background:#D32F2F;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;box-shadow:0 1px 3px rgba(0,0,0,0.12);">🔒</div>
+              <div style="width:28px;height:28px;border-radius:50%;background:#D32F2F;display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.12);"><svg width="14" height="14" style="display:block;flex-shrink:0"><use href="#i-lock"/></svg></div>
               <div style="flex:1;"><div style="font-size:11px;font-weight:600;color:var(--text);">Alarm Armed</div><div style="font-size:9px;color:var(--text-dim);">08:15</div></div>
             </div>
             <div style="display:flex;align-items:center;padding:4px 12px;gap:8px;">
-              <div style="width:28px;height:28px;border-radius:50%;background:#795548;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;box-shadow:0 1px 3px rgba(0,0,0,0.12);">🚪</div>
+              <div style="width:28px;height:28px;border-radius:50%;background:#795548;display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.12);"><svg width="14" height="14" style="display:block;flex-shrink:0"><use href="#i-door"/></svg></div>
               <div style="flex:1;"><div style="font-size:11px;font-weight:600;color:var(--text);">Front Door Locked</div><div style="font-size:9px;color:var(--text-dim);">08:14</div></div>
             </div>
             <div style="display:flex;align-items:center;padding:4px 12px;gap:8px;">
-              <div style="width:28px;height:28px;border-radius:50%;background:#9C27B0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;box-shadow:0 1px 3px rgba(0,0,0,0.12);">🏃</div>
+              <div style="width:28px;height:28px;border-radius:50%;background:#9C27B0;display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.12);"><svg width="14" height="14" style="display:block;flex-shrink:0"><use href="#i-motion"/></svg></div>
               <div style="flex:1;"><div style="font-size:11px;font-weight:600;color:var(--text);">Motion — Hallway</div><div style="font-size:9px;color:var(--text-dim);">08:13</div></div>
             </div>
             <div style="display:flex;align-items:center;padding:4px 12px;gap:8px;">
-              <div style="width:28px;height:28px;border-radius:50%;background:#795548;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;box-shadow:0 1px 3px rgba(0,0,0,0.12);">🚪</div>
+              <div style="width:28px;height:28px;border-radius:50%;background:#795548;display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.12);"><svg width="14" height="14" style="display:block;flex-shrink:0"><use href="#i-garage"/></svg></div>
               <div style="flex:1;"><div style="font-size:11px;font-weight:600;color:var(--text);">Garage Closed</div><div style="font-size:9px;color:var(--text-dim);">08:10</div></div>
             </div>
           </div>
@@ -1706,15 +1737,15 @@
           </div>
           <div style="padding:8px 0;">
             <div style="display:flex;align-items:center;padding:4px 12px;gap:8px;">
-              <div style="width:28px;height:28px;border-radius:50%;background:#FF9800;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;">👤</div>
+              <div style="width:28px;height:28px;border-radius:50%;background:#FF9800;display:flex;align-items:center;justify-content:center;color:#fff;"><svg width="14" height="14" style="display:block;flex-shrink:0"><use href="#i-person"/></svg></div>
               <div style="flex:1;"><div style="font-size:11px;font-weight:600;color:var(--text);">Person — Porch</div><div style="font-size:9px;color:var(--text-dim);">14:32</div></div>
             </div>
             <div style="display:flex;align-items:center;padding:4px 12px;gap:8px;">
-              <div style="width:28px;height:28px;border-radius:50%;background:#2196F3;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;">🚗</div>
+              <div style="width:28px;height:28px;border-radius:50%;background:#2196F3;display:flex;align-items:center;justify-content:center;color:#fff;"><svg width="14" height="14" style="display:block;flex-shrink:0"><use href="#i-car"/></svg></div>
               <div style="flex:1;"><div style="font-size:11px;font-weight:600;color:var(--text);">Vehicle — Driveway</div><div style="font-size:9px;color:var(--text-dim);">14:30</div></div>
             </div>
             <div style="display:flex;align-items:center;padding:4px 12px;gap:8px;">
-              <div style="width:28px;height:28px;border-radius:50%;background:#43A047;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;">🐕</div>
+              <div style="width:28px;height:28px;border-radius:50%;background:#43A047;display:flex;align-items:center;justify-content:center;color:#fff;"><svg width="14" height="14" style="display:block;flex-shrink:0"><use href="#i-dog"/></svg></div>
               <div style="flex:1;"><div style="font-size:11px;font-weight:600;color:var(--text);">Dog — Backyard</div><div style="font-size:9px;color:var(--text-dim);">13:45</div></div>
             </div>
           </div>
@@ -1746,7 +1777,7 @@
 
             <!-- Event 1: Person Detected -->
             <div class="cc-event-row" data-event="person">
-              <div class="cc-icon-wrap" style="background-color:#FF9800;">👤</div>
+              <div class="cc-icon-wrap" style="background-color:#FF9800;"><svg width="18" height="18" style="display:block;flex-shrink:0"><use href="#i-person"/></svg></div>
               <div class="cc-event-item">
                 <div class="cc-event-item-text">
                   <div class="cc-event-title">
@@ -1756,13 +1787,13 @@
                   <div class="cc-event-time">2 min ago · Front Porch Camera</div>
                   <div class="cc-event-desc">Confidence: 94%</div>
                 </div>
-                <div class="cc-thumbnail">📷</div>
+                <div class="cc-thumbnail"><svg width="22" height="22" style="display:block;flex-shrink:0"><use href="#i-camera"/></svg></div>
               </div>
             </div>
 
             <!-- Event 2: Front Door Opened -->
             <div class="cc-event-row" data-event="door">
-              <div class="cc-icon-wrap" style="background-color:#795548;">🚪</div>
+              <div class="cc-icon-wrap" style="background-color:#795548;"><svg width="18" height="18" style="display:block;flex-shrink:0"><use href="#i-door"/></svg></div>
               <div class="cc-event-item">
                 <div class="cc-event-item-text">
                   <div class="cc-event-title">
@@ -1777,7 +1808,7 @@
 
             <!-- Event 3: Vehicle Detected -->
             <div class="cc-event-row" data-event="vehicle">
-              <div class="cc-icon-wrap" style="background-color:#2196F3;">🚗</div>
+              <div class="cc-icon-wrap" style="background-color:#2196F3;"><svg width="18" height="18" style="display:block;flex-shrink:0"><use href="#i-car"/></svg></div>
               <div class="cc-event-item">
                 <div class="cc-event-item-text">
                   <div class="cc-event-title">
@@ -1787,14 +1818,14 @@
                   <div class="cc-event-time">12 min ago · Driveway Camera</div>
                   <div class="cc-event-desc">Zone: driveway</div>
                 </div>
-                <div class="cc-thumbnail" style="background:linear-gradient(135deg, #0f3460, #16213e);">📷</div>
+                <div class="cc-thumbnail" style="background:linear-gradient(135deg, #0f3460, #16213e);"><svg width="22" height="22" style="display:block;flex-shrink:0"><use href="#i-camera"/></svg></div>
               </div>
             </div>
 
             <!-- Event 4: Motion Group (expandable) -->
             <div class="cc-group-row">
               <div class="cc-group-icon-wrap" style="background-color:#9C27B0;" onclick="ccToggleGroup(this)">
-                🏃
+                <svg width="16" height="16" style="display:block;flex-shrink:0"><use href="#i-motion"/></svg>
                 <span class="cc-group-count-badge">3</span>
               </div>
               <div class="cc-group-header" onclick="ccToggleGroup(this)">
@@ -1830,7 +1861,7 @@
 
             <!-- Event 5: Team Standup -->
             <div class="cc-event-row" data-event="standup">
-              <div class="cc-icon-wrap" style="background-color:#43A047;">📅</div>
+              <div class="cc-icon-wrap" style="background-color:#43A047;"><svg width="18" height="18" style="display:block;flex-shrink:0"><use href="#i-calendar"/></svg></div>
               <div class="cc-event-item">
                 <div class="cc-event-item-text">
                   <div class="cc-event-title">
@@ -1851,7 +1882,7 @@
 
             <!-- Partially visible yesterday events -->
             <div class="cc-event-row" style="animation-delay:1.5s;" data-event="package">
-              <div class="cc-icon-wrap" style="background-color:#FF9800;">📦</div>
+              <div class="cc-icon-wrap" style="background-color:#FF9800;"><svg width="18" height="18" style="display:block;flex-shrink:0"><use href="#i-package"/></svg></div>
               <div class="cc-event-item">
                 <div class="cc-event-item-text">
                   <div class="cc-event-title">
@@ -1860,12 +1891,12 @@
                   </div>
                   <div class="cc-event-time">Yesterday 16:42 · Front Door Camera</div>
                 </div>
-                <div class="cc-thumbnail" style="background:linear-gradient(135deg, #1a1a2e, #0f3460);">📷</div>
+                <div class="cc-thumbnail" style="background:linear-gradient(135deg, #1a1a2e, #0f3460);"><svg width="22" height="22" style="display:block;flex-shrink:0"><use href="#i-camera"/></svg></div>
               </div>
             </div>
 
             <div class="cc-event-row" style="animation-delay:1.6s;opacity:0.5;" data-event="hvac">
-              <div class="cc-icon-wrap" style="background-color:#00BCD4;">🌡️</div>
+              <div class="cc-icon-wrap" style="background-color:#00BCD4;"><svg width="18" height="18" style="display:block;flex-shrink:0"><use href="#i-thermo"/></svg></div>
               <div class="cc-event-item">
                 <div class="cc-event-item-text">
                   <div class="cc-event-title">HVAC Mode Changed</div>
@@ -1913,11 +1944,11 @@
         <h3>Universal Sources</h3>
         <p>4 built-in adapters pull events from calendars, REST APIs, WebSocket commands, entity state history, and static YAML — all merging into one view.</p>
         <div class="source-icons">
-          <div class="source-icon" title="Calendar">📅</div>
-          <div class="source-icon" title="REST API">🔌</div>
-          <div class="source-icon" title="History">📊</div>
-          <div class="source-icon" title="Static YAML">📝</div>
-          <div class="source-icon" title="Frigate">📹</div>
+          <div class="source-icon" title="Calendar" style="color:var(--blue)"><svg width="18" height="18" style="display:block;flex-shrink:0"><use href="#i-calendar"/></svg></div>
+          <div class="source-icon" title="REST API" style="color:var(--orange)"><svg width="18" height="18" style="display:block;flex-shrink:0"><use href="#i-api"/></svg></div>
+          <div class="source-icon" title="History" style="color:var(--purple)"><svg width="18" height="18" style="display:block;flex-shrink:0"><use href="#i-history"/></svg></div>
+          <div class="source-icon" title="Static YAML" style="color:var(--green)"><svg width="18" height="18" style="display:block;flex-shrink:0"><use href="#i-file"/></svg></div>
+          <div class="source-icon" title="Frigate" style="color:var(--red)"><svg width="18" height="18" style="display:block;flex-shrink:0"><use href="#i-cctv"/></svg></div>
         </div>
       </div>
       <div class="bento-card reveal reveal-delay-1">
@@ -1977,10 +2008,10 @@
     </div>
 
     <div class="source-tabs reveal reveal-delay-1">
-      <button class="source-tab active" data-tab="calendar">📅 Calendar</button>
-      <button class="source-tab" data-tab="rest">🔌 REST / WS</button>
-      <button class="source-tab" data-tab="history">📊 History</button>
-      <button class="source-tab" data-tab="static">📝 Static</button>
+      <button class="source-tab active" data-tab="calendar"><svg width="16" height="16" style="display:block;flex-shrink:0"><use href="#i-calendar"/></svg> Calendar</button>
+      <button class="source-tab" data-tab="rest"><svg width="16" height="16" style="display:block;flex-shrink:0"><use href="#i-api"/></svg> REST / WS</button>
+      <button class="source-tab" data-tab="history"><svg width="16" height="16" style="display:block;flex-shrink:0"><use href="#i-history"/></svg> History</button>
+      <button class="source-tab" data-tab="static"><svg width="16" height="16" style="display:block;flex-shrink:0"><use href="#i-file"/></svg> Static</button>
     </div>
 
     <!-- Calendar Tab -->
@@ -2156,35 +2187,35 @@
               </div>
               <div class="cc-uc-timeline">
                 <div class="cc-uc-event">
-                  <div class="cc-uc-icon" style="background:#D32F2F;">🔒</div>
+                  <div class="cc-uc-icon" style="background:#D32F2F;"><svg width="14" height="14" style="display:block;flex-shrink:0"><use href="#i-lock"/></svg></div>
                   <div class="cc-uc-body">
                     <div class="cc-uc-text"><div class="cc-uc-title">Alarm Armed &mdash; Away</div><div class="cc-uc-source">alarm_control_panel.home</div></div>
                     <span class="cc-uc-time">08:15</span>
                   </div>
                 </div>
                 <div class="cc-uc-event">
-                  <div class="cc-uc-icon" style="background:#795548;">🚪</div>
+                  <div class="cc-uc-icon" style="background:#795548;"><svg width="14" height="14" style="display:block;flex-shrink:0"><use href="#i-door"/></svg></div>
                   <div class="cc-uc-body">
                     <div class="cc-uc-text"><div class="cc-uc-title">Front Door Locked</div><div class="cc-uc-source">lock.front_door</div></div>
                     <span class="cc-uc-time">08:14</span>
                   </div>
                 </div>
                 <div class="cc-uc-event">
-                  <div class="cc-uc-icon" style="background:#795548;">🚪</div>
+                  <div class="cc-uc-icon" style="background:#795548;"><svg width="14" height="14" style="display:block;flex-shrink:0"><use href="#i-door"/></svg></div>
                   <div class="cc-uc-body">
                     <div class="cc-uc-text"><div class="cc-uc-title">Front Door Closed</div><div class="cc-uc-source">binary_sensor.front_door</div></div>
                     <span class="cc-uc-time">08:14</span>
                   </div>
                 </div>
                 <div class="cc-uc-event">
-                  <div class="cc-uc-icon" style="background:#9C27B0;">🏃</div>
+                  <div class="cc-uc-icon" style="background:#9C27B0;"><svg width="14" height="14" style="display:block;flex-shrink:0"><use href="#i-motion"/></svg></div>
                   <div class="cc-uc-body">
                     <div class="cc-uc-text"><div class="cc-uc-title">Motion &mdash; Hallway</div><div class="cc-uc-source">binary_sensor.hallway_motion</div></div>
                     <span class="cc-uc-time">08:13</span>
                   </div>
                 </div>
                 <div class="cc-uc-event">
-                  <div class="cc-uc-icon" style="background:#795548;">🚪</div>
+                  <div class="cc-uc-icon" style="background:#795548;"><svg width="14" height="14" style="display:block;flex-shrink:0"><use href="#i-garage"/></svg></div>
                   <div class="cc-uc-body">
                     <div class="cc-uc-text"><div class="cc-uc-title">Garage Door Closed</div><div class="cc-uc-source">cover.garage_door</div></div>
                     <span class="cc-uc-time">08:10</span>
@@ -2217,35 +2248,35 @@
               </div>
               <div class="cc-uc-timeline">
                 <div class="cc-uc-event">
-                  <div class="cc-uc-icon" style="background:#FF9800;">👤</div>
+                  <div class="cc-uc-icon" style="background:#FF9800;"><svg width="14" height="14" style="display:block;flex-shrink:0"><use href="#i-person"/></svg></div>
                   <div class="cc-uc-body">
                     <div class="cc-uc-text"><div class="cc-uc-title">Person &mdash; Front Porch</div><div class="cc-uc-source">camera.front_porch</div></div>
                     <span class="cc-uc-time">14:32</span>
                   </div>
                 </div>
                 <div class="cc-uc-event">
-                  <div class="cc-uc-icon" style="background:#2196F3;">🚗</div>
+                  <div class="cc-uc-icon" style="background:#2196F3;"><svg width="14" height="14" style="display:block;flex-shrink:0"><use href="#i-car"/></svg></div>
                   <div class="cc-uc-body">
                     <div class="cc-uc-text"><div class="cc-uc-title">Vehicle &mdash; Driveway</div><div class="cc-uc-source">camera.driveway</div></div>
                     <span class="cc-uc-time">14:30</span>
                   </div>
                 </div>
                 <div class="cc-uc-event">
-                  <div class="cc-uc-icon" style="background:#43A047;">🐕</div>
+                  <div class="cc-uc-icon" style="background:#43A047;"><svg width="14" height="14" style="display:block;flex-shrink:0"><use href="#i-dog"/></svg></div>
                   <div class="cc-uc-body">
                     <div class="cc-uc-text"><div class="cc-uc-title">Dog &mdash; Backyard</div><div class="cc-uc-source">camera.backyard</div></div>
                     <span class="cc-uc-time">13:45</span>
                   </div>
                 </div>
                 <div class="cc-uc-event">
-                  <div class="cc-uc-icon" style="background:#FF9800;">📦</div>
+                  <div class="cc-uc-icon" style="background:#FF9800;"><svg width="14" height="14" style="display:block;flex-shrink:0"><use href="#i-package"/></svg></div>
                   <div class="cc-uc-body">
                     <div class="cc-uc-text"><div class="cc-uc-title">Package &mdash; Front Door</div><div class="cc-uc-source">camera.front_door</div></div>
                     <span class="cc-uc-time">11:20</span>
                   </div>
                 </div>
                 <div class="cc-uc-event">
-                  <div class="cc-uc-icon" style="background:#FF9800;">👤</div>
+                  <div class="cc-uc-icon" style="background:#FF9800;"><svg width="14" height="14" style="display:block;flex-shrink:0"><use href="#i-person"/></svg></div>
                   <div class="cc-uc-body">
                     <div class="cc-uc-text"><div class="cc-uc-title">Person &mdash; Side Gate</div><div class="cc-uc-source">camera.side_gate</div></div>
                     <span class="cc-uc-time">09:05</span>
@@ -2278,35 +2309,35 @@
               </div>
               <div class="cc-uc-timeline">
                 <div class="cc-uc-event">
-                  <div class="cc-uc-icon" style="background:#43A047;">📅</div>
+                  <div class="cc-uc-icon" style="background:#43A047;"><svg width="14" height="14" style="display:block;flex-shrink:0"><use href="#i-calendar"/></svg></div>
                   <div class="cc-uc-body">
                     <div class="cc-uc-text"><div class="cc-uc-title">Team Standup</div><div class="cc-uc-source">calendar.work</div></div>
                     <span class="cc-uc-time">09:00</span>
                   </div>
                 </div>
                 <div class="cc-uc-event">
-                  <div class="cc-uc-icon" style="background:#FF9800;">👤</div>
+                  <div class="cc-uc-icon" style="background:#FF9800;"><svg width="14" height="14" style="display:block;flex-shrink:0"><use href="#i-person"/></svg></div>
                   <div class="cc-uc-body">
                     <div class="cc-uc-text"><div class="cc-uc-title">Person &mdash; Driveway</div><div class="cc-uc-source">camera.driveway</div></div>
                     <span class="cc-uc-time">08:42</span>
                   </div>
                 </div>
                 <div class="cc-uc-event">
-                  <div class="cc-uc-icon" style="background:#795548;">🚪</div>
+                  <div class="cc-uc-icon" style="background:#795548;"><svg width="14" height="14" style="display:block;flex-shrink:0"><use href="#i-door"/></svg></div>
                   <div class="cc-uc-body">
                     <div class="cc-uc-text"><div class="cc-uc-title">Front Door Opened</div><div class="cc-uc-source">binary_sensor.front_door</div></div>
                     <span class="cc-uc-time">08:30</span>
                   </div>
                 </div>
                 <div class="cc-uc-event">
-                  <div class="cc-uc-icon" style="background:#00BCD4;">🌡️</div>
+                  <div class="cc-uc-icon" style="background:#00BCD4;"><svg width="14" height="14" style="display:block;flex-shrink:0"><use href="#i-thermo"/></svg></div>
                   <div class="cc-uc-body">
                     <div class="cc-uc-text"><div class="cc-uc-title">HVAC &rarr; Cooling</div><div class="cc-uc-source">climate.living_room</div></div>
                     <span class="cc-uc-time">08:15</span>
                   </div>
                 </div>
                 <div class="cc-uc-event">
-                  <div class="cc-uc-icon" style="background:#FFC107;">💡</div>
+                  <div class="cc-uc-icon" style="background:#FFC107;"><svg width="14" height="14" style="display:block;flex-shrink:0"><use href="#i-bulb"/></svg></div>
                   <div class="cc-uc-body">
                     <div class="cc-uc-text"><div class="cc-uc-title">Kitchen Lights On</div><div class="cc-uc-source">light.kitchen</div></div>
                     <span class="cc-uc-time">07:00</span>
@@ -2562,7 +2593,7 @@
     const ccEventData = {
       person: {
         title: 'Person Detected',
-        icon: '👤',
+        icon: '<svg width="18" height="18" style="display:block;flex-shrink:0"><use href="#i-person"/></svg>',
         color: '#FF9800',
         time: '2 min ago',
         severity: 'warning',
@@ -2580,7 +2611,7 @@
       },
       door: {
         title: 'Front Door Opened',
-        icon: '🚪',
+        icon: '<svg width="18" height="18" style="display:block;flex-shrink:0"><use href="#i-door"/></svg>',
         color: '#795548',
         time: '5 min ago',
         severity: 'info',
@@ -2598,7 +2629,7 @@
       },
       vehicle: {
         title: 'Vehicle Detected',
-        icon: '🚗',
+        icon: '<svg width="18" height="18" style="display:block;flex-shrink:0"><use href="#i-car"/></svg>',
         color: '#2196F3',
         time: '12 min ago',
         severity: 'info',
@@ -2616,7 +2647,7 @@
       },
       'motion-backyard': {
         title: 'Motion — Backyard',
-        icon: '🏃',
+        icon: '<svg width="18" height="18" style="display:block;flex-shrink:0"><use href="#i-motion"/></svg>',
         color: '#9C27B0',
         time: '14:25',
         severity: 'info',
@@ -2633,7 +2664,7 @@
       },
       'motion-hallway': {
         title: 'Motion — Hallway',
-        icon: '🏃',
+        icon: '<svg width="18" height="18" style="display:block;flex-shrink:0"><use href="#i-motion"/></svg>',
         color: '#9C27B0',
         time: '14:23',
         severity: 'info',
@@ -2650,7 +2681,7 @@
       },
       'motion-garage': {
         title: 'Motion — Garage',
-        icon: '🏃',
+        icon: '<svg width="18" height="18" style="display:block;flex-shrink:0"><use href="#i-motion"/></svg>',
         color: '#9C27B0',
         time: '14:22',
         severity: 'info',
@@ -2667,7 +2698,7 @@
       },
       standup: {
         title: 'Team Standup',
-        icon: '📅',
+        icon: '<svg width="18" height="18" style="display:block;flex-shrink:0"><use href="#i-calendar"/></svg>',
         color: '#43A047',
         time: '45 min ago',
         severity: 'info',
@@ -2684,7 +2715,7 @@
       },
       package: {
         title: 'Package Delivered',
-        icon: '📦',
+        icon: '<svg width="18" height="18" style="display:block;flex-shrink:0"><use href="#i-package"/></svg>',
         color: '#FF9800',
         time: 'Yesterday 16:42',
         severity: 'info',
@@ -2701,7 +2732,7 @@
       },
       hvac: {
         title: 'HVAC Mode Changed',
-        icon: '🌡️',
+        icon: '<svg width="18" height="18" style="display:block;flex-shrink:0"><use href="#i-thermo"/></svg>',
         color: '#00BCD4',
         time: 'Yesterday 15:30',
         severity: 'info',
@@ -2738,7 +2769,7 @@
       const tagsEl = document.getElementById('cc-dialog-tags');
       const metaEl = document.getElementById('cc-dialog-meta');
 
-      iconEl.textContent = data.icon;
+      iconEl.innerHTML = data.icon;
       iconEl.style.backgroundColor = data.color;
       titleEl.textContent = data.title;
       timeEl.textContent = data.time + ' · ' + data.source;
