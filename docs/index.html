@@ -886,6 +886,711 @@
       color: var(--text); cursor: pointer;
       font-size: 24px;
     }
+
+    /* ===== CHRONICLE CARD REPLICA ===== */
+
+    /* Hero composition container */
+    .cc-hero-composition {
+      margin-top: 64px;
+      position: relative;
+      min-height: 620px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      perspective: 1200px;
+      animation: fadeUp 0.8s ease 0.5s both;
+    }
+
+    /* Background cards (blurred, static) */
+    .cc-bg-card-left {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-130%, -40%) rotate(-3deg) scale(0.75);
+      filter: blur(2px);
+      opacity: 0.45;
+      pointer-events: none;
+      z-index: 0;
+      width: 320px;
+    }
+    .cc-bg-card-right {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(30%, -30%) rotate(2deg) scale(0.7);
+      filter: blur(3px);
+      opacity: 0.35;
+      pointer-events: none;
+      z-index: 0;
+      width: 280px;
+    }
+
+    /* Main card container */
+    .cc-card {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      width: 100%;
+    }
+    .cc-main-card-wrap {
+      position: relative;
+      z-index: 2;
+      width: 520px;
+      max-width: 100%;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.3);
+      border-radius: var(--radius);
+      transform: rotateX(2deg);
+      transition: transform 0.4s ease;
+    }
+    .cc-main-card-wrap:hover {
+      transform: rotateX(0deg);
+    }
+
+    /* Card header */
+    .cc-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .cc-card-header-title {
+      font-size: 15px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text);
+    }
+    .cc-card-header-title svg { color: var(--blue); }
+    .cc-card-header-actions {
+      display: flex;
+      gap: 6px;
+    }
+    .cc-card-header-actions span {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      background: var(--surface-3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .cc-card-header-actions span:hover {
+      background: var(--surface-4);
+    }
+
+    /* Timeline body */
+    .cc-timeline-body {
+      padding: 0;
+      position: relative;
+      max-height: 540px;
+      overflow: hidden;
+    }
+
+    /* Timeline line */
+    .cc-timeline-line {
+      position: absolute;
+      left: 16px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: rgba(127,127,127,0.15);
+      mask-image: linear-gradient(to bottom, transparent, black 40px, black calc(100% - 40px), transparent);
+      -webkit-mask-image: linear-gradient(to bottom, transparent, black 40px, black calc(100% - 40px), transparent);
+      z-index: 0;
+    }
+
+    /* Date header */
+    .cc-date-header {
+      display: flex;
+      align-items: center;
+      padding: 12px 20px 6px 0;
+      gap: 12px;
+    }
+    .cc-date-label {
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      padding-left: 42px;
+      flex-shrink: 0;
+    }
+    .cc-date-line {
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(to right, var(--border), transparent);
+    }
+    .cc-date-count {
+      font-size: 9.5px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 10px;
+      background: var(--surface-3);
+      color: var(--text-dim);
+      flex-shrink: 0;
+    }
+
+    /* Event row */
+    .cc-event-row {
+      display: flex;
+      align-items: flex-start;
+      padding: 4px 12px;
+      position: relative;
+      cursor: pointer;
+    }
+
+    /* Icon wrap */
+    .cc-icon-wrap {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-right: 8px;
+      margin-top: 9px;
+      z-index: 2;
+      color: #fff;
+      font-size: 15px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+      position: relative;
+    }
+
+    /* Event item body */
+    .cc-event-item {
+      flex: 1;
+      padding: 9px 10px;
+      border-radius: 12px;
+      border: 1px solid transparent;
+      transition: all 0.15s ease;
+      min-width: 0;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .cc-event-item:hover {
+      background: rgba(127,127,127,0.05);
+      border-color: rgba(127,127,127,0.08);
+      box-shadow: 0 1px 6px rgba(0,0,0,0.04);
+    }
+    .cc-event-item-text {
+      flex: 1;
+      min-width: 0;
+    }
+
+    /* Event title */
+    .cc-event-title {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: -0.15px;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    /* Event time */
+    .cc-event-time {
+      font-size: 10.5px;
+      font-weight: 500;
+      font-variant-numeric: tabular-nums;
+      color: var(--text-dim);
+      margin-top: 2px;
+    }
+
+    /* Event description */
+    .cc-event-desc {
+      font-size: 12px;
+      color: var(--text);
+      opacity: 0.85;
+      margin-top: 2px;
+    }
+
+    /* Category tag */
+    .cc-category-tag {
+      font-size: 10px;
+      padding: 1px 7px;
+      border-radius: 20px;
+      background: rgba(127,127,127,0.08);
+      color: var(--text-dim);
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    /* Severity badge */
+    .cc-severity {
+      height: 16px;
+      padding: 0 7px;
+      border-radius: 20px;
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+      color: #fff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      display: inline-flex;
+      align-items: center;
+      line-height: 1;
+      white-space: nowrap;
+    }
+    .cc-severity-critical { background: #D32F2F; }
+    .cc-severity-warning { background: #FF9800; }
+    .cc-severity-info { background: #2196F3; }
+    .cc-severity-debug { background: #9E9E9E; }
+
+    /* Thumbnail */
+    .cc-thumbnail {
+      width: 52px;
+      height: 52px;
+      border-radius: 10px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      background: linear-gradient(135deg, #1a1a2e, #16213e);
+    }
+
+    /* Event group */
+    .cc-group-row {
+      display: flex;
+      align-items: flex-start;
+      padding: 4px 12px;
+      position: relative;
+    }
+    .cc-group-icon-wrap {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-right: 8px;
+      margin-top: 9px;
+      z-index: 2;
+      color: #fff;
+      font-size: 15px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+      position: relative;
+      cursor: pointer;
+    }
+    .cc-group-count-badge {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--blue);
+      color: #fff;
+      font-size: 9px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid var(--surface-2);
+      line-height: 1;
+    }
+    .cc-group-header {
+      flex: 1;
+      padding: 9px 10px;
+      border-radius: 12px;
+      border: 1px solid transparent;
+      transition: all 0.15s ease;
+      cursor: pointer;
+      min-width: 0;
+    }
+    .cc-group-header:hover {
+      background: rgba(127,127,127,0.05);
+      border-color: rgba(127,127,127,0.08);
+      box-shadow: 0 1px 6px rgba(0,0,0,0.04);
+    }
+    .cc-group-title-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .cc-group-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .cc-group-time {
+      font-size: 10.5px;
+      font-weight: 500;
+      color: var(--text-dim);
+      margin-top: 2px;
+    }
+    .cc-group-chevron {
+      margin-left: auto;
+      color: var(--text-dim);
+      transition: transform 0.25s ease;
+      flex-shrink: 0;
+    }
+    .cc-group-chevron.cc-expanded {
+      transform: rotate(180deg);
+    }
+    .cc-group-children {
+      margin-left: 42px;
+      border-left: 2px solid var(--border);
+      overflow: hidden;
+      max-height: 0;
+      opacity: 0;
+      transition: max-height 0.3s ease, opacity 0.25s ease, padding 0.25s ease;
+    }
+    .cc-group-children.cc-expanded {
+      max-height: 300px;
+      opacity: 1;
+      padding: 4px 0;
+    }
+    .cc-group-child {
+      display: flex;
+      align-items: center;
+      padding: 6px 12px;
+      gap: 8px;
+      cursor: pointer;
+      border-radius: 8px;
+      transition: background 0.15s;
+    }
+    .cc-group-child:hover {
+      background: rgba(127,127,127,0.05);
+    }
+    .cc-group-child-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .cc-group-child-title {
+      font-size: 12px;
+      color: var(--text);
+      flex: 1;
+    }
+    .cc-group-child-time {
+      font-size: 10px;
+      color: var(--text-dim);
+      font-variant-numeric: tabular-nums;
+    }
+    .cc-group-child-source {
+      font-size: 10px;
+      color: var(--text-faint);
+    }
+
+    /* Detail dialog */
+    .cc-dialog-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      z-index: 10000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+    .cc-dialog-overlay.cc-visible {
+      display: flex;
+      opacity: 1;
+    }
+    .cc-dialog {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      box-shadow: 0 12px 48px rgba(0,0,0,0.18);
+      max-width: 460px;
+      width: calc(100% - 32px);
+      max-height: 90vh;
+      overflow-y: auto;
+      transform: scale(0.95) translateY(10px);
+      transition: transform 0.25s ease;
+      position: relative;
+    }
+    .cc-dialog-overlay.cc-visible .cc-dialog {
+      transform: scale(1) translateY(0);
+    }
+    .cc-dialog-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: none;
+      background: var(--surface-3);
+      color: var(--text-dim);
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+      z-index: 1;
+    }
+    .cc-dialog-close:hover {
+      background: var(--surface-4);
+      color: var(--text);
+    }
+    .cc-dialog-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 24px 24px 16px;
+    }
+    .cc-dialog-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 18px;
+      flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    .cc-dialog-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .cc-dialog-time {
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-top: 2px;
+    }
+    .cc-dialog-tags {
+      display: flex;
+      gap: 8px;
+      padding: 0 24px 16px;
+      flex-wrap: wrap;
+    }
+    .cc-dialog-meta {
+      margin: 0 24px 24px;
+      background: var(--surface-3);
+      border-radius: 12px;
+      padding: 2px 0;
+      overflow: hidden;
+    }
+    .cc-dialog-meta-row {
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      padding: 10px 16px;
+      font-size: 13px;
+      border-bottom: 1px solid var(--border);
+    }
+    .cc-dialog-meta-row:last-child {
+      border-bottom: none;
+    }
+    .cc-dialog-meta-label {
+      color: var(--text-dim);
+      font-weight: 500;
+    }
+    .cc-dialog-meta-value {
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+    }
+
+    /* Animated events in hero */
+    .cc-event-row, .cc-group-row {
+      animation: cc-slideIn 0.4s ease both;
+    }
+    .cc-event-row:nth-child(1), .cc-group-row:nth-child(1) { animation-delay: 0.7s; }
+    .cc-event-row:nth-child(2), .cc-group-row:nth-child(2) { animation-delay: 0.85s; }
+    .cc-event-row:nth-child(3), .cc-group-row:nth-child(3) { animation-delay: 1.0s; }
+    .cc-event-row:nth-child(4), .cc-group-row:nth-child(4) { animation-delay: 1.15s; }
+    .cc-event-row:nth-child(5), .cc-group-row:nth-child(5) { animation-delay: 1.3s; }
+    .cc-date-header { animation: cc-slideIn 0.4s ease 0.6s both; }
+    @keyframes cc-slideIn {
+      from { opacity: 0; transform: translateX(-16px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    /* Use cases section */
+    .cc-usecase-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+    .cc-usecase-item {
+      perspective: 1000px;
+    }
+    .cc-usecase-card-wrap {
+      position: relative;
+      transition: transform 0.4s ease;
+      transform-style: preserve-3d;
+    }
+    .cc-usecase-card-wrap:hover {
+      transform: rotateX(-2deg) translateY(-6px);
+    }
+    .cc-usecase-glow {
+      position: absolute;
+      inset: -20px;
+      border-radius: 30px;
+      opacity: 0.15;
+      filter: blur(30px);
+      z-index: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+    .cc-usecase-card-wrap:hover .cc-usecase-glow {
+      opacity: 0.25;
+    }
+    .cc-usecase-inner {
+      position: relative;
+      z-index: 1;
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .cc-usecase-label {
+      padding: 20px 20px 0;
+    }
+    .cc-usecase-tag {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .cc-usecase-info {
+      padding: 16px 20px 20px;
+    }
+    .cc-usecase-info h3 {
+      font-size: 17px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      color: var(--text);
+    }
+    .cc-usecase-info p {
+      font-size: 14px;
+      color: var(--text-dim);
+      line-height: 1.6;
+    }
+
+    /* Use case mini timeline events (interactive) */
+    .cc-uc-timeline {
+      padding: 8px 0;
+      position: relative;
+    }
+    .cc-uc-timeline::before {
+      content: '';
+      position: absolute;
+      left: 16px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: rgba(127,127,127,0.15);
+      mask-image: linear-gradient(to bottom, transparent, black 12px, black calc(100% - 12px), transparent);
+      -webkit-mask-image: linear-gradient(to bottom, transparent, black 12px, black calc(100% - 12px), transparent);
+    }
+    .cc-uc-event {
+      display: flex;
+      align-items: flex-start;
+      padding: 3px 12px;
+      position: relative;
+    }
+    .cc-uc-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-right: 8px;
+      margin-top: 5px;
+      z-index: 2;
+      color: #fff;
+      font-size: 11px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    }
+    .cc-uc-body {
+      flex: 1;
+      padding: 5px 8px;
+      border-radius: 10px;
+      border: 1px solid transparent;
+      transition: all 0.15s ease;
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .cc-uc-body:hover {
+      background: rgba(127,127,127,0.05);
+      border-color: rgba(127,127,127,0.08);
+    }
+    .cc-uc-text {
+      flex: 1;
+      min-width: 0;
+    }
+    .cc-uc-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: -0.1px;
+    }
+    .cc-uc-source {
+      font-size: 10px;
+      color: var(--text-dim);
+      margin-top: 1px;
+    }
+    .cc-uc-time {
+      font-size: 10px;
+      color: var(--text-faint);
+      font-variant-numeric: tabular-nums;
+      flex-shrink: 0;
+    }
+
+    /* Footer heart link */
+    .cc-heart-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      color: var(--text-dim);
+      font-size: 13px;
+      text-decoration: none;
+      transition: color 0.2s;
+      margin-top: 4px;
+    }
+    .cc-heart-link:hover { color: #e91e63; }
+
+    /* Responsive for hero composition */
+    @media (max-width: 900px) {
+      .cc-bg-card-left, .cc-bg-card-right {
+        display: none;
+      }
+      .cc-main-card-wrap {
+        width: 100%;
+        max-width: 520px;
+      }
+      .cc-usecase-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    @media (max-width: 640px) {
+      .cc-hero-composition {
+        min-height: auto;
+      }
+      .cc-main-card-wrap {
+        transform: none;
+      }
+      .cc-main-card-wrap:hover {
+        transform: none;
+      }
+    }
   </style>
 </head>
 <body>
@@ -957,85 +1662,239 @@
       </a>
     </div>
 
-    <!-- Mock HA Card -->
-    <div class="hero-card-wrapper">
-      <div class="hero-card">
-        <div class="card-header">
-          <div class="card-header-title">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            Home Timeline
-          </div>
-          <div class="card-header-actions">
-            <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></span>
-            <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span>
-          </div>
-        </div>
-        <div class="timeline-body">
-          <div class="tl-event">
-            <div class="tl-line"></div>
-            <div class="tl-dot" style="background:rgba(255,152,0,0.15);color:var(--orange)">👤</div>
-            <div class="tl-content">
-              <div class="tl-title">Person Detected <span class="tl-severity" style="background:rgba(255,152,0,0.15);color:var(--orange)">Warning</span></div>
-              <div class="tl-meta">
-                <span>Front Porch Camera</span>
-                <span>·</span>
-                <span>2 min ago</span>
-              </div>
-            </div>
-            <div class="tl-thumbnail" style="background: linear-gradient(135deg, #1a1a2e, #16213e); display: flex; align-items: center; justify-content: center; font-size: 16px;">📷</div>
-          </div>
-          <div class="tl-event">
-            <div class="tl-line"></div>
-            <div class="tl-dot" style="background:rgba(121,85,72,0.15);color:var(--brown)">🚪</div>
-            <div class="tl-content">
-              <div class="tl-title">Front Door Opened</div>
-              <div class="tl-meta">
-                <span>binary_sensor.front_door</span>
-                <span>·</span>
-                <span>5 min ago</span>
-              </div>
+    <!-- Showcase Composition -->
+    <div class="cc-hero-composition">
+
+      <!-- Left background card (blurred, static) -->
+      <div class="cc-bg-card-left">
+        <div class="cc-card">
+          <div class="cc-card-header">
+            <div class="cc-card-header-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              Security
             </div>
           </div>
-          <div class="tl-event">
-            <div class="tl-line"></div>
-            <div class="tl-dot" style="background:rgba(33,150,243,0.15);color:var(--blue)">🚗</div>
-            <div class="tl-content">
-              <div class="tl-title">Vehicle Detected <span class="tl-severity" style="background:rgba(33,150,243,0.15);color:var(--blue)">Info</span></div>
-              <div class="tl-meta">
-                <span>Driveway Camera</span>
-                <span>·</span>
-                <span>12 min ago</span>
-              </div>
+          <div style="padding:8px 0;">
+            <div style="display:flex;align-items:center;padding:4px 12px;gap:8px;">
+              <div style="width:28px;height:28px;border-radius:50%;background:#D32F2F;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;box-shadow:0 1px 3px rgba(0,0,0,0.12);">🔒</div>
+              <div style="flex:1;"><div style="font-size:11px;font-weight:600;color:var(--text);">Alarm Armed</div><div style="font-size:9px;color:var(--text-dim);">08:15</div></div>
             </div>
-            <div class="tl-thumbnail" style="background: linear-gradient(135deg, #0f3460, #16213e); display: flex; align-items: center; justify-content: center; font-size: 16px;">📷</div>
-          </div>
-          <div class="tl-event">
-            <div class="tl-line"></div>
-            <div class="tl-dot" style="background:rgba(156,39,176,0.15);color:var(--purple)">🏃</div>
-            <div class="tl-content">
-              <div class="tl-title">Motion Detected</div>
-              <div class="tl-meta">
-                <span>Backyard Sensor</span>
-                <span>·</span>
-                <span>18 min ago</span>
-              </div>
+            <div style="display:flex;align-items:center;padding:4px 12px;gap:8px;">
+              <div style="width:28px;height:28px;border-radius:50%;background:#795548;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;box-shadow:0 1px 3px rgba(0,0,0,0.12);">🚪</div>
+              <div style="flex:1;"><div style="font-size:11px;font-weight:600;color:var(--text);">Front Door Locked</div><div style="font-size:9px;color:var(--text-dim);">08:14</div></div>
             </div>
-          </div>
-          <div class="tl-event">
-            <div class="tl-line"></div>
-            <div class="tl-dot" style="background:rgba(76,175,80,0.15);color:var(--green)">📅</div>
-            <div class="tl-content">
-              <div class="tl-title">Team Standup</div>
-              <div class="tl-meta">
-                <span>calendar.work</span>
-                <span>·</span>
-                <span>45 min ago</span>
-              </div>
+            <div style="display:flex;align-items:center;padding:4px 12px;gap:8px;">
+              <div style="width:28px;height:28px;border-radius:50%;background:#9C27B0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;box-shadow:0 1px 3px rgba(0,0,0,0.12);">🏃</div>
+              <div style="flex:1;"><div style="font-size:11px;font-weight:600;color:var(--text);">Motion — Hallway</div><div style="font-size:9px;color:var(--text-dim);">08:13</div></div>
+            </div>
+            <div style="display:flex;align-items:center;padding:4px 12px;gap:8px;">
+              <div style="width:28px;height:28px;border-radius:50%;background:#795548;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;box-shadow:0 1px 3px rgba(0,0,0,0.12);">🚪</div>
+              <div style="flex:1;"><div style="font-size:11px;font-weight:600;color:var(--text);">Garage Closed</div><div style="font-size:9px;color:var(--text-dim);">08:10</div></div>
             </div>
           </div>
         </div>
       </div>
+
+      <!-- Right background card (blurred, static) -->
+      <div class="cc-bg-card-right">
+        <div class="cc-card">
+          <div class="cc-card-header">
+            <div class="cc-card-header-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round"><rect x="2" y="2" width="20" height="20" rx="2"/><circle cx="8" cy="8" r="2"/><path d="M21 15l-5-5L5 21"/></svg>
+              Cameras
+            </div>
+          </div>
+          <div style="padding:8px 0;">
+            <div style="display:flex;align-items:center;padding:4px 12px;gap:8px;">
+              <div style="width:28px;height:28px;border-radius:50%;background:#FF9800;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;">👤</div>
+              <div style="flex:1;"><div style="font-size:11px;font-weight:600;color:var(--text);">Person — Porch</div><div style="font-size:9px;color:var(--text-dim);">14:32</div></div>
+            </div>
+            <div style="display:flex;align-items:center;padding:4px 12px;gap:8px;">
+              <div style="width:28px;height:28px;border-radius:50%;background:#2196F3;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;">🚗</div>
+              <div style="flex:1;"><div style="font-size:11px;font-weight:600;color:var(--text);">Vehicle — Driveway</div><div style="font-size:9px;color:var(--text-dim);">14:30</div></div>
+            </div>
+            <div style="display:flex;align-items:center;padding:4px 12px;gap:8px;">
+              <div style="width:28px;height:28px;border-radius:50%;background:#43A047;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;">🐕</div>
+              <div style="flex:1;"><div style="font-size:11px;font-weight:600;color:var(--text);">Dog — Backyard</div><div style="font-size:9px;color:var(--text-dim);">13:45</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main card (foreground, interactive) -->
+      <div class="cc-main-card-wrap">
+        <div class="cc-card" id="cc-hero-card">
+          <div class="cc-card-header">
+            <div class="cc-card-header-title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              Home Timeline
+            </div>
+            <div class="cc-card-header-actions">
+              <span title="Grid view"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></span>
+              <span title="Timeline view"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span>
+            </div>
+          </div>
+          <div class="cc-timeline-body">
+            <div class="cc-timeline-line"></div>
+
+            <!-- TODAY header -->
+            <div class="cc-date-header">
+              <span class="cc-date-label">Today</span>
+              <span class="cc-date-line"></span>
+              <span class="cc-date-count">8</span>
+            </div>
+
+            <!-- Event 1: Person Detected -->
+            <div class="cc-event-row" data-event="person">
+              <div class="cc-icon-wrap" style="background-color:#FF9800;">👤</div>
+              <div class="cc-event-item">
+                <div class="cc-event-item-text">
+                  <div class="cc-event-title">
+                    Person Detected
+                    <span class="cc-severity cc-severity-warning">Warning</span>
+                  </div>
+                  <div class="cc-event-time">2 min ago · Front Porch Camera</div>
+                  <div class="cc-event-desc">Confidence: 94%</div>
+                </div>
+                <div class="cc-thumbnail">📷</div>
+              </div>
+            </div>
+
+            <!-- Event 2: Front Door Opened -->
+            <div class="cc-event-row" data-event="door">
+              <div class="cc-icon-wrap" style="background-color:#795548;">🚪</div>
+              <div class="cc-event-item">
+                <div class="cc-event-item-text">
+                  <div class="cc-event-title">
+                    Front Door Opened
+                    <span class="cc-category-tag">door</span>
+                  </div>
+                  <div class="cc-event-time">5 min ago · binary_sensor.front_door</div>
+                  <div class="cc-event-desc">State: on &rarr; off (12s)</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Event 3: Vehicle Detected -->
+            <div class="cc-event-row" data-event="vehicle">
+              <div class="cc-icon-wrap" style="background-color:#2196F3;">🚗</div>
+              <div class="cc-event-item">
+                <div class="cc-event-item-text">
+                  <div class="cc-event-title">
+                    Vehicle Detected
+                    <span class="cc-severity cc-severity-info">Info</span>
+                  </div>
+                  <div class="cc-event-time">12 min ago · Driveway Camera</div>
+                  <div class="cc-event-desc">Zone: driveway</div>
+                </div>
+                <div class="cc-thumbnail" style="background:linear-gradient(135deg, #0f3460, #16213e);">📷</div>
+              </div>
+            </div>
+
+            <!-- Event 4: Motion Group (expandable) -->
+            <div class="cc-group-row">
+              <div class="cc-group-icon-wrap" style="background-color:#9C27B0;" onclick="ccToggleGroup(this)">
+                🏃
+                <span class="cc-group-count-badge">3</span>
+              </div>
+              <div class="cc-group-header" onclick="ccToggleGroup(this)">
+                <div class="cc-group-title-row">
+                  <div>
+                    <div class="cc-group-title">3 &times; Motion Detected</div>
+                    <div class="cc-group-time">14:22 &mdash; 14:25</div>
+                  </div>
+                  <svg class="cc-group-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+              </div>
+            </div>
+            <div class="cc-group-children" id="cc-motion-group">
+              <div class="cc-group-child" data-event="motion-backyard">
+                <div class="cc-group-child-dot" style="background:#9C27B0;"></div>
+                <span class="cc-group-child-title">Motion &mdash; Backyard</span>
+                <span class="cc-group-child-source">binary_sensor.backyard_motion</span>
+                <span class="cc-group-child-time">14:25</span>
+              </div>
+              <div class="cc-group-child" data-event="motion-hallway">
+                <div class="cc-group-child-dot" style="background:#9C27B0;"></div>
+                <span class="cc-group-child-title">Motion &mdash; Hallway</span>
+                <span class="cc-group-child-source">binary_sensor.hallway_motion</span>
+                <span class="cc-group-child-time">14:23</span>
+              </div>
+              <div class="cc-group-child" data-event="motion-garage">
+                <div class="cc-group-child-dot" style="background:#9C27B0;"></div>
+                <span class="cc-group-child-title">Motion &mdash; Garage</span>
+                <span class="cc-group-child-source">binary_sensor.garage_motion</span>
+                <span class="cc-group-child-time">14:22</span>
+              </div>
+            </div>
+
+            <!-- Event 5: Team Standup -->
+            <div class="cc-event-row" data-event="standup">
+              <div class="cc-icon-wrap" style="background-color:#43A047;">📅</div>
+              <div class="cc-event-item">
+                <div class="cc-event-item-text">
+                  <div class="cc-event-title">
+                    Team Standup
+                    <span class="cc-category-tag">calendar.work</span>
+                  </div>
+                  <div class="cc-event-time">45 min ago · calendar.work</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- YESTERDAY header -->
+            <div class="cc-date-header" style="animation-delay:1.4s;">
+              <span class="cc-date-label">Yesterday</span>
+              <span class="cc-date-line"></span>
+              <span class="cc-date-count">12</span>
+            </div>
+
+            <!-- Partially visible yesterday events -->
+            <div class="cc-event-row" style="animation-delay:1.5s;" data-event="package">
+              <div class="cc-icon-wrap" style="background-color:#FF9800;">📦</div>
+              <div class="cc-event-item">
+                <div class="cc-event-item-text">
+                  <div class="cc-event-title">
+                    Package Delivered
+                    <span class="cc-severity cc-severity-info">Info</span>
+                  </div>
+                  <div class="cc-event-time">Yesterday 16:42 · Front Door Camera</div>
+                </div>
+                <div class="cc-thumbnail" style="background:linear-gradient(135deg, #1a1a2e, #0f3460);">📷</div>
+              </div>
+            </div>
+
+            <div class="cc-event-row" style="animation-delay:1.6s;opacity:0.5;" data-event="hvac">
+              <div class="cc-icon-wrap" style="background-color:#00BCD4;">🌡️</div>
+              <div class="cc-event-item">
+                <div class="cc-event-item-text">
+                  <div class="cc-event-title">HVAC Mode Changed</div>
+                  <div class="cc-event-time">Yesterday 15:30 · climate.living_room</div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
     </div>
+
+    <!-- Detail Dialog -->
+    <div class="cc-dialog-overlay" id="cc-dialog-overlay">
+      <div class="cc-dialog" id="cc-dialog">
+        <button class="cc-dialog-close" onclick="ccCloseDialog()">&times;</button>
+        <div class="cc-dialog-header">
+          <div class="cc-dialog-icon" id="cc-dialog-icon"></div>
+          <div>
+            <div class="cc-dialog-title" id="cc-dialog-title"></div>
+            <div class="cc-dialog-time" id="cc-dialog-time"></div>
+          </div>
+        </div>
+        <div class="cc-dialog-tags" id="cc-dialog-tags"></div>
+        <div class="cc-dialog-meta" id="cc-dialog-meta"></div>
+      </div>
+    </div>
+
   </section>
 
   <!-- FEATURES BENTO -->
@@ -1278,117 +2137,191 @@
       <p class="section-subtitle">A few examples of how Chronicle Card works across different setups.</p>
     </div>
 
-    <div class="usecase-grid">
-      <div class="usecase-card reveal">
-        <div class="usecase-visual" style="background: linear-gradient(135deg, #1a0a00, #2d1600);">
-          <div class="mini-tl">
-            <div class="mini-tl-item">
-              <div class="mini-tl-dot" style="background:rgba(244,67,54,0.2);color:var(--red)">🔒</div>
-              <span class="mini-tl-text">Alarm Armed — Away</span>
-              <span class="mini-tl-time">08:15</span>
-            </div>
-            <div class="mini-tl-item">
-              <div class="mini-tl-dot" style="background:rgba(121,85,72,0.2);color:var(--brown)">🚪</div>
-              <span class="mini-tl-text">Front Door Locked</span>
-              <span class="mini-tl-time">08:14</span>
-            </div>
-            <div class="mini-tl-item">
-              <div class="mini-tl-dot" style="background:rgba(121,85,72,0.2);color:var(--brown)">🚪</div>
-              <span class="mini-tl-text">Front Door Closed</span>
-              <span class="mini-tl-time">08:14</span>
-            </div>
-            <div class="mini-tl-item">
-              <div class="mini-tl-dot" style="background:rgba(156,39,176,0.2);color:var(--purple)">🏃</div>
-              <span class="mini-tl-text">Motion — Hallway</span>
-              <span class="mini-tl-time">08:13</span>
-            </div>
-            <div class="mini-tl-item">
-              <div class="mini-tl-dot" style="background:rgba(121,85,72,0.2);color:var(--brown)">🚪</div>
-              <span class="mini-tl-text">Garage Door Closed</span>
-              <span class="mini-tl-time">08:10</span>
+    <div class="cc-usecase-grid">
+
+      <!-- Security -->
+      <div class="cc-usecase-item reveal">
+        <div class="cc-usecase-card-wrap">
+          <div class="cc-usecase-glow" style="background:radial-gradient(circle, rgba(211,47,47,0.4), transparent 70%);"></div>
+          <div class="cc-usecase-inner">
+            <div class="cc-card">
+              <div class="cc-card-header">
+                <div class="cc-card-header-title">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#D32F2F" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                  Security
+                </div>
+              </div>
+              <div class="cc-usecase-label">
+                <span class="cc-usecase-tag" style="background:rgba(211,47,47,0.12);color:#D32F2F;">Security</span>
+              </div>
+              <div class="cc-uc-timeline">
+                <div class="cc-uc-event">
+                  <div class="cc-uc-icon" style="background:#D32F2F;">🔒</div>
+                  <div class="cc-uc-body">
+                    <div class="cc-uc-text"><div class="cc-uc-title">Alarm Armed &mdash; Away</div><div class="cc-uc-source">alarm_control_panel.home</div></div>
+                    <span class="cc-uc-time">08:15</span>
+                  </div>
+                </div>
+                <div class="cc-uc-event">
+                  <div class="cc-uc-icon" style="background:#795548;">🚪</div>
+                  <div class="cc-uc-body">
+                    <div class="cc-uc-text"><div class="cc-uc-title">Front Door Locked</div><div class="cc-uc-source">lock.front_door</div></div>
+                    <span class="cc-uc-time">08:14</span>
+                  </div>
+                </div>
+                <div class="cc-uc-event">
+                  <div class="cc-uc-icon" style="background:#795548;">🚪</div>
+                  <div class="cc-uc-body">
+                    <div class="cc-uc-text"><div class="cc-uc-title">Front Door Closed</div><div class="cc-uc-source">binary_sensor.front_door</div></div>
+                    <span class="cc-uc-time">08:14</span>
+                  </div>
+                </div>
+                <div class="cc-uc-event">
+                  <div class="cc-uc-icon" style="background:#9C27B0;">🏃</div>
+                  <div class="cc-uc-body">
+                    <div class="cc-uc-text"><div class="cc-uc-title">Motion &mdash; Hallway</div><div class="cc-uc-source">binary_sensor.hallway_motion</div></div>
+                    <span class="cc-uc-time">08:13</span>
+                  </div>
+                </div>
+                <div class="cc-uc-event">
+                  <div class="cc-uc-icon" style="background:#795548;">🚪</div>
+                  <div class="cc-uc-body">
+                    <div class="cc-uc-text"><div class="cc-uc-title">Garage Door Closed</div><div class="cc-uc-source">cover.garage_door</div></div>
+                    <span class="cc-uc-time">08:10</span>
+                  </div>
+                </div>
+              </div>
+              <div class="cc-usecase-info">
+                <h3>Security Timeline</h3>
+                <p>Track every door, lock, motion sensor, and alarm event. Filter by severity to focus on what matters.</p>
+              </div>
             </div>
           </div>
-        </div>
-        <div class="usecase-content">
-          <span class="usecase-tag" style="background:rgba(244,67,54,0.12);color:var(--red)">Security</span>
-          <h3>Security Timeline</h3>
-          <p>Track every door, lock, motion sensor, and alarm event. Filter by severity to focus on what matters.</p>
         </div>
       </div>
 
-      <div class="usecase-card reveal reveal-delay-1">
-        <div class="usecase-visual" style="background: linear-gradient(135deg, #001529, #002040);">
-          <div class="mini-tl">
-            <div class="mini-tl-item">
-              <div class="mini-tl-dot" style="background:rgba(255,152,0,0.2);color:var(--orange)">👤</div>
-              <span class="mini-tl-text">Person — Front Porch</span>
-              <span class="mini-tl-time">14:32</span>
-            </div>
-            <div class="mini-tl-item">
-              <div class="mini-tl-dot" style="background:rgba(33,150,243,0.2);color:var(--blue)">🚗</div>
-              <span class="mini-tl-text">Vehicle — Driveway</span>
-              <span class="mini-tl-time">14:30</span>
-            </div>
-            <div class="mini-tl-item">
-              <div class="mini-tl-dot" style="background:rgba(67,160,71,0.2);color:var(--green)">🐕</div>
-              <span class="mini-tl-text">Dog — Backyard</span>
-              <span class="mini-tl-time">13:45</span>
-            </div>
-            <div class="mini-tl-item">
-              <div class="mini-tl-dot" style="background:rgba(255,152,0,0.2);color:var(--orange)">📦</div>
-              <span class="mini-tl-text">Package — Front Door</span>
-              <span class="mini-tl-time">11:20</span>
-            </div>
-            <div class="mini-tl-item">
-              <div class="mini-tl-dot" style="background:rgba(255,152,0,0.2);color:var(--orange)">👤</div>
-              <span class="mini-tl-text">Person — Side Gate</span>
-              <span class="mini-tl-time">09:05</span>
+      <!-- Cameras -->
+      <div class="cc-usecase-item reveal reveal-delay-1">
+        <div class="cc-usecase-card-wrap">
+          <div class="cc-usecase-glow" style="background:radial-gradient(circle, rgba(33,150,243,0.4), transparent 70%);"></div>
+          <div class="cc-usecase-inner">
+            <div class="cc-card">
+              <div class="cc-card-header">
+                <div class="cc-card-header-title">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2196F3" stroke-width="2" stroke-linecap="round"><rect x="2" y="2" width="20" height="20" rx="2"/><circle cx="8" cy="8" r="2"/><path d="M21 15l-5-5L5 21"/></svg>
+                  Cameras
+                </div>
+              </div>
+              <div class="cc-usecase-label">
+                <span class="cc-usecase-tag" style="background:rgba(33,150,243,0.12);color:#2196F3;">Cameras</span>
+              </div>
+              <div class="cc-uc-timeline">
+                <div class="cc-uc-event">
+                  <div class="cc-uc-icon" style="background:#FF9800;">👤</div>
+                  <div class="cc-uc-body">
+                    <div class="cc-uc-text"><div class="cc-uc-title">Person &mdash; Front Porch</div><div class="cc-uc-source">camera.front_porch</div></div>
+                    <span class="cc-uc-time">14:32</span>
+                  </div>
+                </div>
+                <div class="cc-uc-event">
+                  <div class="cc-uc-icon" style="background:#2196F3;">🚗</div>
+                  <div class="cc-uc-body">
+                    <div class="cc-uc-text"><div class="cc-uc-title">Vehicle &mdash; Driveway</div><div class="cc-uc-source">camera.driveway</div></div>
+                    <span class="cc-uc-time">14:30</span>
+                  </div>
+                </div>
+                <div class="cc-uc-event">
+                  <div class="cc-uc-icon" style="background:#43A047;">🐕</div>
+                  <div class="cc-uc-body">
+                    <div class="cc-uc-text"><div class="cc-uc-title">Dog &mdash; Backyard</div><div class="cc-uc-source">camera.backyard</div></div>
+                    <span class="cc-uc-time">13:45</span>
+                  </div>
+                </div>
+                <div class="cc-uc-event">
+                  <div class="cc-uc-icon" style="background:#FF9800;">📦</div>
+                  <div class="cc-uc-body">
+                    <div class="cc-uc-text"><div class="cc-uc-title">Package &mdash; Front Door</div><div class="cc-uc-source">camera.front_door</div></div>
+                    <span class="cc-uc-time">11:20</span>
+                  </div>
+                </div>
+                <div class="cc-uc-event">
+                  <div class="cc-uc-icon" style="background:#FF9800;">👤</div>
+                  <div class="cc-uc-body">
+                    <div class="cc-uc-text"><div class="cc-uc-title">Person &mdash; Side Gate</div><div class="cc-uc-source">camera.side_gate</div></div>
+                    <span class="cc-uc-time">09:05</span>
+                  </div>
+                </div>
+              </div>
+              <div class="cc-usecase-info">
+                <h3>Frigate Camera Events</h3>
+                <p>Frigate detections flow in via WebSocket with thumbnails. Person, vehicle, pet &mdash; all auto-categorized.</p>
+              </div>
             </div>
           </div>
-        </div>
-        <div class="usecase-content">
-          <span class="usecase-tag" style="background:rgba(33,150,243,0.12);color:var(--blue)">Cameras</span>
-          <h3>Frigate Camera Events</h3>
-          <p>Frigate detections flow in via WebSocket with thumbnails. Person, vehicle, pet — all auto-categorized with icons.</p>
         </div>
       </div>
 
-      <div class="usecase-card reveal reveal-delay-2">
-        <div class="usecase-visual" style="background: linear-gradient(135deg, #0d1f0d, #1a2e1a);">
-          <div class="mini-tl">
-            <div class="mini-tl-item">
-              <div class="mini-tl-dot" style="background:rgba(76,175,80,0.2);color:var(--green)">📅</div>
-              <span class="mini-tl-text">Team Standup</span>
-              <span class="mini-tl-time">09:00</span>
-            </div>
-            <div class="mini-tl-item">
-              <div class="mini-tl-dot" style="background:rgba(255,152,0,0.2);color:var(--orange)">👤</div>
-              <span class="mini-tl-text">Person — Driveway</span>
-              <span class="mini-tl-time">08:42</span>
-            </div>
-            <div class="mini-tl-item">
-              <div class="mini-tl-dot" style="background:rgba(121,85,72,0.2);color:var(--brown)">🚪</div>
-              <span class="mini-tl-text">Front Door Opened</span>
-              <span class="mini-tl-time">08:30</span>
-            </div>
-            <div class="mini-tl-item">
-              <div class="mini-tl-dot" style="background:rgba(0,188,212,0.2);color:var(--teal)">🌡️</div>
-              <span class="mini-tl-text">HVAC → Cooling</span>
-              <span class="mini-tl-time">08:15</span>
-            </div>
-            <div class="mini-tl-item">
-              <div class="mini-tl-dot" style="background:rgba(255,193,7,0.2);color:var(--yellow)">💡</div>
-              <span class="mini-tl-text">Kitchen Lights On</span>
-              <span class="mini-tl-time">07:00</span>
+      <!-- Multi-Source -->
+      <div class="cc-usecase-item reveal reveal-delay-2">
+        <div class="cc-usecase-card-wrap">
+          <div class="cc-usecase-glow" style="background:radial-gradient(circle, rgba(67,160,71,0.4), transparent 70%);"></div>
+          <div class="cc-usecase-inner">
+            <div class="cc-card">
+              <div class="cc-card-header">
+                <div class="cc-card-header-title">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#43A047" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+                  Everything
+                </div>
+              </div>
+              <div class="cc-usecase-label">
+                <span class="cc-usecase-tag" style="background:rgba(67,160,71,0.12);color:#43A047;">Multi-Source</span>
+              </div>
+              <div class="cc-uc-timeline">
+                <div class="cc-uc-event">
+                  <div class="cc-uc-icon" style="background:#43A047;">📅</div>
+                  <div class="cc-uc-body">
+                    <div class="cc-uc-text"><div class="cc-uc-title">Team Standup</div><div class="cc-uc-source">calendar.work</div></div>
+                    <span class="cc-uc-time">09:00</span>
+                  </div>
+                </div>
+                <div class="cc-uc-event">
+                  <div class="cc-uc-icon" style="background:#FF9800;">👤</div>
+                  <div class="cc-uc-body">
+                    <div class="cc-uc-text"><div class="cc-uc-title">Person &mdash; Driveway</div><div class="cc-uc-source">camera.driveway</div></div>
+                    <span class="cc-uc-time">08:42</span>
+                  </div>
+                </div>
+                <div class="cc-uc-event">
+                  <div class="cc-uc-icon" style="background:#795548;">🚪</div>
+                  <div class="cc-uc-body">
+                    <div class="cc-uc-text"><div class="cc-uc-title">Front Door Opened</div><div class="cc-uc-source">binary_sensor.front_door</div></div>
+                    <span class="cc-uc-time">08:30</span>
+                  </div>
+                </div>
+                <div class="cc-uc-event">
+                  <div class="cc-uc-icon" style="background:#00BCD4;">🌡️</div>
+                  <div class="cc-uc-body">
+                    <div class="cc-uc-text"><div class="cc-uc-title">HVAC &rarr; Cooling</div><div class="cc-uc-source">climate.living_room</div></div>
+                    <span class="cc-uc-time">08:15</span>
+                  </div>
+                </div>
+                <div class="cc-uc-event">
+                  <div class="cc-uc-icon" style="background:#FFC107;">💡</div>
+                  <div class="cc-uc-body">
+                    <div class="cc-uc-text"><div class="cc-uc-title">Kitchen Lights On</div><div class="cc-uc-source">light.kitchen</div></div>
+                    <span class="cc-uc-time">07:00</span>
+                  </div>
+                </div>
+              </div>
+              <div class="cc-usecase-info">
+                <h3>Smart Home Hub</h3>
+                <p>Combine calendars, cameras, sensors, and static events into one unified timeline view.</p>
+              </div>
             </div>
           </div>
         </div>
-        <div class="usecase-content">
-          <span class="usecase-tag" style="background:rgba(67,160,71,0.12);color:var(--green)">Multi-Source</span>
-          <h3>Smart Home Hub</h3>
-          <p>Combine calendars, cameras, sensors, and static events into one unified timeline view.</p>
-        </div>
       </div>
+
     </div>
   </section>
 
@@ -1537,6 +2470,7 @@
       <div class="footer-col">
         <h4>Support</h4>
         <a href="https://buymeacoffee.com/kadenthomp36" target="_blank">Buy Me a Coffee</a>
+        <a href="https://buymeacoffee.com/kadenthomp36" target="_blank" class="cc-heart-link" rel="noopener">&hearts; Support this project</a>
         <a href="https://github.com/KadenThomp36/chronicle-card/blob/main/LICENSE" target="_blank">MIT License</a>
       </div>
     </div>
@@ -1621,6 +2555,254 @@
 
     // Year
     document.getElementById('year').textContent = new Date().getFullYear();
+
+    // ===== CHRONICLE CARD INTERACTIVE FEATURES =====
+
+    // Event data for detail dialog
+    const ccEventData = {
+      person: {
+        title: 'Person Detected',
+        icon: '👤',
+        color: '#FF9800',
+        time: '2 min ago',
+        severity: 'warning',
+        category: 'person',
+        source: 'Front Porch Camera',
+        entity: 'camera.front_porch',
+        meta: [
+          ['Source', 'Frigate (WebSocket)'],
+          ['Entity', 'camera.front_porch'],
+          ['Confidence', '94%'],
+          ['Zone', 'front_porch'],
+          ['Duration', '—'],
+          ['Has Snapshot', 'Yes'],
+        ]
+      },
+      door: {
+        title: 'Front Door Opened',
+        icon: '🚪',
+        color: '#795548',
+        time: '5 min ago',
+        severity: 'info',
+        category: 'door',
+        source: 'binary_sensor.front_door',
+        entity: 'binary_sensor.front_door',
+        meta: [
+          ['Source', 'Entity History'],
+          ['Entity', 'binary_sensor.front_door'],
+          ['Device Class', 'door'],
+          ['Previous State', 'off'],
+          ['New State', 'on'],
+          ['Duration', '12s'],
+        ]
+      },
+      vehicle: {
+        title: 'Vehicle Detected',
+        icon: '🚗',
+        color: '#2196F3',
+        time: '12 min ago',
+        severity: 'info',
+        category: 'vehicle',
+        source: 'Driveway Camera',
+        entity: 'camera.driveway',
+        meta: [
+          ['Source', 'Frigate (WebSocket)'],
+          ['Entity', 'camera.driveway'],
+          ['Zone', 'driveway'],
+          ['Confidence', '87%'],
+          ['Duration', '—'],
+          ['Has Snapshot', 'Yes'],
+        ]
+      },
+      'motion-backyard': {
+        title: 'Motion — Backyard',
+        icon: '🏃',
+        color: '#9C27B0',
+        time: '14:25',
+        severity: 'info',
+        category: 'motion',
+        source: 'binary_sensor.backyard_motion',
+        entity: 'binary_sensor.backyard_motion',
+        meta: [
+          ['Source', 'Entity History'],
+          ['Entity', 'binary_sensor.backyard_motion'],
+          ['Device Class', 'motion'],
+          ['Previous State', 'off'],
+          ['New State', 'on'],
+        ]
+      },
+      'motion-hallway': {
+        title: 'Motion — Hallway',
+        icon: '🏃',
+        color: '#9C27B0',
+        time: '14:23',
+        severity: 'info',
+        category: 'motion',
+        source: 'binary_sensor.hallway_motion',
+        entity: 'binary_sensor.hallway_motion',
+        meta: [
+          ['Source', 'Entity History'],
+          ['Entity', 'binary_sensor.hallway_motion'],
+          ['Device Class', 'motion'],
+          ['Previous State', 'off'],
+          ['New State', 'on'],
+        ]
+      },
+      'motion-garage': {
+        title: 'Motion — Garage',
+        icon: '🏃',
+        color: '#9C27B0',
+        time: '14:22',
+        severity: 'info',
+        category: 'motion',
+        source: 'binary_sensor.garage_motion',
+        entity: 'binary_sensor.garage_motion',
+        meta: [
+          ['Source', 'Entity History'],
+          ['Entity', 'binary_sensor.garage_motion'],
+          ['Device Class', 'motion'],
+          ['Previous State', 'off'],
+          ['New State', 'on'],
+        ]
+      },
+      standup: {
+        title: 'Team Standup',
+        icon: '📅',
+        color: '#43A047',
+        time: '45 min ago',
+        severity: 'info',
+        category: 'calendar',
+        source: 'calendar.work',
+        entity: 'calendar.work',
+        meta: [
+          ['Source', 'Calendar'],
+          ['Entity', 'calendar.work'],
+          ['Start', '09:00 AM'],
+          ['End', '09:15 AM'],
+          ['All Day', 'No'],
+        ]
+      },
+      package: {
+        title: 'Package Delivered',
+        icon: '📦',
+        color: '#FF9800',
+        time: 'Yesterday 16:42',
+        severity: 'info',
+        category: 'person',
+        source: 'Front Door Camera',
+        entity: 'camera.front_door',
+        meta: [
+          ['Source', 'Frigate (WebSocket)'],
+          ['Entity', 'camera.front_door'],
+          ['Zone', 'front_porch'],
+          ['Confidence', '91%'],
+          ['Has Snapshot', 'Yes'],
+        ]
+      },
+      hvac: {
+        title: 'HVAC Mode Changed',
+        icon: '🌡️',
+        color: '#00BCD4',
+        time: 'Yesterday 15:30',
+        severity: 'info',
+        category: 'climate',
+        source: 'climate.living_room',
+        entity: 'climate.living_room',
+        meta: [
+          ['Source', 'Entity History'],
+          ['Entity', 'climate.living_room'],
+          ['Previous Mode', 'heat'],
+          ['New Mode', 'cool'],
+          ['Target Temp', '72°F'],
+        ]
+      },
+    };
+
+    // Severity class map
+    const ccSeverityClass = {
+      critical: 'cc-severity-critical',
+      warning: 'cc-severity-warning',
+      info: 'cc-severity-info',
+      debug: 'cc-severity-debug',
+    };
+
+    // Open detail dialog
+    function ccOpenDialog(eventKey) {
+      const data = ccEventData[eventKey];
+      if (!data) return;
+
+      const overlay = document.getElementById('cc-dialog-overlay');
+      const iconEl = document.getElementById('cc-dialog-icon');
+      const titleEl = document.getElementById('cc-dialog-title');
+      const timeEl = document.getElementById('cc-dialog-time');
+      const tagsEl = document.getElementById('cc-dialog-tags');
+      const metaEl = document.getElementById('cc-dialog-meta');
+
+      iconEl.textContent = data.icon;
+      iconEl.style.backgroundColor = data.color;
+      titleEl.textContent = data.title;
+      timeEl.textContent = data.time + ' · ' + data.source;
+
+      // Tags
+      const sevClass = ccSeverityClass[data.severity] || 'cc-severity-info';
+      tagsEl.innerHTML =
+        '<span class="cc-severity ' + sevClass + '">' + data.severity.toUpperCase() + '</span>' +
+        '<span class="cc-category-tag">' + data.category + '</span>';
+
+      // Meta table
+      metaEl.innerHTML = data.meta.map(function(row) {
+        return '<div class="cc-dialog-meta-row">' +
+          '<span class="cc-dialog-meta-label">' + row[0] + '</span>' +
+          '<span class="cc-dialog-meta-value">' + row[1] + '</span>' +
+          '</div>';
+      }).join('');
+
+      overlay.classList.add('cc-visible');
+      document.body.style.overflow = 'hidden';
+    }
+
+    // Close detail dialog
+    function ccCloseDialog() {
+      const overlay = document.getElementById('cc-dialog-overlay');
+      overlay.classList.remove('cc-visible');
+      document.body.style.overflow = '';
+    }
+
+    // Close on overlay click
+    document.getElementById('cc-dialog-overlay').addEventListener('click', function(e) {
+      if (e.target === this) ccCloseDialog();
+    });
+
+    // Close on Escape
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') ccCloseDialog();
+    });
+
+    // Attach click handlers to event rows
+    document.querySelectorAll('.cc-event-row[data-event]').forEach(function(row) {
+      row.addEventListener('click', function() {
+        ccOpenDialog(this.dataset.event);
+      });
+    });
+
+    // Attach click handlers to group children
+    document.querySelectorAll('.cc-group-child[data-event]').forEach(function(child) {
+      child.addEventListener('click', function(e) {
+        e.stopPropagation();
+        ccOpenDialog(this.dataset.event);
+      });
+    });
+
+    // Toggle event group expand/collapse
+    function ccToggleGroup(el) {
+      var children = document.getElementById('cc-motion-group');
+      var chevrons = el.closest('.cc-group-row')
+        ? el.closest('.cc-group-row').querySelectorAll('.cc-group-chevron')
+        : el.querySelectorAll('.cc-group-chevron');
+
+      children.classList.toggle('cc-expanded');
+      chevrons.forEach(function(c) { c.classList.toggle('cc-expanded'); });
+    }
   </script>
 </body>
 </html>
