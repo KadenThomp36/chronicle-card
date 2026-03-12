@@ -1,0 +1,1686 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Documentation — Chronicle Card</title>
+  <meta name="description" content="Full documentation for Chronicle Card, a universal timeline card for Home Assistant. Configuration reference, source types, examples, and more.">
+  <meta property="og:title" content="Chronicle Card Documentation">
+  <meta property="og:description" content="Complete reference documentation for Chronicle Card for Home Assistant.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://kadenThomp36.github.io/chronicle-card/documentation.html">
+  <link rel="alternate" type="application/atom+xml" title="Chronicle Card Releases" href="https://github.com/KadenThomp36/chronicle-card/releases.atom">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%230d1117'/><line x1='10' y1='6' x2='10' y2='26' stroke='%232196F3' stroke-width='2' stroke-linecap='round'/><circle cx='10' cy='10' r='3' fill='%23FF9800'/><circle cx='10' cy='18' r='3' fill='%232196F3'/><circle cx='10' cy='26' r='3' fill='%239C27B0'/><line x1='15' y1='10' x2='26' y2='10' stroke='%23333' stroke-width='1.5' stroke-linecap='round'/><line x1='15' y1='18' x2='24' y2='18' stroke='%23333' stroke-width='1.5' stroke-linecap='round'/><line x1='15' y1='26' x2='22' y2='26' stroke='%23333' stroke-width='1.5' stroke-linecap='round'/></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500&family=Playfair+Display:wght@700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --blue: #2196F3;
+      --blue-dim: #1565C0;
+      --blue-glow: rgba(33, 150, 243, 0.15);
+      --orange: #FF9800;
+      --red: #D32F2F;
+      --purple: #9C27B0;
+      --green: #43A047;
+      --brown: #795548;
+      --teal: #00BCD4;
+      --yellow: #FFC107;
+      --grey: #78909C;
+      --surface: #0d1117;
+      --surface-2: #161b22;
+      --surface-3: #1c2129;
+      --surface-4: #21262d;
+      --border: #30363d;
+      --text: #e6edf3;
+      --text-dim: #8b949e;
+      --text-faint: #484f58;
+      --radius: 16px;
+      --radius-sm: 10px;
+      --radius-xs: 6px;
+      --sidebar-w: 260px;
+      --header-h: 64px;
+    }
+
+    .light {
+      --surface: #ffffff;
+      --surface-2: #f6f8fa;
+      --surface-3: #eef1f5;
+      --surface-4: #e2e6eb;
+      --border: #d0d7de;
+      --text: #1f2328;
+      --text-dim: #656d76;
+      --text-faint: #a0a8b2;
+      --blue-glow: rgba(33, 150, 243, 0.08);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: calc(var(--header-h) + 24px); }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--surface);
+      color: var(--text);
+      line-height: 1.6;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Noise texture overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      opacity: 0.015;
+      pointer-events: none;
+      z-index: 9999;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      background-size: 256px;
+    }
+
+    /* ===== HEADER ===== */
+    header {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 1000;
+      padding: 0 24px;
+      height: var(--header-h);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: color-mix(in srgb, var(--surface) 80%, transparent);
+      backdrop-filter: blur(20px) saturate(1.5);
+      -webkit-backdrop-filter: blur(20px) saturate(1.5);
+      border-bottom: 1px solid var(--border);
+      transition: all 0.3s;
+    }
+    .header-scrolled { box-shadow: 0 4px 24px rgba(0,0,0,0.15); }
+    .logo {
+      display: flex; align-items: center; gap: 10px;
+      text-decoration: none; color: var(--text);
+      font-weight: 700; font-size: 18px; letter-spacing: -0.02em;
+    }
+    .logo svg { width: 28px; height: 28px; flex-shrink: 0; }
+    .logo-dot { color: var(--blue); }
+    .nav-links {
+      display: flex; align-items: center; gap: 8px;
+      list-style: none;
+    }
+    .nav-links a {
+      color: var(--text-dim);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      padding: 6px 14px;
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+    .nav-links a:hover, .nav-links a.active { color: var(--text); background: var(--surface-3); }
+    .nav-right { display: flex; align-items: center; gap: 12px; }
+    .version-badge {
+      font-size: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--blue);
+      background: var(--blue-glow);
+      padding: 4px 10px;
+      border-radius: 20px;
+      border: 1px solid color-mix(in srgb, var(--blue) 20%, transparent);
+    }
+    .theme-toggle {
+      background: none; border: none; cursor: pointer;
+      color: var(--text-dim); padding: 6px;
+      border-radius: 8px; transition: all 0.2s;
+      display: flex; align-items: center;
+    }
+    .theme-toggle:hover { color: var(--text); background: var(--surface-3); }
+    .btn-get-started {
+      background: var(--blue);
+      color: #fff;
+      text-decoration: none;
+      padding: 8px 20px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.2s;
+      border: none;
+    }
+    .btn-get-started:hover { background: var(--blue-dim); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(33,150,243,0.3); }
+    .mobile-menu-btn {
+      display: none; background: none; border: none;
+      color: var(--text); cursor: pointer; padding: 6px;
+    }
+
+    /* Mobile nav overlay */
+    .mobile-nav {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 999;
+      background: color-mix(in srgb, var(--surface) 95%, transparent);
+      backdrop-filter: blur(20px);
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+    }
+    .mobile-nav.open { display: flex; }
+    .mobile-nav a {
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--text);
+      text-decoration: none;
+    }
+    .mobile-nav-close {
+      position: absolute;
+      top: 20px; right: 20px;
+      background: none; border: none;
+      color: var(--text); cursor: pointer;
+      font-size: 24px;
+    }
+
+    /* ===== LAYOUT ===== */
+    .docs-layout {
+      display: flex;
+      margin-top: var(--header-h);
+      min-height: calc(100vh - var(--header-h));
+    }
+
+    /* ===== SIDEBAR ===== */
+    .sidebar {
+      width: var(--sidebar-w);
+      flex-shrink: 0;
+      position: fixed;
+      top: var(--header-h);
+      left: 0;
+      bottom: 0;
+      background: var(--surface-2);
+      border-right: 1px solid var(--border);
+      overflow-y: auto;
+      padding: 20px 0;
+      z-index: 100;
+      scrollbar-width: thin;
+      scrollbar-color: var(--surface-4) transparent;
+    }
+    .sidebar::-webkit-scrollbar { width: 6px; }
+    .sidebar::-webkit-scrollbar-track { background: transparent; }
+    .sidebar::-webkit-scrollbar-thumb { background: var(--surface-4); border-radius: 3px; }
+
+    .sidebar-group { margin-bottom: 4px; }
+    .sidebar-group-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 20px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-faint);
+      cursor: pointer;
+      user-select: none;
+      transition: color 0.2s;
+      background: none;
+      border: none;
+      width: 100%;
+      text-align: left;
+      font-family: inherit;
+    }
+    .sidebar-group-title:hover { color: var(--text-dim); }
+    .sidebar-group-title svg {
+      width: 14px; height: 14px;
+      transition: transform 0.2s;
+      flex-shrink: 0;
+    }
+    .sidebar-group.collapsed .sidebar-group-title svg {
+      transform: rotate(-90deg);
+    }
+    .sidebar-group-items {
+      overflow: hidden;
+      transition: max-height 0.25s ease;
+    }
+    .sidebar-group.collapsed .sidebar-group-items {
+      max-height: 0 !important;
+    }
+
+    .sidebar-link {
+      display: block;
+      padding: 6px 20px 6px 28px;
+      font-size: 13px;
+      color: var(--text-dim);
+      text-decoration: none;
+      transition: all 0.15s;
+      border-left: 2px solid transparent;
+    }
+    .sidebar-link:hover {
+      color: var(--text);
+      background: var(--surface-3);
+    }
+    .sidebar-link.active {
+      color: var(--blue);
+      border-left-color: var(--blue);
+      background: var(--blue-glow);
+    }
+    .sidebar-link.nested {
+      padding-left: 40px;
+      font-size: 12.5px;
+    }
+
+    /* ===== MAIN CONTENT ===== */
+    .docs-main {
+      flex: 1;
+      margin-left: var(--sidebar-w);
+      padding: 40px 48px 80px;
+      max-width: 900px;
+      min-width: 0;
+    }
+
+    .docs-main h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 36px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+    }
+    .docs-main > .section-subtitle {
+      font-size: 17px;
+      color: var(--text-dim);
+      margin-bottom: 48px;
+      line-height: 1.7;
+    }
+
+    .doc-section {
+      margin-bottom: 56px;
+      scroll-margin-top: calc(var(--header-h) + 24px);
+    }
+    .doc-section h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .doc-section h3 {
+      font-size: 20px;
+      font-weight: 700;
+      margin-top: 32px;
+      margin-bottom: 12px;
+      letter-spacing: -0.01em;
+    }
+    .doc-section h4 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-top: 24px;
+      margin-bottom: 8px;
+    }
+    .doc-section p {
+      color: var(--text-dim);
+      font-size: 15px;
+      line-height: 1.7;
+      margin-bottom: 16px;
+    }
+    .doc-section ul, .doc-section ol {
+      color: var(--text-dim);
+      font-size: 15px;
+      line-height: 1.7;
+      margin-bottom: 16px;
+      padding-left: 24px;
+    }
+    .doc-section li {
+      margin-bottom: 6px;
+    }
+    .doc-section code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      background: var(--surface-3);
+      padding: 2px 7px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+    }
+    .doc-section a {
+      color: var(--blue);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .doc-section a:hover { text-decoration: underline; }
+
+    /* Code blocks */
+    .code-block {
+      background: var(--surface-3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+    .code-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface-4);
+    }
+    .code-header span {
+      font-size: 12px; color: var(--text-dim);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .code-copy {
+      background: none; border: none;
+      color: var(--text-dim); cursor: pointer;
+      font-size: 12px; padding: 4px 8px;
+      border-radius: 4px;
+      transition: all 0.2s;
+      font-family: inherit;
+      display: flex; align-items: center; gap: 4px;
+    }
+    .code-copy:hover { color: var(--text); background: var(--surface-2); }
+    .code-body {
+      padding: 16px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      line-height: 1.7;
+      overflow-x: auto;
+      white-space: pre;
+    }
+    .hl-key { color: var(--blue); }
+    .hl-str { color: var(--green); }
+    .hl-num { color: var(--orange); }
+    .hl-comment { color: var(--text-faint); font-style: italic; }
+
+    /* Tables */
+    .doc-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+      font-size: 14px;
+    }
+    .doc-table th {
+      text-align: left;
+      padding: 10px 14px;
+      background: var(--surface-3);
+      border: 1px solid var(--border);
+      font-weight: 600;
+      font-size: 13px;
+      color: var(--text);
+    }
+    .doc-table td {
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+    }
+    .doc-table tr:nth-child(even) td {
+      background: var(--surface-2);
+    }
+    .doc-table code {
+      font-size: 12px;
+    }
+
+    /* Resolution chain */
+    .resolution-chain {
+      list-style: none;
+      padding: 0;
+      margin-bottom: 20px;
+      counter-reset: chain;
+    }
+    .resolution-chain li {
+      counter-increment: chain;
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-dim);
+      font-size: 14px;
+    }
+    .resolution-chain li:last-child { border-bottom: none; }
+    .resolution-chain li::before {
+      content: counter(chain);
+      width: 28px; height: 28px;
+      border-radius: 8px;
+      background: var(--blue-glow);
+      color: var(--blue);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      font-size: 13px;
+      font-weight: 700;
+      border: 1px solid color-mix(in srgb, var(--blue) 20%, transparent);
+    }
+
+    /* Severity badges inline */
+    .sev-badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* ===== FOOTER ===== */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 48px 24px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 40px;
+      margin-bottom: 40px;
+    }
+    .footer-brand p {
+      color: var(--text-dim);
+      font-size: 14px;
+      line-height: 1.6;
+      margin-top: 12px;
+    }
+    .footer-col h4 {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-faint);
+      margin-bottom: 16px;
+    }
+    .footer-col a {
+      display: block;
+      color: var(--text-dim);
+      text-decoration: none;
+      font-size: 14px;
+      padding: 4px 0;
+      transition: color 0.2s;
+    }
+    .footer-col a:hover { color: var(--text); }
+    .footer-bottom {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      color: var(--text-faint);
+      font-size: 13px;
+    }
+    .footer-socials {
+      display: flex; gap: 16px;
+    }
+    .footer-socials a {
+      color: var(--text-faint);
+      transition: color 0.2s;
+    }
+    .footer-socials a:hover { color: var(--text); }
+
+    /* ===== ANIMATIONS ===== */
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(40px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ===== MOBILE SIDEBAR ===== */
+    .sidebar-toggle {
+      display: none;
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 200;
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      background: var(--blue);
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(33,150,243,0.4);
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s;
+    }
+    .sidebar-toggle:hover { transform: scale(1.1); }
+
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 99;
+      background: rgba(0,0,0,0.5);
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 900px) {
+      .sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+        z-index: 200;
+      }
+      .sidebar.mobile-open {
+        transform: translateX(0);
+      }
+      .sidebar-overlay.visible {
+        display: block;
+      }
+      .sidebar-toggle {
+        display: flex;
+      }
+      .docs-main {
+        margin-left: 0;
+        padding: 32px 24px 80px;
+      }
+      .footer-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 640px) {
+      .nav-links { display: none; }
+      .mobile-menu-btn { display: block; }
+      .version-badge { display: none; }
+      .docs-main { padding: 24px 16px 80px; }
+      .docs-main h1 { font-size: 28px; }
+      .doc-section h2 { font-size: 22px; }
+      .doc-table { font-size: 12px; }
+      .doc-table th, .doc-table td { padding: 8px 10px; }
+      .footer-grid { grid-template-columns: 1fr; gap: 24px; }
+      .footer-bottom { flex-direction: column; gap: 12px; text-align: center; }
+    }
+
+    /* Respect reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* coffee icon */
+    .bmc-icon { display: inline-flex; align-items: center; gap: 4px; }
+    .bmc-icon svg { width: 14px; height: 14px; color: var(--red); }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header id="header">
+    <a href="./" class="logo">
+      <svg viewBox="0 0 28 28" fill="none">
+        <rect width="28" height="28" rx="7" fill="var(--blue)" opacity="0.1"/>
+        <line x1="9" y1="6" x2="9" y2="22" stroke="var(--blue)" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="9" cy="9" r="2.5" fill="var(--orange)"/>
+        <circle cx="9" cy="16" r="2.5" fill="var(--blue)"/>
+        <circle cx="9" cy="22" r="2.5" fill="var(--purple)"/>
+        <rect x="14" y="8" width="10" height="2" rx="1" fill="var(--text-faint)"/>
+        <rect x="14" y="15" width="8" height="2" rx="1" fill="var(--text-faint)"/>
+      </svg>
+      Chronicle<span class="logo-dot">.</span>
+    </a>
+    <nav>
+      <ul class="nav-links">
+        <li><a href="./">Home</a></li>
+        <li><a href="./index.html#features">Features</a></li>
+        <li><a href="./index.html#sources">Sources</a></li>
+        <li><a href="./index.html#install">Install</a></li>
+        <li><a href="documentation.html" class="active">Docs</a></li>
+        <li><a href="./index.html#faq">FAQ</a></li>
+      </ul>
+    </nav>
+    <div class="nav-right">
+      <span class="version-badge">v1.7.1</span>
+      <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+      </button>
+      <a href="./index.html#install" class="btn-get-started">Get Started</a>
+      <button class="mobile-menu-btn" onclick="document.querySelector('.mobile-nav').classList.add('open')" aria-label="Menu">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- MOBILE NAV -->
+  <div class="mobile-nav">
+    <button class="mobile-nav-close" onclick="this.parentElement.classList.remove('open')">&#x2715;</button>
+    <a href="./" onclick="this.parentElement.classList.remove('open')">Home</a>
+    <a href="./index.html#features" onclick="this.parentElement.classList.remove('open')">Features</a>
+    <a href="./index.html#sources" onclick="this.parentElement.classList.remove('open')">Sources</a>
+    <a href="./index.html#install" onclick="this.parentElement.classList.remove('open')">Install</a>
+    <a href="documentation.html" onclick="this.parentElement.classList.remove('open')">Docs</a>
+    <a href="./index.html#faq" onclick="this.parentElement.classList.remove('open')">FAQ</a>
+  </div>
+
+  <!-- DOCS LAYOUT -->
+  <div class="docs-layout">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-group" data-group="getting-started">
+        <button class="sidebar-group-title" onclick="toggleSidebarGroup(this)">
+          Getting Started
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="sidebar-group-items">
+          <a href="#installation" class="sidebar-link">Installation</a>
+          <a href="#quick-start" class="sidebar-link">Quick Start</a>
+        </div>
+      </div>
+
+      <div class="sidebar-group" data-group="configuration">
+        <button class="sidebar-group-title" onclick="toggleSidebarGroup(this)">
+          Configuration
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="sidebar-group-items">
+          <a href="#card-options" class="sidebar-link">Card Options</a>
+          <a href="#sources-overview" class="sidebar-link">Sources (Overview)</a>
+          <a href="#source-calendar" class="sidebar-link nested">Calendar</a>
+          <a href="#source-rest" class="sidebar-link nested">REST / WebSocket</a>
+          <a href="#source-history" class="sidebar-link nested">History</a>
+          <a href="#source-static" class="sidebar-link nested">Static</a>
+          <a href="#source-options" class="sidebar-link">Source Options</a>
+          <a href="#filters" class="sidebar-link">Filters</a>
+          <a href="#grouping" class="sidebar-link">Grouping</a>
+          <a href="#appearance" class="sidebar-link">Appearance</a>
+          <a href="#actions" class="sidebar-link">Actions</a>
+        </div>
+      </div>
+
+      <div class="sidebar-group" data-group="features">
+        <button class="sidebar-group-title" onclick="toggleSidebarGroup(this)">
+          Features
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="sidebar-group-items">
+          <a href="#icon-color" class="sidebar-link">Icon &amp; Color Resolution</a>
+          <a href="#severity" class="sidebar-link">Severity System</a>
+          <a href="#layouts" class="sidebar-link">Layouts</a>
+        </div>
+      </div>
+
+      <div class="sidebar-group" data-group="blueprints">
+        <button class="sidebar-group-title" onclick="toggleSidebarGroup(this)">
+          Blueprints
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="sidebar-group-items">
+          <a href="#blueprint" class="sidebar-link">Log Event Blueprint</a>
+        </div>
+      </div>
+
+      <div class="sidebar-group" data-group="examples">
+        <button class="sidebar-group-title" onclick="toggleSidebarGroup(this)">
+          Examples
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="sidebar-group-items">
+          <a href="#example-frigate" class="sidebar-link">Frigate Camera Events</a>
+          <a href="#example-multi" class="sidebar-link">Multi-Source Timeline</a>
+          <a href="#example-security" class="sidebar-link">Security Log</a>
+          <a href="#example-horizontal" class="sidebar-link">Horizontal Ribbon</a>
+          <a href="#example-automations" class="sidebar-link">Automations</a>
+        </div>
+      </div>
+
+      <div class="sidebar-group" data-group="localization">
+        <button class="sidebar-group-title" onclick="toggleSidebarGroup(this)">
+          Localization
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="sidebar-group-items">
+          <a href="#localization" class="sidebar-link">Language Support</a>
+        </div>
+      </div>
+
+      <div class="sidebar-group" data-group="development">
+        <button class="sidebar-group-title" onclick="toggleSidebarGroup(this)">
+          Development
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="sidebar-group-items">
+          <a href="#development" class="sidebar-link">Development Setup</a>
+        </div>
+      </div>
+    </aside>
+
+    <!-- SIDEBAR OVERLAY (mobile) -->
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeMobileSidebar()"></div>
+
+    <!-- SIDEBAR TOGGLE (mobile) -->
+    <button class="sidebar-toggle" id="sidebar-toggle" onclick="toggleMobileSidebar()" aria-label="Toggle navigation">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+    </button>
+
+    <!-- MAIN CONTENT -->
+    <main class="docs-main">
+      <h1>Documentation</h1>
+      <p class="section-subtitle">Complete configuration reference for Chronicle Card.</p>
+
+      <!-- ===== INSTALLATION ===== -->
+      <div class="doc-section" id="installation">
+        <h2>Installation</h2>
+
+        <h3>HACS (Recommended)</h3>
+        <ol>
+          <li>Open HACS in your Home Assistant instance</li>
+          <li>Go to <strong>Frontend</strong> &rarr; <strong>Explore &amp; Download Repositories</strong></li>
+          <li>Search for <strong>"Chronicle Card"</strong></li>
+          <li>Click <strong>Download</strong></li>
+          <li>Restart Home Assistant</li>
+        </ol>
+
+        <h3>Manual Installation</h3>
+        <ol>
+          <li>Download <code>chronicle-card.js</code> from the <a href="https://github.com/KadenThomp36/chronicle-card/releases" target="_blank">latest release</a></li>
+          <li>Copy to <code>/config/www/chronicle-card.js</code></li>
+          <li>Add the resource in <strong>Settings &rarr; Dashboards &rarr; Resources</strong>:<br>
+            URL: <code>/local/chronicle-card.js</code>, Type: <strong>JavaScript Module</strong></li>
+        </ol>
+      </div>
+
+      <!-- ===== QUICK START ===== -->
+      <div class="doc-section" id="quick-start">
+        <h2>Quick Start</h2>
+        <p>Add a new card to any dashboard and paste the following minimal configuration:</p>
+        <div class="code-block">
+          <div class="code-header">
+            <span>yaml</span>
+            <button class="code-copy" onclick="copyCode(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy</button>
+          </div>
+          <div class="code-body"><span class="hl-key">type</span>: <span class="hl-str">custom:chronicle-card</span>
+<span class="hl-key">title</span>: <span class="hl-str">Home Timeline</span>
+<span class="hl-key">sources</span>:
+  - <span class="hl-key">type</span>: <span class="hl-str">calendar</span>
+    <span class="hl-key">entity</span>: <span class="hl-str">calendar.home_events</span></div>
+        </div>
+      </div>
+
+      <!-- ===== CARD OPTIONS ===== -->
+      <div class="doc-section" id="card-options">
+        <h2>Card Options</h2>
+        <p>Top-level configuration options for the card.</p>
+        <table class="doc-table">
+          <thead>
+            <tr><th>Option</th><th>Type</th><th>Default</th><th>Description</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>type</code></td><td>string</td><td>Required</td><td>Must be <code>custom:chronicle-card</code></td></tr>
+            <tr><td><code>title</code></td><td>string</td><td><code>""</code></td><td>Card title displayed in the header</td></tr>
+            <tr><td><code>layout</code></td><td>string</td><td><code>vertical</code></td><td><code>vertical</code> or <code>horizontal</code></td></tr>
+            <tr><td><code>show_layout_toggle</code></td><td>boolean</td><td><code>true</code></td><td>Show button to switch layouts</td></tr>
+            <tr><td><code>max_events</code></td><td>number</td><td><code>50</code></td><td>Maximum events to display</td></tr>
+            <tr><td><code>days_back</code></td><td>number</td><td><code>7</code></td><td>How many days of history to fetch</td></tr>
+            <tr><td><code>time_format</code></td><td>string</td><td><code>24h</code></td><td><code>12h</code> or <code>24h</code></td></tr>
+            <tr><td><code>language</code></td><td>string</td><td><code>auto</code></td><td>Override language (<code>en</code>, <code>de</code>, <code>fr</code>, <code>es</code>, <code>it</code>, <code>pt</code>, <code>nl</code>, <code>sv</code>)</td></tr>
+            <tr><td><code>show_header</code></td><td>boolean</td><td><code>true</code></td><td>Show the card header</td></tr>
+            <tr><td><code>sources</code></td><td>list</td><td>Required</td><td>Array of source configurations</td></tr>
+            <tr><td><code>filters</code></td><td>object</td><td><code>{}</code></td><td>Filter configuration</td></tr>
+            <tr><td><code>grouping</code></td><td>object</td><td><code>{}</code></td><td>Grouping configuration</td></tr>
+            <tr><td><code>appearance</code></td><td>object</td><td><code>{}</code></td><td>Appearance configuration</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ===== SOURCES OVERVIEW ===== -->
+      <div class="doc-section" id="sources-overview">
+        <h2>Sources</h2>
+        <p>Chronicle supports four source types. Each source feeds events into the unified timeline. You can combine any number and type of sources in a single card.</p>
+      </div>
+
+      <!-- ===== CALENDAR SOURCE ===== -->
+      <div class="doc-section" id="source-calendar">
+        <h2>Calendar Source</h2>
+        <p>Reads events from a Home Assistant calendar entity.</p>
+        <div class="code-block">
+          <div class="code-header">
+            <span>yaml</span>
+            <button class="code-copy" onclick="copyCode(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy</button>
+          </div>
+          <div class="code-body"><span class="hl-key">sources</span>:
+  - <span class="hl-key">type</span>: <span class="hl-str">calendar</span>
+    <span class="hl-key">entity</span>: <span class="hl-str">calendar.home_events</span>
+    <span class="hl-key">name</span>: <span class="hl-str">Home Events</span>
+    <span class="hl-key">default_icon</span>: <span class="hl-str">mdi:calendar</span>
+    <span class="hl-key">default_color</span>: <span class="hl-str">"#4CAF50"</span>
+    <span class="hl-key">default_severity</span>: <span class="hl-str">info</span></div>
+        </div>
+        <table class="doc-table">
+          <thead>
+            <tr><th>Option</th><th>Type</th><th>Description</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>entity</code></td><td>string</td><td>Calendar entity ID</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ===== REST / WEBSOCKET SOURCE ===== -->
+      <div class="doc-section" id="source-rest">
+        <h2>REST / WebSocket Source</h2>
+        <p>Fetches events from a REST API endpoint or via Home Assistant WebSocket messages. Use <code>field_map</code> to map response fields to Chronicle's event schema.</p>
+
+        <h3>REST Example</h3>
+        <div class="code-block">
+          <div class="code-header">
+            <span>yaml</span>
+            <button class="code-copy" onclick="copyCode(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy</button>
+          </div>
+          <div class="code-body"><span class="hl-key">sources</span>:
+  - <span class="hl-key">type</span>: <span class="hl-str">rest</span>
+    <span class="hl-key">url</span>: <span class="hl-str">/api/some_integration/events</span>
+    <span class="hl-key">name</span>: <span class="hl-str">My Events</span>
+    <span class="hl-key">response_path</span>: <span class="hl-str">data.events</span>
+    <span class="hl-key">field_map</span>:
+      <span class="hl-key">id</span>: <span class="hl-str">uid</span>
+      <span class="hl-key">title</span>: <span class="hl-str">name</span>
+      <span class="hl-key">start</span>: <span class="hl-str">timestamp</span>
+      <span class="hl-key">description</span>: <span class="hl-str">details</span>
+      <span class="hl-key">mediaUrl</span>: <span class="hl-str">image_url</span>
+      <span class="hl-key">category</span>: <span class="hl-str">type</span>
+    <span class="hl-key">poll_interval</span>: <span class="hl-num">60</span></div>
+        </div>
+
+        <h3>WebSocket Example (Frigate)</h3>
+        <div class="code-block">
+          <div class="code-header">
+            <span>yaml</span>
+            <button class="code-copy" onclick="copyCode(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy</button>
+          </div>
+          <div class="code-body"><span class="hl-key">sources</span>:
+  - <span class="hl-key">type</span>: <span class="hl-str">rest</span>
+    <span class="hl-key">name</span>: <span class="hl-str">Frigate Events</span>
+    <span class="hl-key">ws_params</span>:
+      <span class="hl-key">type</span>: <span class="hl-str">frigate/events/get</span>
+      <span class="hl-key">limit</span>: <span class="hl-num">50</span>
+    <span class="hl-key">field_map</span>:
+      <span class="hl-key">id</span>: <span class="hl-str">id</span>
+      <span class="hl-key">title</span>: <span class="hl-str">label</span>
+      <span class="hl-key">start</span>: <span class="hl-str">start_time</span>
+      <span class="hl-key">category</span>: <span class="hl-str">label</span>
+      <span class="hl-key">entityId</span>: <span class="hl-str">camera</span>
+    <span class="hl-key">media_url_template</span>: <span class="hl-str">/api/frigate/notifications/{id}/snapshot.jpg</span></div>
+        </div>
+
+        <table class="doc-table">
+          <thead>
+            <tr><th>Option</th><th>Type</th><th>Description</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>url</code></td><td>string</td><td>REST API endpoint URL</td></tr>
+            <tr><td><code>ws_params</code></td><td>object</td><td>WebSocket message parameters (alternative to <code>url</code>)</td></tr>
+            <tr><td><code>response_path</code></td><td>string</td><td>Dot-notation path to the events array in the response</td></tr>
+            <tr><td><code>field_map</code></td><td>object</td><td>Maps response fields to Chronicle event fields</td></tr>
+            <tr><td><code>media_url_template</code></td><td>string</td><td>Template for media URLs with <code>{field}</code> placeholders</td></tr>
+            <tr><td><code>poll_interval</code></td><td>number</td><td>Polling interval in seconds</td></tr>
+          </tbody>
+        </table>
+
+        <h4>Field Map Keys</h4>
+        <table class="doc-table">
+          <thead>
+            <tr><th>Key</th><th>Description</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>id</code></td><td>Unique event identifier</td></tr>
+            <tr><td><code>title</code></td><td>Event title / summary</td></tr>
+            <tr><td><code>description</code></td><td>Event description</td></tr>
+            <tr><td><code>start</code></td><td>Start time (ISO string or Unix timestamp)</td></tr>
+            <tr><td><code>end</code></td><td>End time</td></tr>
+            <tr><td><code>mediaUrl</code></td><td>Direct URL to media (image/thumbnail)</td></tr>
+            <tr><td><code>mediaContentId</code></td><td>HA media content ID</td></tr>
+            <tr><td><code>icon</code></td><td>MDI icon override</td></tr>
+            <tr><td><code>color</code></td><td>Color override</td></tr>
+            <tr><td><code>category</code></td><td>Event category for grouping / filtering</td></tr>
+            <tr><td><code>label</code></td><td>Display label</td></tr>
+            <tr><td><code>severity</code></td><td>Severity level</td></tr>
+            <tr><td><code>entityId</code></td><td>Associated entity ID</td></tr>
+            <tr><td><code>entityName</code></td><td>Associated entity name</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ===== HISTORY SOURCE ===== -->
+      <div class="doc-section" id="source-history">
+        <h2>History Source</h2>
+        <p>Converts entity state changes into timeline events. Chronicle reads the <code>device_class</code> attribute for smart human-readable translations.</p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span>yaml</span>
+            <button class="code-copy" onclick="copyCode(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy</button>
+          </div>
+          <div class="code-body"><span class="hl-key">sources</span>:
+  - <span class="hl-key">type</span>: <span class="hl-str">history</span>
+    <span class="hl-key">entities</span>:
+      - <span class="hl-str">binary_sensor.front_door</span>
+      - <span class="hl-str">lock.front_door_lock</span>
+      - <span class="hl-str">alarm_control_panel.home</span>
+    <span class="hl-key">name</span>: <span class="hl-str">Security History</span>
+    <span class="hl-key">default_severity</span>: <span class="hl-str">warning</span></div>
+        </div>
+
+        <h3>Custom State Map</h3>
+        <p>Override the default state translations with a custom <code>state_map</code>:</p>
+        <div class="code-block">
+          <div class="code-header">
+            <span>yaml</span>
+            <button class="code-copy" onclick="copyCode(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy</button>
+          </div>
+          <div class="code-body"><span class="hl-key">sources</span>:
+  - <span class="hl-key">type</span>: <span class="hl-str">history</span>
+    <span class="hl-key">entities</span>:
+      - <span class="hl-str">binary_sensor.garage_tilt</span>
+    <span class="hl-key">name</span>: <span class="hl-str">Garage</span>
+    <span class="hl-key">state_map</span>:
+      <span class="hl-str">"on"</span>: <span class="hl-str">"Garage Opened"</span>
+      <span class="hl-str">"off"</span>: <span class="hl-str">"Garage Closed"</span></div>
+        </div>
+
+        <h3>Device Class Translations</h3>
+        <p>The following device classes are automatically translated when no <code>state_map</code> is provided:</p>
+        <table class="doc-table">
+          <thead>
+            <tr><th>Device Class</th><th>On State</th><th>Off State</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>door / opening / window</td><td>Opened</td><td>Closed</td></tr>
+            <tr><td>motion</td><td>Motion Detected</td><td>Motion Cleared</td></tr>
+            <tr><td>lock</td><td>Unlocked</td><td>Locked</td></tr>
+            <tr><td>smoke</td><td>Smoke Detected</td><td>Clear</td></tr>
+            <tr><td>moisture</td><td>Wet</td><td>Dry</td></tr>
+            <tr><td>occupancy</td><td>Occupied</td><td>Unoccupied</td></tr>
+            <tr><td>presence</td><td>Present</td><td>Away</td></tr>
+            <tr><td>vibration</td><td>Vibration</td><td>Still</td></tr>
+            <tr><td>connectivity</td><td>Connected</td><td>Disconnected</td></tr>
+            <tr><td>battery</td><td>Low</td><td>Normal</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ===== STATIC SOURCE ===== -->
+      <div class="doc-section" id="source-static">
+        <h2>Static Source</h2>
+        <p>Define events directly in YAML. Useful for reminders, scheduled tasks, or manually curated events.</p>
+        <div class="code-block">
+          <div class="code-header">
+            <span>yaml</span>
+            <button class="code-copy" onclick="copyCode(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy</button>
+          </div>
+          <div class="code-body"><span class="hl-key">sources</span>:
+  - <span class="hl-key">type</span>: <span class="hl-str">static</span>
+    <span class="hl-key">name</span>: <span class="hl-str">Reminders</span>
+    <span class="hl-key">events</span>:
+      - <span class="hl-key">title</span>: <span class="hl-str">Change HVAC Filter</span>
+        <span class="hl-key">start</span>: <span class="hl-str">"2025-04-01T10:00:00"</span>
+        <span class="hl-key">icon</span>: <span class="hl-str">mdi:air-filter</span>
+        <span class="hl-key">color</span>: <span class="hl-str">"#FF9800"</span>
+        <span class="hl-key">severity</span>: <span class="hl-str">info</span>
+        <span class="hl-key">category</span>: <span class="hl-str">maintenance</span></div>
+        </div>
+      </div>
+
+      <!-- ===== SOURCE OPTIONS ===== -->
+      <div class="doc-section" id="source-options">
+        <h2>Source Options (All Types)</h2>
+        <p>These options are available on every source type.</p>
+        <table class="doc-table">
+          <thead>
+            <tr><th>Option</th><th>Type</th><th>Description</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>type</code></td><td>string</td><td>Source type: <code>calendar</code>, <code>rest</code>, <code>history</code>, or <code>static</code></td></tr>
+            <tr><td><code>name</code></td><td>string</td><td>Display name for the source</td></tr>
+            <tr><td><code>default_icon</code></td><td>string</td><td>Fallback MDI icon for events from this source</td></tr>
+            <tr><td><code>default_color</code></td><td>string</td><td>Fallback color for events from this source</td></tr>
+            <tr><td><code>default_severity</code></td><td>string</td><td>Fallback severity level (<code>critical</code>, <code>warning</code>, <code>info</code>, <code>debug</code>)</td></tr>
+            <tr><td><code>icon_map</code></td><td>object</td><td>Map of category/keyword to MDI icon</td></tr>
+            <tr><td><code>color_map</code></td><td>object</td><td>Map of category/keyword to color</td></tr>
+            <tr><td><code>actions</code></td><td>list</td><td>Action buttons for events from this source</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ===== FILTERS ===== -->
+      <div class="doc-section" id="filters">
+        <h2>Filters</h2>
+        <p>Filter events by category, severity, source, entity, or free-text search.</p>
+        <div class="code-block">
+          <div class="code-header">
+            <span>yaml</span>
+            <button class="code-copy" onclick="copyCode(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy</button>
+          </div>
+          <div class="code-body"><span class="hl-key">filters</span>:
+  <span class="hl-key">categories</span>:
+    - <span class="hl-str">person</span>
+    - <span class="hl-str">vehicle</span>
+  <span class="hl-key">severities</span>:
+    - <span class="hl-str">critical</span>
+    - <span class="hl-str">warning</span>
+  <span class="hl-key">sources</span>:
+    - <span class="hl-str">Frigate Events</span>
+  <span class="hl-key">entities</span>:
+    - <span class="hl-str">binary_sensor.front_door</span>
+  <span class="hl-key">search</span>: <span class="hl-str">"front door"</span></div>
+        </div>
+        <table class="doc-table">
+          <thead>
+            <tr><th>Option</th><th>Type</th><th>Description</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>categories</code></td><td>list</td><td>Only show events matching these categories</td></tr>
+            <tr><td><code>severities</code></td><td>list</td><td>Only show events matching these severity levels</td></tr>
+            <tr><td><code>sources</code></td><td>list</td><td>Only show events from these source names</td></tr>
+            <tr><td><code>entities</code></td><td>list</td><td>Only show events from these entity IDs</td></tr>
+            <tr><td><code>search</code></td><td>string</td><td>Free-text search across event titles and descriptions</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ===== GROUPING ===== -->
+      <div class="doc-section" id="grouping">
+        <h2>Grouping</h2>
+        <p>Group nearby events together to reduce visual clutter.</p>
+        <div class="code-block">
+          <div class="code-header">
+            <span>yaml</span>
+            <button class="code-copy" onclick="copyCode(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy</button>
+          </div>
+          <div class="code-body"><span class="hl-key">grouping</span>:
+  <span class="hl-key">enabled</span>: <span class="hl-num">true</span>
+  <span class="hl-key">window_seconds</span>: <span class="hl-num">120</span>
+  <span class="hl-key">min_group_size</span>: <span class="hl-num">3</span>
+  <span class="hl-key">group_by</span>: <span class="hl-str">category</span></div>
+        </div>
+        <table class="doc-table">
+          <thead>
+            <tr><th>Option</th><th>Type</th><th>Default</th><th>Description</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>enabled</code></td><td>boolean</td><td><code>false</code></td><td>Enable event grouping</td></tr>
+            <tr><td><code>window_seconds</code></td><td>number</td><td><code>120</code></td><td>Time window (in seconds) for grouping nearby events</td></tr>
+            <tr><td><code>min_group_size</code></td><td>number</td><td><code>3</code></td><td>Minimum number of events to form a group</td></tr>
+            <tr><td><code>group_by</code></td><td>string</td><td><code>category</code></td><td><code>category</code>, <code>source</code>, <code>entity</code>, or <code>none</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ===== APPEARANCE ===== -->
+      <div class="doc-section" id="appearance">
+        <h2>Appearance</h2>
+        <p>Fine-tune the visual style of the card.</p>
+        <div class="code-block">
+          <div class="code-header">
+            <span>yaml</span>
+            <button class="code-copy" onclick="copyCode(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy</button>
+          </div>
+          <div class="code-body"><span class="hl-key">appearance</span>:
+  <span class="hl-key">card_height</span>: <span class="hl-str">400px</span>
+  <span class="hl-key">compact</span>: <span class="hl-num">false</span>
+  <span class="hl-key">show_images</span>: <span class="hl-num">true</span>
+  <span class="hl-key">show_icons</span>: <span class="hl-num">true</span>
+  <span class="hl-key">show_severity_badge</span>: <span class="hl-num">true</span>
+  <span class="hl-key">show_source_badge</span>: <span class="hl-num">false</span>
+  <span class="hl-key">animate_new_events</span>: <span class="hl-num">true</span>
+  <span class="hl-key">severity_colors</span>:
+    <span class="hl-key">critical</span>: <span class="hl-str">"#D32F2F"</span>
+    <span class="hl-key">warning</span>: <span class="hl-str">"#FF9800"</span>
+    <span class="hl-key">info</span>: <span class="hl-str">"#2196F3"</span>
+    <span class="hl-key">debug</span>: <span class="hl-str">"#9E9E9E"</span></div>
+        </div>
+        <table class="doc-table">
+          <thead>
+            <tr><th>Option</th><th>Type</th><th>Default</th><th>Description</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>card_height</code></td><td>string</td><td><code>400px</code></td><td>Fixed height of the card body</td></tr>
+            <tr><td><code>compact</code></td><td>boolean</td><td><code>false</code></td><td>Use compact event rows</td></tr>
+            <tr><td><code>show_images</code></td><td>boolean</td><td><code>true</code></td><td>Show event thumbnails</td></tr>
+            <tr><td><code>show_icons</code></td><td>boolean</td><td><code>true</code></td><td>Show event icons</td></tr>
+            <tr><td><code>show_severity_badge</code></td><td>boolean</td><td><code>true</code></td><td>Show severity labels on events</td></tr>
+            <tr><td><code>show_source_badge</code></td><td>boolean</td><td><code>false</code></td><td>Show source name badge on events</td></tr>
+            <tr><td><code>animate_new_events</code></td><td>boolean</td><td><code>true</code></td><td>Animate new events as they arrive</td></tr>
+            <tr><td><code>severity_colors</code></td><td>object</td><td>(built-in)</td><td>Override severity level colors</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ===== ACTIONS ===== -->
+      <div class="doc-section" id="actions">
+        <h2>Actions</h2>
+        <p>Add action buttons to events. Actions can navigate, call services, or fire custom events.</p>
+        <div class="code-block">
+          <div class="code-header">
+            <span>yaml</span>
+            <button class="code-copy" onclick="copyCode(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy</button>
+          </div>
+          <div class="code-body"><span class="hl-key">sources</span>:
+  - <span class="hl-key">type</span>: <span class="hl-str">calendar</span>
+    <span class="hl-key">entity</span>: <span class="hl-str">calendar.cameras</span>
+    <span class="hl-key">actions</span>:
+      - <span class="hl-key">label</span>: <span class="hl-str">View Camera</span>
+        <span class="hl-key">icon</span>: <span class="hl-str">mdi:cctv</span>
+        <span class="hl-key">type</span>: <span class="hl-str">navigate</span>
+        <span class="hl-key">url</span>: <span class="hl-str">/lovelace/cameras</span>
+      - <span class="hl-key">label</span>: <span class="hl-str">Dismiss</span>
+        <span class="hl-key">icon</span>: <span class="hl-str">mdi:close</span>
+        <span class="hl-key">type</span>: <span class="hl-str">service</span>
+        <span class="hl-key">service</span>: <span class="hl-str">input_boolean.turn_off</span>
+        <span class="hl-key">target</span>:
+          <span class="hl-key">entity_id</span>: <span class="hl-str">input_boolean.alert_active</span>
+      - <span class="hl-key">label</span>: <span class="hl-str">Trigger Alarm</span>
+        <span class="hl-key">icon</span>: <span class="hl-str">mdi:alarm-light</span>
+        <span class="hl-key">type</span>: <span class="hl-str">fire-event</span>
+        <span class="hl-key">eventType</span>: <span class="hl-str">custom_alarm</span>
+        <span class="hl-key">eventData</span>:
+          <span class="hl-key">zone</span>: <span class="hl-str">front_yard</span></div>
+        </div>
+        <table class="doc-table">
+          <thead>
+            <tr><th>Option</th><th>Type</th><th>Description</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>label</code></td><td>string</td><td>Button label text</td></tr>
+            <tr><td><code>icon</code></td><td>string</td><td>MDI icon for the button</td></tr>
+            <tr><td><code>type</code></td><td>string</td><td>Action type: <code>service</code>, <code>navigate</code>, or <code>fire-event</code></td></tr>
+            <tr><td><code>service</code></td><td>string</td><td>Service to call (for <code>service</code> type)</td></tr>
+            <tr><td><code>serviceData</code></td><td>object</td><td>Additional data for the service call</td></tr>
+            <tr><td><code>target</code></td><td>object</td><td>Target entity/device/area for the service call</td></tr>
+            <tr><td><code>url</code></td><td>string</td><td>URL to navigate to (for <code>navigate</code> type)</td></tr>
+            <tr><td><code>eventType</code></td><td>string</td><td>Custom event type (for <code>fire-event</code> type)</td></tr>
+            <tr><td><code>eventData</code></td><td>object</td><td>Data payload for the custom event</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ===== ICON & COLOR RESOLUTION ===== -->
+      <div class="doc-section" id="icon-color">
+        <h2>Icon &amp; Color Resolution</h2>
+        <p>Chronicle resolves icons and colors through a 5-level chain. The first match wins.</p>
+        <ol class="resolution-chain">
+          <li><code>icon_map</code> / <code>color_map</code> &mdash; custom per-source overrides</li>
+          <li>Fuzzy keyword inference &mdash; 150+ built-in rules that match event titles and categories</li>
+          <li><code>default_icon</code> / <code>default_color</code> &mdash; per-source fallback values</li>
+          <li>Category defaults &mdash; built-in icons for common categories</li>
+          <li>Global fallback &mdash; <code>mdi:calendar-clock</code> / <code>#78909C</code></li>
+        </ol>
+
+        <h3>Keyword Match Examples</h3>
+        <table class="doc-table">
+          <thead>
+            <tr><th>Keywords</th><th>Icon</th><th>Color</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>cat, kitten, feline</td><td><code>mdi:cat</code></td><td><code>#7f41eb</code></td></tr>
+            <tr><td>dog, puppy, canine</td><td><code>mdi:dog</code></td><td><code>#8D6E63</code></td></tr>
+            <tr><td>person, visitor</td><td><code>mdi:walk</code></td><td><code>#FF9800</code></td></tr>
+            <tr><td>car, truck, vehicle</td><td><code>mdi:car</code></td><td><code>#2196F3</code></td></tr>
+            <tr><td>package, delivery</td><td><code>mdi:package-variant-closed</code></td><td><code>#795548</code></td></tr>
+            <tr><td>alarm, alert</td><td><code>mdi:alarm-light</code></td><td><code>#F44336</code></td></tr>
+            <tr><td>door, gate</td><td><code>mdi:door</code></td><td><code>#795548</code></td></tr>
+            <tr><td>motion</td><td><code>mdi:motion-sensor</code></td><td><code>#9C27B0</code></td></tr>
+            <tr><td>camera, cctv</td><td><code>mdi:cctv</code></td><td><code>#FF5722</code></td></tr>
+            <tr><td>light, lamp</td><td><code>mdi:lightbulb</code></td><td><code>#FFC107</code></td></tr>
+            <tr><td>temperature</td><td><code>mdi:thermostat</code></td><td><code>#00BCD4</code></td></tr>
+          </tbody>
+        </table>
+
+        <h3>Override Example</h3>
+        <div class="code-block">
+          <div class="code-header">
+            <span>yaml</span>
+            <button class="code-copy" onclick="copyCode(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy</button>
+          </div>
+          <div class="code-body"><span class="hl-key">sources</span>:
+  - <span class="hl-key">type</span>: <span class="hl-str">rest</span>
+    <span class="hl-key">url</span>: <span class="hl-str">/api/my/events</span>
+    <span class="hl-key">icon_map</span>:
+      <span class="hl-key">garage</span>: <span class="hl-str">mdi:garage</span>
+      <span class="hl-key">backyard</span>: <span class="hl-str">mdi:tree</span>
+    <span class="hl-key">color_map</span>:
+      <span class="hl-key">garage</span>: <span class="hl-str">"#795548"</span>
+      <span class="hl-key">backyard</span>: <span class="hl-str">"#4CAF50"</span></div>
+        </div>
+      </div>
+
+      <!-- ===== SEVERITY SYSTEM ===== -->
+      <div class="doc-section" id="severity">
+        <h2>Severity System</h2>
+        <p>Chronicle supports four severity levels. Each event can have a severity set via the source <code>default_severity</code>, <code>field_map</code>, or static event config. Severity badges appear on events and can be restyled via <code>appearance.severity_colors</code>.</p>
+        <table class="doc-table">
+          <thead>
+            <tr><th>Level</th><th>Default Color</th><th>Use Case</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><span class="sev-badge" style="background:rgba(211,47,47,0.15);color:#D32F2F">Critical</span></td><td><code>#D32F2F</code></td><td>Alarm triggers, smoke detection, security breaches</td></tr>
+            <tr><td><span class="sev-badge" style="background:rgba(255,152,0,0.15);color:#FF9800">Warning</span></td><td><code>#FF9800</code></td><td>Person detected, door opened, unusual activity</td></tr>
+            <tr><td><span class="sev-badge" style="background:rgba(33,150,243,0.15);color:#2196F3">Info</span></td><td><code>#2196F3</code></td><td>Calendar events, routine activity, status changes</td></tr>
+            <tr><td><span class="sev-badge" style="background:rgba(158,158,158,0.15);color:#9E9E9E">Debug</span></td><td><code>#9E9E9E</code></td><td>Low-priority logs, diagnostic data</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ===== LAYOUTS ===== -->
+      <div class="doc-section" id="layouts">
+        <h2>Layouts</h2>
+        <p>Chronicle provides two layout modes:</p>
+        <ul>
+          <li><strong>Vertical</strong> (default) &mdash; A scrollable timeline with a timeline line and event nodes. Best for detailed event inspection.</li>
+          <li><strong>Horizontal</strong> &mdash; A ribbon layout for compact display (e.g., camera events as a horizontal strip). Best for dashboards with limited vertical space.</li>
+        </ul>
+        <p>Toggle between them at runtime with <code>show_layout_toggle: true</code>, or set a fixed layout:</p>
+        <div class="code-block">
+          <div class="code-header">
+            <span>yaml</span>
+            <button class="code-copy" onclick="copyCode(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy</button>
+          </div>
+          <div class="code-body"><span class="hl-key">type</span>: <span class="hl-str">custom:chronicle-card</span>
+<span class="hl-key">layout</span>: <span class="hl-str">horizontal</span>
+<span class="hl-key">show_layout_toggle</span>: <span class="hl-num">false</span></div>
+        </div>
+      </div>
+
+      <!-- ===== BLUEPRINT ===== -->
+      <div class="doc-section" id="blueprint">
+        <h2>Log Event Blueprint</h2>
+        <p>A ready-to-use Home Assistant automation blueprint is included at <code>blueprints/chronicle_log_event.yaml</code>. It logs entity state changes to a calendar entity, which Chronicle then reads as timeline events.</p>
+
+        <h3>Blueprint Inputs</h3>
+        <table class="doc-table">
+          <thead>
+            <tr><th>Input</th><th>Description</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Trigger Entity</td><td>The entity to watch for state changes</td></tr>
+            <tr><td>Trigger State (optional)</td><td>Only log when entity enters this specific state</td></tr>
+            <tr><td>Target Calendar</td><td>Calendar entity where events are written</td></tr>
+            <tr><td>Event Title</td><td>Template-supported title (default: friendly name + state)</td></tr>
+            <tr><td>Event Description</td><td>Template-supported description body</td></tr>
+            <tr><td>Event Duration</td><td>Duration in minutes</td></tr>
+            <tr><td>Additional Condition</td><td>Optional extra condition to gate logging</td></tr>
+          </tbody>
+        </table>
+
+        <h3>Usage Example</h3>
+        <div class="code-block">
+          <div class="code-header">
+            <span>yaml</span>
+            <button class="code-copy" onclick="copyCode(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy</button>
+          </div>
+          <div class="code-body"><span class="hl-key">automation</span>:
+  - <span class="hl-key">alias</span>: <span class="hl-str">Log Front Door Activity</span>
+    <span class="hl-key">trigger</span>:
+      - <span class="hl-key">platform</span>: <span class="hl-str">state</span>
+        <span class="hl-key">entity_id</span>: <span class="hl-str">binary_sensor.front_door</span>
+        <span class="hl-key">to</span>: <span class="hl-str">"on"</span>
+    <span class="hl-key">action</span>:
+      - <span class="hl-key">service</span>: <span class="hl-str">calendar.create_event</span>
+        <span class="hl-key">target</span>:
+          <span class="hl-key">entity_id</span>: <span class="hl-str">calendar.home_timeline</span>
+        <span class="hl-key">data</span>:
+          <span class="hl-key">summary</span>: <span class="hl-str">"Front door opened"</span>
+          <span class="hl-key">description</span>: <span class="hl-str">"Door sensor triggered"</span>
+          <span class="hl-key">start_date_time</span>: <span class="hl-str">"{{ now().isoformat() }}"</span>
+          <span class="hl-key">end_date_time</span>: <span class="hl-str">"{{ (now() + timedelta(minutes=1)).isoformat() }}"</span></div>
+        </div>
+        <p>Import the blueprint directly: <a href="https://github.com/KadenThomp36/chronicle-card/blob/main/blueprints/chronicle_log_event.yaml" target="_blank">Import Blueprint</a></p>
+      </div>
+
+      <!-- ===== EXAMPLES ===== -->
+      <!-- Frigate Camera Events -->
+      <div class="doc-section" id="example-frigate">
+        <h2>Example: Frigate Camera Events</h2>
+        <p>Display Frigate NVR detections with snapshot thumbnails in a timeline.</p>
+        <div class="code-block">
+          <div class="code-header">
+            <span>yaml</span>
+            <button class="code-copy" onclick="copyCode(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy</button>
+          </div>
+          <div class="code-body"><span class="hl-key">type</span>: <span class="hl-str">custom:chronicle-card</span>
+<span class="hl-key">title</span>: <span class="hl-str">Camera Events</span>
+<span class="hl-key">sources</span>:
+  - <span class="hl-key">type</span>: <span class="hl-str">rest</span>
+    <span class="hl-key">name</span>: <span class="hl-str">Frigate Events</span>
+    <span class="hl-key">ws_params</span>:
+      <span class="hl-key">type</span>: <span class="hl-str">frigate/events/get</span>
+      <span class="hl-key">limit</span>: <span class="hl-num">50</span>
+    <span class="hl-key">field_map</span>:
+      <span class="hl-key">id</span>: <span class="hl-str">id</span>
+      <span class="hl-key">title</span>: <span class="hl-str">label</span>
+      <span class="hl-key">start</span>: <span class="hl-str">start_time</span>
+      <span class="hl-key">end</span>: <span class="hl-str">end_time</span>
+      <span class="hl-key">category</span>: <span class="hl-str">label</span>
+      <span class="hl-key">entityId</span>: <span class="hl-str">camera</span>
+    <span class="hl-key">media_url_template</span>: <span class="hl-str">/api/frigate/notifications/{id}/snapshot.jpg</span>
+    <span class="hl-key">default_severity</span>: <span class="hl-str">warning</span></div>
+        </div>
+      </div>
+
+      <!-- Multi-Source Timeline -->
+      <div class="doc-section" id="example-multi">
+        <h2>Example: Multi-Source Home Timeline</h2>
+        <p>Combine calendar events, camera detections, and door sensor history in one view.</p>
+        <div class="code-block">
+          <div class="code-header">
+            <span>yaml</span>
+            <button class="code-copy" onclick="copyCode(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy</button>
+          </div>
+          <div class="code-body"><span class="hl-key">type</span>: <span class="hl-str">custom:chronicle-card</span>
+<span class="hl-key">title</span>: <span class="hl-str">Home Timeline</span>
+<span class="hl-key">days_back</span>: <span class="hl-num">7</span>
+<span class="hl-key">max_events</span>: <span class="hl-num">100</span>
+<span class="hl-key">sources</span>:
+  - <span class="hl-key">type</span>: <span class="hl-str">calendar</span>
+    <span class="hl-key">entity</span>: <span class="hl-str">calendar.home_events</span>
+    <span class="hl-key">name</span>: <span class="hl-str">Calendar</span>
+    <span class="hl-key">default_icon</span>: <span class="hl-str">mdi:calendar</span>
+    <span class="hl-key">default_color</span>: <span class="hl-str">"#4CAF50"</span>
+    <span class="hl-key">default_severity</span>: <span class="hl-str">info</span>
+  - <span class="hl-key">type</span>: <span class="hl-str">rest</span>
+    <span class="hl-key">name</span>: <span class="hl-str">Frigate</span>
+    <span class="hl-key">ws_params</span>:
+      <span class="hl-key">type</span>: <span class="hl-str">frigate/events/get</span>
+      <span class="hl-key">limit</span>: <span class="hl-num">50</span>
+    <span class="hl-key">field_map</span>:
+      <span class="hl-key">id</span>: <span class="hl-str">id</span>
+      <span class="hl-key">title</span>: <span class="hl-str">label</span>
+      <span class="hl-key">start</span>: <span class="hl-str">start_time</span>
+      <span class="hl-key">category</span>: <span class="hl-str">label</span>
+      <span class="hl-key">entityId</span>: <span class="hl-str">camera</span>
+    <span class="hl-key">media_url_template</span>: <span class="hl-str">/api/frigate/notifications/{id}/snapshot.jpg</span>
+    <span class="hl-key">default_severity</span>: <span class="hl-str">warning</span>
+  - <span class="hl-key">type</span>: <span class="hl-str">history</span>
+    <span class="hl-key">entities</span>:
+      - <span class="hl-str">binary_sensor.front_door</span>
+      - <span class="hl-str">binary_sensor.back_door</span>
+      - <span class="hl-str">lock.front_door_lock</span>
+    <span class="hl-key">name</span>: <span class="hl-str">Doors &amp; Locks</span>
+    <span class="hl-key">default_severity</span>: <span class="hl-str">warning</span></div>
+        </div>
+      </div>
+
+      <!-- Security Log -->
+      <div class="doc-section" id="example-security">
+        <h2>Example: Compact Security Log</h2>
+        <p>A compact, filtered view showing only security-relevant events.</p>
+        <div class="code-block">
+          <div class="code-header">
+            <span>yaml</span>
+            <button class="code-copy" onclick="copyCode(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy</button>
+          </div>
+          <div class="code-body"><span class="hl-key">type</span>: <span class="hl-str">custom:chronicle-card</span>
+<span class="hl-key">title</span>: <span class="hl-str">Security Log</span>
+<span class="hl-key">sources</span>:
+  - <span class="hl-key">type</span>: <span class="hl-str">history</span>
+    <span class="hl-key">entities</span>:
+      - <span class="hl-str">binary_sensor.front_door</span>
+      - <span class="hl-str">binary_sensor.back_door</span>
+      - <span class="hl-str">binary_sensor.garage_door</span>
+      - <span class="hl-str">lock.front_door_lock</span>
+      - <span class="hl-str">alarm_control_panel.home</span>
+    <span class="hl-key">name</span>: <span class="hl-str">Security</span>
+    <span class="hl-key">default_severity</span>: <span class="hl-str">warning</span>
+<span class="hl-key">appearance</span>:
+  <span class="hl-key">compact</span>: <span class="hl-num">true</span>
+  <span class="hl-key">show_images</span>: <span class="hl-num">false</span>
+<span class="hl-key">filters</span>:
+  <span class="hl-key">severities</span>:
+    - <span class="hl-str">critical</span>
+    - <span class="hl-str">warning</span></div>
+        </div>
+      </div>
+
+      <!-- Horizontal Ribbon -->
+      <div class="doc-section" id="example-horizontal">
+        <h2>Example: Horizontal Camera Ribbon</h2>
+        <p>Show Frigate events as a horizontal scrolling ribbon with thumbnails.</p>
+        <div class="code-block">
+          <div class="code-header">
+            <span>yaml</span>
+            <button class="code-copy" onclick="copyCode(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy</button>
+          </div>
+          <div class="code-body"><span class="hl-key">type</span>: <span class="hl-str">custom:chronicle-card</span>
+<span class="hl-key">title</span>: <span class="hl-str">Camera Ribbon</span>
+<span class="hl-key">layout</span>: <span class="hl-str">horizontal</span>
+<span class="hl-key">show_layout_toggle</span>: <span class="hl-num">false</span>
+<span class="hl-key">sources</span>:
+  - <span class="hl-key">type</span>: <span class="hl-str">rest</span>
+    <span class="hl-key">name</span>: <span class="hl-str">Frigate</span>
+    <span class="hl-key">ws_params</span>:
+      <span class="hl-key">type</span>: <span class="hl-str">frigate/events/get</span>
+      <span class="hl-key">limit</span>: <span class="hl-num">20</span>
+    <span class="hl-key">field_map</span>:
+      <span class="hl-key">id</span>: <span class="hl-str">id</span>
+      <span class="hl-key">title</span>: <span class="hl-str">label</span>
+      <span class="hl-key">start</span>: <span class="hl-str">start_time</span>
+      <span class="hl-key">category</span>: <span class="hl-str">label</span>
+      <span class="hl-key">entityId</span>: <span class="hl-str">camera</span>
+    <span class="hl-key">media_url_template</span>: <span class="hl-str">/api/frigate/notifications/{id}/snapshot.jpg</span></div>
+        </div>
+      </div>
+
+      <!-- Automations -->
+      <div class="doc-section" id="example-automations">
+        <h2>Example: Logging Automations</h2>
+        <p>Use Home Assistant automations to write events into a calendar entity that Chronicle reads. This approach lets you log any state change, webhook, or trigger as a timeline event.</p>
+        <div class="code-block">
+          <div class="code-header">
+            <span>yaml</span>
+            <button class="code-copy" onclick="copyCode(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy</button>
+          </div>
+          <div class="code-body"><span class="hl-comment"># Automation that logs motion events to a calendar</span>
+<span class="hl-key">automation</span>:
+  - <span class="hl-key">alias</span>: <span class="hl-str">Log Motion to Timeline</span>
+    <span class="hl-key">trigger</span>:
+      - <span class="hl-key">platform</span>: <span class="hl-str">state</span>
+        <span class="hl-key">entity_id</span>: <span class="hl-str">binary_sensor.hallway_motion</span>
+        <span class="hl-key">to</span>: <span class="hl-str">"on"</span>
+    <span class="hl-key">action</span>:
+      - <span class="hl-key">service</span>: <span class="hl-str">calendar.create_event</span>
+        <span class="hl-key">target</span>:
+          <span class="hl-key">entity_id</span>: <span class="hl-str">calendar.home_timeline</span>
+        <span class="hl-key">data</span>:
+          <span class="hl-key">summary</span>: <span class="hl-str">"Motion detected in hallway"</span>
+          <span class="hl-key">description</span>: <span class="hl-str">"Hallway motion sensor triggered"</span>
+          <span class="hl-key">start_date_time</span>: <span class="hl-str">"{{ now().isoformat() }}"</span>
+          <span class="hl-key">end_date_time</span>: <span class="hl-str">"{{ (now() + timedelta(minutes=1)).isoformat() }}"</span>
+
+<span class="hl-comment"># Then read it with Chronicle</span>
+<span class="hl-key">type</span>: <span class="hl-str">custom:chronicle-card</span>
+<span class="hl-key">title</span>: <span class="hl-str">Activity Log</span>
+<span class="hl-key">sources</span>:
+  - <span class="hl-key">type</span>: <span class="hl-str">calendar</span>
+    <span class="hl-key">entity</span>: <span class="hl-str">calendar.home_timeline</span></div>
+        </div>
+      </div>
+
+      <!-- ===== LOCALIZATION ===== -->
+      <div class="doc-section" id="localization">
+        <h2>Localization</h2>
+        <p>Chronicle auto-detects the language from your Home Assistant locale. Override it with the <code>language</code> card option.</p>
+        <table class="doc-table">
+          <thead>
+            <tr><th>Code</th><th>Language</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>en</code></td><td>English</td></tr>
+            <tr><td><code>de</code></td><td>German</td></tr>
+            <tr><td><code>fr</code></td><td>French</td></tr>
+            <tr><td><code>es</code></td><td>Spanish</td></tr>
+            <tr><td><code>it</code></td><td>Italian</td></tr>
+            <tr><td><code>pt</code></td><td>Portuguese</td></tr>
+            <tr><td><code>nl</code></td><td>Dutch</td></tr>
+            <tr><td><code>sv</code></td><td>Swedish</td></tr>
+          </tbody>
+        </table>
+        <div class="code-block">
+          <div class="code-header">
+            <span>yaml</span>
+            <button class="code-copy" onclick="copyCode(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy</button>
+          </div>
+          <div class="code-body"><span class="hl-key">type</span>: <span class="hl-str">custom:chronicle-card</span>
+<span class="hl-key">language</span>: <span class="hl-str">de</span></div>
+        </div>
+      </div>
+
+      <!-- ===== DEVELOPMENT ===== -->
+      <div class="doc-section" id="development">
+        <h2>Development</h2>
+        <p>To build and develop Chronicle Card locally:</p>
+        <div class="code-block">
+          <div class="code-header">
+            <span>bash</span>
+            <button class="code-copy" onclick="copyCode(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy</button>
+          </div>
+          <div class="code-body">npm install
+npm run build
+npm run watch</div>
+        </div>
+        <p>Output is written to <code>dist/chronicle-card.js</code>. Copy it to your Home Assistant <code>/config/www/</code> directory during development.</p>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- FOOTER -->
+  <footer style="margin-left: var(--sidebar-w);">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a href="./" class="logo">
+          <svg viewBox="0 0 28 28" fill="none" width="28" height="28">
+            <rect width="28" height="28" rx="7" fill="var(--blue)" opacity="0.1"/>
+            <line x1="9" y1="6" x2="9" y2="22" stroke="var(--blue)" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="9" cy="9" r="2.5" fill="var(--orange)"/>
+            <circle cx="9" cy="16" r="2.5" fill="var(--blue)"/>
+            <circle cx="9" cy="22" r="2.5" fill="var(--purple)"/>
+            <rect x="14" y="8" width="10" height="2" rx="1" fill="var(--text-faint)"/>
+            <rect x="14" y="15" width="8" height="2" rx="1" fill="var(--text-faint)"/>
+          </svg>
+          Chronicle<span class="logo-dot">.</span>
+        </a>
+        <p>A universal timeline card for Home Assistant. Open source, community-driven, built with care.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Resources</h4>
+        <a href="#">Documentation</a>
+        <a href="https://github.com/KadenThomp36/chronicle-card/issues" target="_blank">Bug Reports</a>
+        <a href="https://github.com/KadenThomp36/chronicle-card/releases" target="_blank">Releases</a>
+        <a href="https://github.com/KadenThomp36/chronicle-card/releases.atom" target="_blank">RSS Feed</a>
+      </div>
+      <div class="footer-col">
+        <h4>Community</h4>
+        <a href="https://github.com/KadenThomp36/chronicle-card/discussions" target="_blank">Discussions</a>
+        <a href="https://community.home-assistant.io/" target="_blank">HA Community</a>
+      </div>
+      <div class="footer-col">
+        <h4>Support</h4>
+        <a href="https://buymeacoffee.com/kadenthomp36" target="_blank" class="bmc-icon">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+          Buy Me a Coffee
+        </a>
+        <a href="https://github.com/KadenThomp36/chronicle-card/blob/main/LICENSE" target="_blank">MIT License</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>&copy; <span id="year"></span> Chronicle Card. MIT License.</span>
+      <div class="footer-socials">
+        <a href="https://github.com/KadenThomp36/chronicle-card" target="_blank" aria-label="GitHub">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+        </a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Theme toggle
+    function toggleTheme() {
+      document.documentElement.classList.toggle('dark');
+      document.documentElement.classList.toggle('light');
+      localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+    }
+    // Restore theme
+    const saved = localStorage.getItem('theme');
+    if (saved === 'light') {
+      document.documentElement.classList.remove('dark');
+      document.documentElement.classList.add('light');
+    } else if (!saved && window.matchMedia('(prefers-color-scheme: light)').matches) {
+      document.documentElement.classList.remove('dark');
+      document.documentElement.classList.add('light');
+    }
+
+    // Header scroll
+    window.addEventListener('scroll', () => {
+      document.getElementById('header').classList.toggle('header-scrolled', window.scrollY > 20);
+    });
+
+    // Copy code
+    function copyCode(btn) {
+      const code = btn.closest('.code-block').querySelector('.code-body').textContent;
+      navigator.clipboard.writeText(code).then(() => {
+        const orig = btn.innerHTML;
+        btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Copied!';
+        setTimeout(() => btn.innerHTML = orig, 2000);
+      });
+    }
+
+    // Sidebar group toggle
+    function toggleSidebarGroup(btn) {
+      btn.closest('.sidebar-group').classList.toggle('collapsed');
+    }
+
+    // Mobile sidebar
+    function toggleMobileSidebar() {
+      document.getElementById('sidebar').classList.toggle('mobile-open');
+      document.getElementById('sidebar-overlay').classList.toggle('visible');
+    }
+    function closeMobileSidebar() {
+      document.getElementById('sidebar').classList.remove('mobile-open');
+      document.getElementById('sidebar-overlay').classList.remove('visible');
+    }
+
+    // Close mobile sidebar on link click
+    document.querySelectorAll('.sidebar-link').forEach(link => {
+      link.addEventListener('click', () => {
+        if (window.innerWidth <= 900) {
+          closeMobileSidebar();
+        }
+      });
+    });
+
+    // Scroll spy — highlight active sidebar link based on scroll position
+    const docSections = document.querySelectorAll('.doc-section[id]');
+    const sidebarLinks = document.querySelectorAll('.sidebar-link');
+
+    function updateScrollSpy() {
+      const scrollPos = window.scrollY + 120;
+      let currentId = '';
+
+      docSections.forEach(section => {
+        if (section.offsetTop <= scrollPos) {
+          currentId = section.id;
+        }
+      });
+
+      sidebarLinks.forEach(link => {
+        const href = link.getAttribute('href');
+        if (href === '#' + currentId) {
+          link.classList.add('active');
+        } else {
+          link.classList.remove('active');
+        }
+      });
+    }
+
+    window.addEventListener('scroll', updateScrollSpy, { passive: true });
+    updateScrollSpy();
+
+    // Responsive footer margin
+    function updateFooterMargin() {
+      const footer = document.querySelector('footer');
+      if (window.innerWidth <= 900) {
+        footer.style.marginLeft = '0';
+      } else {
+        footer.style.marginLeft = 'var(--sidebar-w)';
+      }
+    }
+    window.addEventListener('resize', updateFooterMargin);
+    updateFooterMargin();
+
+    // Year
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
