@@ -31,10 +31,12 @@ A universal, extensible timeline card for [Home Assistant](https://www.home-assi
 
 ### HACS (Recommended)
 
+> **Note:** HACS Default store submission is pending. For now, add as a custom repository.
+
 1. Open HACS in your Home Assistant instance
-2. Go to **Frontend** > **+ Explore & Download Repositories**
-3. Search for **Chronicle Card**
-4. Click **Download**
+2. Go to the **three-dot menu** (top right) > **Custom repositories**
+3. Enter `https://github.com/KadenThomp36/chronicle-card` and select **Dashboard** as the category
+4. Click **Add**, then find **Chronicle Card** in the list and click **Download**
 5. Restart Home Assistant
 
 ### Manual
@@ -627,7 +629,7 @@ If you find this card useful, consider buying me a coffee!
 
 [![Buy Me a Coffee](https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png)](https://buymeacoffee.com/kadenthomp36)
 
-[hacs-badge]: https://img.shields.io/badge/HACS-Default-41BDF5.svg
+[hacs-badge]: https://img.shields.io/badge/HACS-Custom-41BDF5.svg
 [hacs-url]: https://github.com/hacs/integration
 [release-badge]: https://img.shields.io/github/v/release/KadenThomp36/chronicle-card
 [release-url]: https://github.com/KadenThomp36/chronicle-card/releases
