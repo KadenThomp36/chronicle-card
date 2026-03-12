@@ -1,0 +1,1623 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chronicle Card — Every Event. One Timeline.</title>
+  <meta name="description" content="A universal, extensible timeline card for Home Assistant. Display events from any source — calendars, REST APIs, Frigate, entity history — in a single, interactive timeline.">
+  <meta property="og:title" content="Chronicle Card for Home Assistant">
+  <meta property="og:description" content="Every event in your smart home. One beautiful timeline.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://kadenThomp36.github.io/chronicle-card/">
+  <meta property="og:image" content="https://raw.githubusercontent.com/KadenThomp36/chronicle-card/main/images/preview.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%230d1117'/><line x1='10' y1='6' x2='10' y2='26' stroke='%232196F3' stroke-width='2' stroke-linecap='round'/><circle cx='10' cy='10' r='3' fill='%23FF9800'/><circle cx='10' cy='18' r='3' fill='%232196F3'/><circle cx='10' cy='26' r='3' fill='%239C27B0'/><line x1='15' y1='10' x2='26' y2='10' stroke='%23333' stroke-width='1.5' stroke-linecap='round'/><line x1='15' y1='18' x2='24' y2='18' stroke='%23333' stroke-width='1.5' stroke-linecap='round'/><line x1='15' y1='26' x2='22' y2='26' stroke='%23333' stroke-width='1.5' stroke-linecap='round'/></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500&family=Playfair+Display:wght@700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --blue: #2196F3;
+      --blue-dim: #1565C0;
+      --blue-glow: rgba(33, 150, 243, 0.15);
+      --orange: #FF9800;
+      --red: #D32F2F;
+      --purple: #9C27B0;
+      --green: #43A047;
+      --brown: #795548;
+      --teal: #00BCD4;
+      --yellow: #FFC107;
+      --grey: #78909C;
+      --surface: #0d1117;
+      --surface-2: #161b22;
+      --surface-3: #1c2129;
+      --surface-4: #21262d;
+      --border: #30363d;
+      --text: #e6edf3;
+      --text-dim: #8b949e;
+      --text-faint: #484f58;
+      --radius: 16px;
+      --radius-sm: 10px;
+      --radius-xs: 6px;
+    }
+
+    .light {
+      --surface: #ffffff;
+      --surface-2: #f6f8fa;
+      --surface-3: #eef1f5;
+      --surface-4: #e2e6eb;
+      --border: #d0d7de;
+      --text: #1f2328;
+      --text-dim: #656d76;
+      --text-faint: #a0a8b2;
+      --blue-glow: rgba(33, 150, 243, 0.08);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 80px; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--surface);
+      color: var(--text);
+      line-height: 1.6;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Noise texture overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      opacity: 0.015;
+      pointer-events: none;
+      z-index: 9999;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      background-size: 256px;
+    }
+
+    /* ===== HEADER ===== */
+    header {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 1000;
+      padding: 0 24px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: color-mix(in srgb, var(--surface) 80%, transparent);
+      backdrop-filter: blur(20px) saturate(1.5);
+      -webkit-backdrop-filter: blur(20px) saturate(1.5);
+      border-bottom: 1px solid var(--border);
+      transition: all 0.3s;
+    }
+    .header-scrolled { box-shadow: 0 4px 24px rgba(0,0,0,0.15); }
+    .logo {
+      display: flex; align-items: center; gap: 10px;
+      text-decoration: none; color: var(--text);
+      font-weight: 700; font-size: 18px; letter-spacing: -0.02em;
+    }
+    .logo svg { width: 28px; height: 28px; flex-shrink: 0; }
+    .logo-dot { color: var(--blue); }
+    .nav-links {
+      display: flex; align-items: center; gap: 8px;
+      list-style: none;
+    }
+    .nav-links a {
+      color: var(--text-dim);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      padding: 6px 14px;
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+    .nav-links a:hover, .nav-links a.active { color: var(--text); background: var(--surface-3); }
+    .nav-right { display: flex; align-items: center; gap: 12px; }
+    .version-badge {
+      font-size: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--blue);
+      background: var(--blue-glow);
+      padding: 4px 10px;
+      border-radius: 20px;
+      border: 1px solid color-mix(in srgb, var(--blue) 20%, transparent);
+    }
+    .theme-toggle {
+      background: none; border: none; cursor: pointer;
+      color: var(--text-dim); padding: 6px;
+      border-radius: 8px; transition: all 0.2s;
+      display: flex; align-items: center;
+    }
+    .theme-toggle:hover { color: var(--text); background: var(--surface-3); }
+    .btn-get-started {
+      background: var(--blue);
+      color: #fff;
+      text-decoration: none;
+      padding: 8px 20px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.2s;
+      border: none;
+    }
+    .btn-get-started:hover { background: var(--blue-dim); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(33,150,243,0.3); }
+    .mobile-menu-btn {
+      display: none; background: none; border: none;
+      color: var(--text); cursor: pointer; padding: 6px;
+    }
+
+    /* ===== HERO ===== */
+    .hero {
+      padding: 160px 24px 80px;
+      max-width: 1200px;
+      margin: 0 auto;
+      text-align: center;
+      position: relative;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 6px 16px 6px 8px;
+      font-size: 13px;
+      color: var(--text-dim);
+      margin-bottom: 32px;
+      animation: fadeDown 0.6s ease;
+    }
+    .hero-badge-dot {
+      width: 8px; height: 8px;
+      background: var(--green);
+      border-radius: 50%;
+      animation: pulse-dot 2s ease infinite;
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(67, 160, 71, 0.4); }
+      50% { opacity: 0.8; box-shadow: 0 0 0 6px rgba(67, 160, 71, 0); }
+    }
+    .hero h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(48px, 8vw, 88px);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.05;
+      margin-bottom: 24px;
+      animation: fadeDown 0.6s ease 0.1s both;
+    }
+    .hero h1 .gradient-text {
+      background: linear-gradient(135deg, var(--blue), var(--teal), var(--blue));
+      background-size: 200% 200%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: gradient-shift 6s ease infinite;
+    }
+    @keyframes gradient-shift {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+    .hero p {
+      font-size: clamp(16px, 2vw, 20px);
+      color: var(--text-dim);
+      max-width: 600px;
+      margin: 0 auto 40px;
+      line-height: 1.7;
+      animation: fadeDown 0.6s ease 0.2s both;
+    }
+    .hero-ctas {
+      display: flex; gap: 16px;
+      justify-content: center;
+      animation: fadeDown 0.6s ease 0.3s both;
+    }
+    .cta-primary {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--blue);
+      color: #fff;
+      text-decoration: none;
+      padding: 14px 32px;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      transition: all 0.25s;
+    }
+    .cta-primary:hover { background: var(--blue-dim); transform: translateY(-2px); box-shadow: 0 8px 32px rgba(33,150,243,0.3); }
+    .cta-secondary {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--surface-2);
+      color: var(--text);
+      text-decoration: none;
+      padding: 14px 32px;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      border: 1px solid var(--border);
+      transition: all 0.25s;
+    }
+    .cta-secondary:hover { background: var(--surface-3); transform: translateY(-2px); border-color: var(--text-faint); }
+
+    /* Hero mock card */
+    .hero-card-wrapper {
+      margin-top: 64px;
+      perspective: 1000px;
+      animation: fadeUp 0.8s ease 0.5s both;
+    }
+    .hero-card {
+      max-width: 520px;
+      margin: 0 auto;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.03) inset;
+      transform: rotateX(2deg);
+      transition: transform 0.4s ease;
+    }
+    .hero-card:hover { transform: rotateX(0deg); }
+    .card-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .card-header-title {
+      font-size: 15px; font-weight: 600;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .card-header-title svg { color: var(--blue); }
+    .card-header-actions { display: flex; gap: 6px; }
+    .card-header-actions span {
+      width: 28px; height: 28px;
+      border-radius: 6px;
+      background: var(--surface-3);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .timeline-body { padding: 8px 0; }
+    .tl-event {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 12px 20px;
+      position: relative;
+      transition: background 0.15s;
+    }
+    .tl-event:hover { background: var(--surface-3); }
+    .tl-line {
+      position: absolute;
+      left: 33px; top: 0; bottom: 0;
+      width: 2px;
+      background: var(--border);
+    }
+    .tl-event:first-child .tl-line { top: 50%; }
+    .tl-event:last-child .tl-line { bottom: 50%; }
+    .tl-dot {
+      width: 28px; height: 28px;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      z-index: 1;
+      font-size: 14px;
+    }
+    .tl-content { flex: 1; min-width: 0; }
+    .tl-title {
+      font-size: 13px; font-weight: 600;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .tl-severity {
+      font-size: 10px; font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .tl-meta {
+      font-size: 11px; color: var(--text-dim);
+      margin-top: 2px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .tl-thumbnail {
+      width: 44px; height: 34px;
+      border-radius: 6px;
+      flex-shrink: 0;
+      object-fit: cover;
+    }
+
+    /* Animated events */
+    .tl-event { animation: slideInEvent 0.4s ease both; }
+    .tl-event:nth-child(1) { animation-delay: 0.7s; }
+    .tl-event:nth-child(2) { animation-delay: 0.85s; }
+    .tl-event:nth-child(3) { animation-delay: 1.0s; }
+    .tl-event:nth-child(4) { animation-delay: 1.15s; }
+    .tl-event:nth-child(5) { animation-delay: 1.3s; }
+    @keyframes slideInEvent {
+      from { opacity: 0; transform: translateX(-16px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    /* Glow behind hero card */
+    .hero-glow {
+      position: absolute;
+      width: 500px; height: 500px;
+      left: 50%; top: 60%;
+      transform: translate(-50%, -50%);
+      background: radial-gradient(circle, var(--blue-glow) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    /* ===== SECTIONS ===== */
+    section { padding: 100px 24px; max-width: 1200px; margin: 0 auto; }
+    .section-label {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--blue);
+      margin-bottom: 12px;
+    }
+    .section-title {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(32px, 5vw, 48px);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+    }
+    .section-subtitle {
+      font-size: 17px;
+      color: var(--text-dim);
+      max-width: 560px;
+      line-height: 1.7;
+    }
+    .section-header { margin-bottom: 56px; }
+    .section-header.center { text-align: center; }
+    .section-header.center .section-subtitle { margin: 0 auto; }
+
+    /* Fade in on scroll */
+    .reveal {
+      opacity: 0;
+      transform: translateY(32px);
+      transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .reveal-delay-1 { transition-delay: 0.1s; }
+    .reveal-delay-2 { transition-delay: 0.2s; }
+    .reveal-delay-3 { transition-delay: 0.3s; }
+    .reveal-delay-4 { transition-delay: 0.4s; }
+
+    /* ===== BENTO GRID ===== */
+    .bento-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: auto auto;
+      gap: 16px;
+    }
+    .bento-card {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 32px;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+      overflow: hidden;
+    }
+    .bento-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, transparent 40%, var(--blue-glow));
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .bento-card:hover::before { opacity: 1; }
+    .bento-card:hover {
+      transform: translateY(-4px);
+      border-color: color-mix(in srgb, var(--blue) 30%, var(--border));
+      box-shadow: 0 12px 40px rgba(0,0,0,0.12);
+    }
+    .bento-card.span-2 { grid-column: span 2; }
+    .bento-icon {
+      width: 44px; height: 44px;
+      border-radius: var(--radius-sm);
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 20px;
+      font-size: 22px;
+    }
+    .bento-card h3 {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      letter-spacing: -0.01em;
+    }
+    .bento-card p {
+      font-size: 14px;
+      color: var(--text-dim);
+      line-height: 1.6;
+    }
+    .bento-visual {
+      margin-top: 20px;
+      background: var(--surface-3);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      overflow: hidden;
+    }
+
+    /* Mini source icons row */
+    .source-icons {
+      display: flex; gap: 10px; margin-top: 16px;
+    }
+    .source-icon {
+      width: 36px; height: 36px;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+      border: 1px solid var(--border);
+      background: var(--surface-3);
+      transition: all 0.2s;
+    }
+    .source-icon:hover { transform: scale(1.15); border-color: var(--blue); }
+
+    /* Language flags */
+    .lang-flags {
+      display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px;
+    }
+    .lang-flag {
+      font-size: 24px;
+      padding: 4px;
+      transition: transform 0.2s;
+    }
+    .lang-flag:hover { transform: scale(1.3); }
+
+    /* Severity demo */
+    .severity-row {
+      display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;
+    }
+    .severity-pill {
+      font-size: 11px; font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* ===== SOURCE TABS ===== */
+    .source-section { position: relative; }
+    .source-tabs {
+      display: flex;
+      gap: 4px;
+      background: var(--surface-2);
+      border-radius: var(--radius-sm);
+      padding: 4px;
+      border: 1px solid var(--border);
+      width: fit-content;
+      margin-bottom: 32px;
+    }
+    .source-tab {
+      padding: 10px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      color: var(--text-dim);
+      background: transparent;
+      border: none;
+      transition: all 0.2s;
+      display: flex; align-items: center; gap: 8px;
+      font-family: inherit;
+    }
+    .source-tab:hover { color: var(--text); }
+    .source-tab.active {
+      color: var(--text);
+      background: var(--surface-4);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    .source-content {
+      display: none;
+      gap: 32px;
+      align-items: flex-start;
+    }
+    .source-content.active { display: grid; grid-template-columns: 1fr 1fr; }
+    .source-info h3 { font-size: 22px; font-weight: 700; margin-bottom: 12px; }
+    .source-info p { color: var(--text-dim); margin-bottom: 20px; line-height: 1.7; }
+    .source-features { list-style: none; }
+    .source-features li {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 8px 0;
+      font-size: 14px;
+      color: var(--text-dim);
+    }
+    .source-features li::before {
+      content: '✓';
+      color: var(--blue);
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    /* Code block */
+    .code-block {
+      background: var(--surface-3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+    }
+    .code-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface-4);
+    }
+    .code-header span {
+      font-size: 12px; color: var(--text-dim);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .code-copy {
+      background: none; border: none;
+      color: var(--text-dim); cursor: pointer;
+      font-size: 12px; padding: 4px 8px;
+      border-radius: 4px;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+    .code-copy:hover { color: var(--text); background: var(--surface-2); }
+    .code-body {
+      padding: 16px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      line-height: 1.7;
+      overflow-x: auto;
+      white-space: pre;
+    }
+    .code-body .key { color: var(--blue); }
+    .code-body .str { color: var(--green); }
+    .code-body .comment { color: var(--text-faint); font-style: italic; }
+    .code-body .num { color: var(--orange); }
+
+    /* ===== EASY TO USE ===== */
+    .easy-section {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 48px;
+      align-items: center;
+    }
+    .easy-text h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 40px; font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+    }
+    .easy-text p {
+      color: var(--text-dim);
+      font-size: 17px;
+      line-height: 1.7;
+      margin-bottom: 24px;
+    }
+
+    /* ===== USE CASES ===== */
+    .usecase-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+    .usecase-card {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      transition: all 0.3s;
+    }
+    .usecase-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.12);
+    }
+    .usecase-visual {
+      height: 180px;
+      position: relative;
+      overflow: hidden;
+    }
+    .usecase-content { padding: 24px; }
+    .usecase-content h3 { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+    .usecase-content p { font-size: 14px; color: var(--text-dim); line-height: 1.6; }
+    .usecase-tag {
+      display: inline-block;
+      font-size: 11px; font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 4px;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Mini timeline inside use case cards */
+    .mini-tl { padding: 12px 16px; }
+    .mini-tl-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 6px 0;
+      font-size: 12px;
+      position: relative;
+    }
+    .mini-tl-item + .mini-tl-item::before {
+      content: '';
+      position: absolute;
+      left: 10px; top: -6px;
+      width: 1px; height: 12px;
+      background: var(--border);
+    }
+    .mini-tl-dot {
+      width: 20px; height: 20px;
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      font-size: 10px;
+    }
+    .mini-tl-text { color: var(--text-dim); }
+    .mini-tl-time {
+      margin-left: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--text-faint);
+    }
+
+    /* ===== INSTALL ===== */
+    .install-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+    .install-card {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 36px;
+    }
+    .install-card h3 {
+      font-size: 20px; font-weight: 700;
+      margin-bottom: 8px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .install-card p { color: var(--text-dim); margin-bottom: 24px; font-size: 14px; }
+    .install-steps { list-style: none; counter-reset: step; }
+    .install-steps li {
+      counter-increment: step;
+      display: flex; align-items: flex-start; gap: 14px;
+      padding: 10px 0;
+      font-size: 14px;
+      color: var(--text-dim);
+    }
+    .install-steps li::before {
+      content: counter(step);
+      width: 28px; height: 28px;
+      border-radius: 8px;
+      background: var(--blue-glow);
+      color: var(--blue);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      font-size: 13px;
+      font-weight: 700;
+      border: 1px solid color-mix(in srgb, var(--blue) 20%, transparent);
+    }
+    .install-highlight {
+      border-color: var(--blue);
+      background: linear-gradient(135deg, var(--surface-2), color-mix(in srgb, var(--blue) 5%, var(--surface-2)));
+    }
+    .recommended-badge {
+      font-size: 11px; font-weight: 700;
+      background: var(--blue);
+      color: #fff;
+      padding: 3px 10px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* ===== FAQ ===== */
+    .faq-list { max-width: 720px; margin: 0 auto; }
+    .faq-item {
+      border-bottom: 1px solid var(--border);
+    }
+    .faq-question {
+      width: 100%;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 20px 0;
+      background: none; border: none;
+      color: var(--text);
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: left;
+      font-family: inherit;
+      transition: color 0.2s;
+    }
+    .faq-question:hover { color: var(--blue); }
+    .faq-arrow {
+      transition: transform 0.3s;
+      flex-shrink: 0;
+      color: var(--text-dim);
+    }
+    .faq-item.open .faq-arrow { transform: rotate(180deg); }
+    .faq-answer {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease, padding 0.3s;
+    }
+    .faq-item.open .faq-answer { max-height: 200px; }
+    .faq-answer p {
+      padding-bottom: 20px;
+      color: var(--text-dim);
+      font-size: 15px;
+      line-height: 1.7;
+    }
+
+    /* ===== CTA BANNER ===== */
+    .cta-banner {
+      text-align: center;
+      padding: 80px 24px;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+    .cta-banner h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(32px, 4vw, 44px);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+    }
+    .cta-banner p { color: var(--text-dim); font-size: 17px; margin-bottom: 32px; }
+
+    /* ===== FOOTER ===== */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 48px 24px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 40px;
+      margin-bottom: 40px;
+    }
+    .footer-brand p {
+      color: var(--text-dim);
+      font-size: 14px;
+      line-height: 1.6;
+      margin-top: 12px;
+    }
+    .footer-col h4 {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-faint);
+      margin-bottom: 16px;
+    }
+    .footer-col a {
+      display: block;
+      color: var(--text-dim);
+      text-decoration: none;
+      font-size: 14px;
+      padding: 4px 0;
+      transition: color 0.2s;
+    }
+    .footer-col a:hover { color: var(--text); }
+    .footer-bottom {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      color: var(--text-faint);
+      font-size: 13px;
+    }
+    .footer-socials {
+      display: flex; gap: 16px;
+    }
+    .footer-socials a {
+      color: var(--text-faint);
+      transition: color 0.2s;
+    }
+    .footer-socials a:hover { color: var(--text); }
+
+    /* ===== ANIMATIONS ===== */
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(40px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 900px) {
+      .bento-grid { grid-template-columns: 1fr 1fr; }
+      .bento-card.span-2 { grid-column: span 2; }
+      .source-content.active { grid-template-columns: 1fr; }
+      .easy-section { grid-template-columns: 1fr; }
+      .usecase-grid { grid-template-columns: 1fr; }
+      .install-grid { grid-template-columns: 1fr; }
+      .footer-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 640px) {
+      .bento-grid { grid-template-columns: 1fr; }
+      .bento-card.span-2 { grid-column: span 1; }
+      .nav-links { display: none; }
+      .mobile-menu-btn { display: block; }
+      .version-badge { display: none; }
+      .hero { padding: 120px 16px 60px; }
+      .hero-ctas { flex-direction: column; align-items: center; }
+      section { padding: 60px 16px; }
+      .footer-grid { grid-template-columns: 1fr; gap: 24px; }
+      .footer-bottom { flex-direction: column; gap: 12px; text-align: center; }
+      .source-tabs { overflow-x: auto; width: 100%; }
+    }
+
+    /* Respect reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* Mobile nav overlay */
+    .mobile-nav {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 999;
+      background: color-mix(in srgb, var(--surface) 95%, transparent);
+      backdrop-filter: blur(20px);
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+    }
+    .mobile-nav.open { display: flex; }
+    .mobile-nav a {
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--text);
+      text-decoration: none;
+    }
+    .mobile-nav-close {
+      position: absolute;
+      top: 20px; right: 20px;
+      background: none; border: none;
+      color: var(--text); cursor: pointer;
+      font-size: 24px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header id="header">
+    <a href="#" class="logo">
+      <svg viewBox="0 0 28 28" fill="none">
+        <rect width="28" height="28" rx="7" fill="var(--blue)" opacity="0.1"/>
+        <line x1="9" y1="6" x2="9" y2="22" stroke="var(--blue)" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="9" cy="9" r="2.5" fill="var(--orange)"/>
+        <circle cx="9" cy="16" r="2.5" fill="var(--blue)"/>
+        <circle cx="9" cy="22" r="2.5" fill="var(--purple)"/>
+        <rect x="14" y="8" width="10" height="2" rx="1" fill="var(--text-faint)"/>
+        <rect x="14" y="15" width="8" height="2" rx="1" fill="var(--text-faint)"/>
+      </svg>
+      Chronicle<span class="logo-dot">.</span>
+    </a>
+    <nav>
+      <ul class="nav-links">
+        <li><a href="#features">Features</a></li>
+        <li><a href="#sources">Sources</a></li>
+        <li><a href="#usecases">Use Cases</a></li>
+        <li><a href="#install">Install</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ul>
+    </nav>
+    <div class="nav-right">
+      <span class="version-badge">v1.7.1</span>
+      <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+      </button>
+      <a href="#install" class="btn-get-started">Get Started</a>
+      <button class="mobile-menu-btn" onclick="document.querySelector('.mobile-nav').classList.add('open')" aria-label="Menu">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- MOBILE NAV -->
+  <div class="mobile-nav">
+    <button class="mobile-nav-close" onclick="this.parentElement.classList.remove('open')">✕</button>
+    <a href="#features" onclick="this.parentElement.classList.remove('open')">Features</a>
+    <a href="#sources" onclick="this.parentElement.classList.remove('open')">Sources</a>
+    <a href="#usecases" onclick="this.parentElement.classList.remove('open')">Use Cases</a>
+    <a href="#install" onclick="this.parentElement.classList.remove('open')">Install</a>
+    <a href="#faq" onclick="this.parentElement.classList.remove('open')">FAQ</a>
+  </div>
+
+  <!-- HERO -->
+  <section class="hero" id="hero">
+    <div class="hero-glow"></div>
+    <div class="hero-badge">
+      <span class="hero-badge-dot"></span>
+      Available now via HACS
+    </div>
+    <h1>Every Event.<br><span class="gradient-text">One Timeline.</span></h1>
+    <p>A universal timeline card for Home Assistant. Calendars, cameras, door sensors, APIs — everything flows into a single, beautiful view.</p>
+    <div class="hero-ctas">
+      <a href="#install" class="cta-primary">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Install Now
+      </a>
+      <a href="https://github.com/KadenThomp36/chronicle-card" class="cta-secondary" target="_blank" rel="noopener">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+        View on GitHub
+      </a>
+    </div>
+
+    <!-- Mock HA Card -->
+    <div class="hero-card-wrapper">
+      <div class="hero-card">
+        <div class="card-header">
+          <div class="card-header-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Home Timeline
+          </div>
+          <div class="card-header-actions">
+            <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></span>
+            <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span>
+          </div>
+        </div>
+        <div class="timeline-body">
+          <div class="tl-event">
+            <div class="tl-line"></div>
+            <div class="tl-dot" style="background:rgba(255,152,0,0.15);color:var(--orange)">👤</div>
+            <div class="tl-content">
+              <div class="tl-title">Person Detected <span class="tl-severity" style="background:rgba(255,152,0,0.15);color:var(--orange)">Warning</span></div>
+              <div class="tl-meta">
+                <span>Front Porch Camera</span>
+                <span>·</span>
+                <span>2 min ago</span>
+              </div>
+            </div>
+            <div class="tl-thumbnail" style="background: linear-gradient(135deg, #1a1a2e, #16213e); display: flex; align-items: center; justify-content: center; font-size: 16px;">📷</div>
+          </div>
+          <div class="tl-event">
+            <div class="tl-line"></div>
+            <div class="tl-dot" style="background:rgba(121,85,72,0.15);color:var(--brown)">🚪</div>
+            <div class="tl-content">
+              <div class="tl-title">Front Door Opened</div>
+              <div class="tl-meta">
+                <span>binary_sensor.front_door</span>
+                <span>·</span>
+                <span>5 min ago</span>
+              </div>
+            </div>
+          </div>
+          <div class="tl-event">
+            <div class="tl-line"></div>
+            <div class="tl-dot" style="background:rgba(33,150,243,0.15);color:var(--blue)">🚗</div>
+            <div class="tl-content">
+              <div class="tl-title">Vehicle Detected <span class="tl-severity" style="background:rgba(33,150,243,0.15);color:var(--blue)">Info</span></div>
+              <div class="tl-meta">
+                <span>Driveway Camera</span>
+                <span>·</span>
+                <span>12 min ago</span>
+              </div>
+            </div>
+            <div class="tl-thumbnail" style="background: linear-gradient(135deg, #0f3460, #16213e); display: flex; align-items: center; justify-content: center; font-size: 16px;">📷</div>
+          </div>
+          <div class="tl-event">
+            <div class="tl-line"></div>
+            <div class="tl-dot" style="background:rgba(156,39,176,0.15);color:var(--purple)">🏃</div>
+            <div class="tl-content">
+              <div class="tl-title">Motion Detected</div>
+              <div class="tl-meta">
+                <span>Backyard Sensor</span>
+                <span>·</span>
+                <span>18 min ago</span>
+              </div>
+            </div>
+          </div>
+          <div class="tl-event">
+            <div class="tl-line"></div>
+            <div class="tl-dot" style="background:rgba(76,175,80,0.15);color:var(--green)">📅</div>
+            <div class="tl-content">
+              <div class="tl-title">Team Standup</div>
+              <div class="tl-meta">
+                <span>calendar.work</span>
+                <span>·</span>
+                <span>45 min ago</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES BENTO -->
+  <section id="features">
+    <div class="section-header center">
+      <div class="section-label reveal">Features</div>
+      <h2 class="section-title reveal reveal-delay-1">Built for every<br>smart home</h2>
+      <p class="section-subtitle reveal reveal-delay-2">Chronicle brings all your events together — no matter where they come from — into a single, unified timeline.</p>
+    </div>
+
+    <div class="bento-grid">
+      <div class="bento-card span-2 reveal">
+        <div class="bento-icon" style="background:rgba(33,150,243,0.12);color:var(--blue)">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+        </div>
+        <h3>Universal Sources</h3>
+        <p>4 built-in adapters pull events from calendars, REST APIs, WebSocket commands, entity state history, and static YAML — all merging into one view.</p>
+        <div class="source-icons">
+          <div class="source-icon" title="Calendar">📅</div>
+          <div class="source-icon" title="REST API">🔌</div>
+          <div class="source-icon" title="History">📊</div>
+          <div class="source-icon" title="Static YAML">📝</div>
+          <div class="source-icon" title="Frigate">📹</div>
+        </div>
+      </div>
+      <div class="bento-card reveal reveal-delay-1">
+        <div class="bento-icon" style="background:rgba(255,152,0,0.12);color:var(--orange)">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        </div>
+        <h3>Smart Icons & Colors</h3>
+        <p>150+ built-in keyword rules auto-match event titles to Material Design icons and colors. "Dog detected" → 🐕, "Door opened" → 🚪. Zero config needed.</p>
+      </div>
+      <div class="bento-card reveal reveal-delay-1">
+        <div class="bento-icon" style="background:rgba(156,39,176,0.12);color:var(--purple)">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+        </div>
+        <h3>Event Grouping</h3>
+        <p>Clusters rapid-fire events into expandable groups. 10 motion alerts in 2 minutes? That's one tidy group.</p>
+      </div>
+      <div class="bento-card reveal reveal-delay-2">
+        <div class="bento-icon" style="background:rgba(0,188,212,0.12);color:var(--teal)">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        </div>
+        <h3>Visual Editor</h3>
+        <p>Full GUI configuration right inside the HA dashboard editor. Add sources, tweak appearance, configure filters — no YAML required.</p>
+      </div>
+      <div class="bento-card reveal reveal-delay-2">
+        <div class="bento-icon" style="background:rgba(255,87,34,0.12);color:#FF5722">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="2" width="20" height="20" rx="2"/><circle cx="8" cy="8" r="2"/><path d="M21 15l-5-5L5 21"/></svg>
+        </div>
+        <h3>Thumbnails</h3>
+        <p>Camera snapshots, Frigate images, or any URL render inline as event thumbnails with media URL caching.</p>
+      </div>
+      <div class="bento-card reveal reveal-delay-3">
+        <div class="bento-icon" style="background:rgba(67,160,71,0.12);color:var(--green)">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+        </div>
+        <h3>8 Languages</h3>
+        <p>Auto-detects your HA locale. Override manually if you prefer.</p>
+        <div class="lang-flags">
+          <span class="lang-flag" title="English">🇬🇧</span>
+          <span class="lang-flag" title="German">🇩🇪</span>
+          <span class="lang-flag" title="French">🇫🇷</span>
+          <span class="lang-flag" title="Spanish">🇪🇸</span>
+          <span class="lang-flag" title="Italian">🇮🇹</span>
+          <span class="lang-flag" title="Portuguese">🇵🇹</span>
+          <span class="lang-flag" title="Dutch">🇳🇱</span>
+          <span class="lang-flag" title="Swedish">🇸🇪</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SOURCE ADAPTERS -->
+  <section id="sources" class="source-section">
+    <div class="section-header reveal">
+      <div class="section-label">Sources</div>
+      <h2 class="section-title">Plug into anything</h2>
+      <p class="section-subtitle">Four built-in adapters cover every event source in your smart home. Mix and match — they all merge into one timeline.</p>
+    </div>
+
+    <div class="source-tabs reveal reveal-delay-1">
+      <button class="source-tab active" data-tab="calendar">📅 Calendar</button>
+      <button class="source-tab" data-tab="rest">🔌 REST / WS</button>
+      <button class="source-tab" data-tab="history">📊 History</button>
+      <button class="source-tab" data-tab="static">📝 Static</button>
+    </div>
+
+    <!-- Calendar Tab -->
+    <div class="source-content active" id="tab-calendar">
+      <div class="source-info">
+        <h3>Calendar Entities</h3>
+        <p>Point Chronicle at any Home Assistant calendar entity and it pulls events automatically. Works with local calendars, Google Calendar, CalDAV, and more.</p>
+        <ul class="source-features">
+          <li>Fetches events for configurable date range</li>
+          <li>Automatic icon and color inference from event titles</li>
+          <li>Push events from automations using <code>calendar.create_event</code></li>
+          <li>Includes a ready-to-use automation blueprint</li>
+        </ul>
+      </div>
+      <div class="code-block">
+        <div class="code-header">
+          <span>configuration.yaml</span>
+          <button class="code-copy" onclick="copyCode(this)">Copy</button>
+        </div>
+        <div class="code-body"><span class="key">type</span>: <span class="str">custom:chronicle-card</span>
+<span class="key">title</span>: <span class="str">Family Calendar</span>
+<span class="key">sources</span>:
+  - <span class="key">type</span>: <span class="str">calendar</span>
+    <span class="key">entity</span>: <span class="str">calendar.family</span>
+    <span class="key">default_icon</span>: <span class="str">mdi:calendar</span>
+    <span class="key">default_color</span>: <span class="str">"#4CAF50"</span></div>
+      </div>
+    </div>
+
+    <!-- REST Tab -->
+    <div class="source-content" id="tab-rest">
+      <div class="source-info">
+        <h3>REST & WebSocket APIs</h3>
+        <p>Connect to any REST API or HA WebSocket command. First-class Frigate support via WebSocket — see camera events with thumbnails in your timeline.</p>
+        <ul class="source-features">
+          <li>Field mapping transforms any JSON schema into Chronicle events</li>
+          <li>Media URL templates with placeholder substitution</li>
+          <li>Configurable poll interval for real-time updates</li>
+          <li>Internal HA paths use authenticated <code>callApi</code></li>
+        </ul>
+      </div>
+      <div class="code-block">
+        <div class="code-header">
+          <span>Frigate example</span>
+          <button class="code-copy" onclick="copyCode(this)">Copy</button>
+        </div>
+        <div class="code-body"><span class="key">sources</span>:
+  - <span class="key">type</span>: <span class="str">rest</span>
+    <span class="key">name</span>: <span class="str">Frigate Events</span>
+    <span class="key">ws_params</span>:
+      <span class="key">type</span>: <span class="str">frigate/events/get</span>
+      <span class="key">limit</span>: <span class="num">50</span>
+    <span class="key">field_map</span>:
+      <span class="key">id</span>: <span class="str">id</span>
+      <span class="key">title</span>: <span class="str">label</span>
+      <span class="key">start</span>: <span class="str">start_time</span>
+      <span class="key">category</span>: <span class="str">label</span>
+    <span class="key">media_url_template</span>: <span class="str">/api/frigate/notifications/{id}/snapshot.jpg</span></div>
+      </div>
+    </div>
+
+    <!-- History Tab -->
+    <div class="source-content" id="tab-history">
+      <div class="source-info">
+        <h3>Entity State History</h3>
+        <p>Converts raw state changes into human-readable timeline events. A binary_sensor with device_class "door" becomes "Front Door Opened" / "Front Door Closed" automatically.</p>
+        <ul class="source-features">
+          <li>Reads device_class for smart translations (door, motion, lock, smoke, etc.)</li>
+          <li>Custom <code>state_map</code> to override any label</li>
+          <li>Works with binary sensors, locks, alarms, covers, climate</li>
+          <li>Automatic severity assignment based on entity type</li>
+        </ul>
+      </div>
+      <div class="code-block">
+        <div class="code-header">
+          <span>Security sensors</span>
+          <button class="code-copy" onclick="copyCode(this)">Copy</button>
+        </div>
+        <div class="code-body"><span class="key">sources</span>:
+  - <span class="key">type</span>: <span class="str">history</span>
+    <span class="key">entities</span>:
+      - <span class="str">binary_sensor.front_door</span>
+      - <span class="str">lock.front_door_lock</span>
+      - <span class="str">alarm_control_panel.home</span>
+    <span class="key">name</span>: <span class="str">Security History</span>
+    <span class="key">default_severity</span>: <span class="str">warning</span></div>
+      </div>
+    </div>
+
+    <!-- Static Tab -->
+    <div class="source-content" id="tab-static">
+      <div class="source-info">
+        <h3>Static YAML Events</h3>
+        <p>Define events directly in your card configuration. Perfect for scheduled reminders, maintenance tasks, or any manually curated entries.</p>
+        <ul class="source-features">
+          <li>Full control over icon, color, severity, and category</li>
+          <li>Great for maintenance schedules and reminders</li>
+          <li>Mix with dynamic sources for a complete picture</li>
+          <li>No external dependencies needed</li>
+        </ul>
+      </div>
+      <div class="code-block">
+        <div class="code-header">
+          <span>Reminders</span>
+          <button class="code-copy" onclick="copyCode(this)">Copy</button>
+        </div>
+        <div class="code-body"><span class="key">sources</span>:
+  - <span class="key">type</span>: <span class="str">static</span>
+    <span class="key">name</span>: <span class="str">Maintenance</span>
+    <span class="key">events</span>:
+      - <span class="key">title</span>: <span class="str">Change HVAC Filter</span>
+        <span class="key">start</span>: <span class="str">"2025-04-01T10:00:00"</span>
+        <span class="key">icon</span>: <span class="str">mdi:air-filter</span>
+        <span class="key">severity</span>: <span class="str">info</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- EASY TO USE -->
+  <section>
+    <div class="easy-section reveal">
+      <div class="easy-text">
+        <div class="section-label">Quick Start</div>
+        <h2>Three lines.<br>That's it.</h2>
+        <p>Add a chronicle card to any dashboard with a minimal YAML config. The card handles icons, colors, grouping, and layout automatically. Or skip YAML entirely — the built-in visual editor has you covered.</p>
+        <div style="display:flex;gap:12px;flex-wrap:wrap">
+          <div class="severity-row">
+            <span class="severity-pill" style="background:rgba(211,47,47,0.15);color:var(--red)">Critical</span>
+            <span class="severity-pill" style="background:rgba(255,152,0,0.15);color:var(--orange)">Warning</span>
+            <span class="severity-pill" style="background:rgba(33,150,243,0.15);color:var(--blue)">Info</span>
+            <span class="severity-pill" style="background:rgba(158,158,158,0.15);color:var(--grey)">Debug</span>
+          </div>
+        </div>
+      </div>
+      <div class="code-block">
+        <div class="code-header">
+          <span>Minimal config</span>
+          <button class="code-copy" onclick="copyCode(this)">Copy</button>
+        </div>
+        <div class="code-body"><span class="key">type</span>: <span class="str">custom:chronicle-card</span>
+<span class="key">title</span>: <span class="str">Home Timeline</span>
+<span class="key">sources</span>:
+  - <span class="key">type</span>: <span class="str">calendar</span>
+    <span class="key">entity</span>: <span class="str">calendar.home_events</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- USE CASES -->
+  <section id="usecases">
+    <div class="section-header center reveal">
+      <div class="section-label">Use Cases</div>
+      <h2 class="section-title">From cameras to calendars</h2>
+      <p class="section-subtitle">See how Chronicle Card brings clarity to different smart home scenarios.</p>
+    </div>
+
+    <div class="usecase-grid">
+      <div class="usecase-card reveal">
+        <div class="usecase-visual" style="background: linear-gradient(135deg, #1a0a00, #2d1600);">
+          <div class="mini-tl">
+            <div class="mini-tl-item">
+              <div class="mini-tl-dot" style="background:rgba(244,67,54,0.2);color:var(--red)">🔒</div>
+              <span class="mini-tl-text">Alarm Armed — Away</span>
+              <span class="mini-tl-time">08:15</span>
+            </div>
+            <div class="mini-tl-item">
+              <div class="mini-tl-dot" style="background:rgba(121,85,72,0.2);color:var(--brown)">🚪</div>
+              <span class="mini-tl-text">Front Door Locked</span>
+              <span class="mini-tl-time">08:14</span>
+            </div>
+            <div class="mini-tl-item">
+              <div class="mini-tl-dot" style="background:rgba(121,85,72,0.2);color:var(--brown)">🚪</div>
+              <span class="mini-tl-text">Front Door Closed</span>
+              <span class="mini-tl-time">08:14</span>
+            </div>
+            <div class="mini-tl-item">
+              <div class="mini-tl-dot" style="background:rgba(156,39,176,0.2);color:var(--purple)">🏃</div>
+              <span class="mini-tl-text">Motion — Hallway</span>
+              <span class="mini-tl-time">08:13</span>
+            </div>
+            <div class="mini-tl-item">
+              <div class="mini-tl-dot" style="background:rgba(121,85,72,0.2);color:var(--brown)">🚪</div>
+              <span class="mini-tl-text">Garage Door Closed</span>
+              <span class="mini-tl-time">08:10</span>
+            </div>
+          </div>
+        </div>
+        <div class="usecase-content">
+          <span class="usecase-tag" style="background:rgba(244,67,54,0.12);color:var(--red)">Security</span>
+          <h3>Security Timeline</h3>
+          <p>Track every door, lock, motion sensor, and alarm event. Filter by severity to focus on what matters.</p>
+        </div>
+      </div>
+
+      <div class="usecase-card reveal reveal-delay-1">
+        <div class="usecase-visual" style="background: linear-gradient(135deg, #001529, #002040);">
+          <div class="mini-tl">
+            <div class="mini-tl-item">
+              <div class="mini-tl-dot" style="background:rgba(255,152,0,0.2);color:var(--orange)">👤</div>
+              <span class="mini-tl-text">Person — Front Porch</span>
+              <span class="mini-tl-time">14:32</span>
+            </div>
+            <div class="mini-tl-item">
+              <div class="mini-tl-dot" style="background:rgba(33,150,243,0.2);color:var(--blue)">🚗</div>
+              <span class="mini-tl-text">Vehicle — Driveway</span>
+              <span class="mini-tl-time">14:30</span>
+            </div>
+            <div class="mini-tl-item">
+              <div class="mini-tl-dot" style="background:rgba(67,160,71,0.2);color:var(--green)">🐕</div>
+              <span class="mini-tl-text">Dog — Backyard</span>
+              <span class="mini-tl-time">13:45</span>
+            </div>
+            <div class="mini-tl-item">
+              <div class="mini-tl-dot" style="background:rgba(255,152,0,0.2);color:var(--orange)">📦</div>
+              <span class="mini-tl-text">Package — Front Door</span>
+              <span class="mini-tl-time">11:20</span>
+            </div>
+            <div class="mini-tl-item">
+              <div class="mini-tl-dot" style="background:rgba(255,152,0,0.2);color:var(--orange)">👤</div>
+              <span class="mini-tl-text">Person — Side Gate</span>
+              <span class="mini-tl-time">09:05</span>
+            </div>
+          </div>
+        </div>
+        <div class="usecase-content">
+          <span class="usecase-tag" style="background:rgba(33,150,243,0.12);color:var(--blue)">Cameras</span>
+          <h3>Frigate Camera Events</h3>
+          <p>Frigate detections flow in via WebSocket with thumbnails. Person, vehicle, pet — all auto-categorized with icons.</p>
+        </div>
+      </div>
+
+      <div class="usecase-card reveal reveal-delay-2">
+        <div class="usecase-visual" style="background: linear-gradient(135deg, #0d1f0d, #1a2e1a);">
+          <div class="mini-tl">
+            <div class="mini-tl-item">
+              <div class="mini-tl-dot" style="background:rgba(76,175,80,0.2);color:var(--green)">📅</div>
+              <span class="mini-tl-text">Team Standup</span>
+              <span class="mini-tl-time">09:00</span>
+            </div>
+            <div class="mini-tl-item">
+              <div class="mini-tl-dot" style="background:rgba(255,152,0,0.2);color:var(--orange)">👤</div>
+              <span class="mini-tl-text">Person — Driveway</span>
+              <span class="mini-tl-time">08:42</span>
+            </div>
+            <div class="mini-tl-item">
+              <div class="mini-tl-dot" style="background:rgba(121,85,72,0.2);color:var(--brown)">🚪</div>
+              <span class="mini-tl-text">Front Door Opened</span>
+              <span class="mini-tl-time">08:30</span>
+            </div>
+            <div class="mini-tl-item">
+              <div class="mini-tl-dot" style="background:rgba(0,188,212,0.2);color:var(--teal)">🌡️</div>
+              <span class="mini-tl-text">HVAC → Cooling</span>
+              <span class="mini-tl-time">08:15</span>
+            </div>
+            <div class="mini-tl-item">
+              <div class="mini-tl-dot" style="background:rgba(255,193,7,0.2);color:var(--yellow)">💡</div>
+              <span class="mini-tl-text">Kitchen Lights On</span>
+              <span class="mini-tl-time">07:00</span>
+            </div>
+          </div>
+        </div>
+        <div class="usecase-content">
+          <span class="usecase-tag" style="background:rgba(67,160,71,0.12);color:var(--green)">Multi-Source</span>
+          <h3>Smart Home Hub</h3>
+          <p>Combine calendars, cameras, sensors, and static events into one unified timeline. The complete picture of your home.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- INSTALL -->
+  <section id="install">
+    <div class="section-header center reveal">
+      <div class="section-label">Installation</div>
+      <h2 class="section-title">Up and running<br>in 60 seconds</h2>
+    </div>
+
+    <div class="install-grid">
+      <div class="install-card install-highlight reveal">
+        <h3>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          HACS
+          <span class="recommended-badge">Recommended</span>
+        </h3>
+        <p>The easiest way to install and stay updated.</p>
+        <ol class="install-steps">
+          <li>Open <strong>HACS</strong> in your Home Assistant instance</li>
+          <li>Go to <strong>Frontend</strong> → <strong>Explore & Download</strong></li>
+          <li>Search for <strong>"Chronicle Card"</strong></li>
+          <li>Click <strong>Download</strong> and restart Home Assistant</li>
+          <li>Add the card to any dashboard — done!</li>
+        </ol>
+      </div>
+      <div class="install-card reveal reveal-delay-1">
+        <h3>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="2" stroke-linecap="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+          Manual Install
+        </h3>
+        <p>For those who prefer full control.</p>
+        <ol class="install-steps">
+          <li>Download <code>chronicle-card.js</code> from the <a href="https://github.com/KadenThomp36/chronicle-card/releases" style="color:var(--blue)">latest release</a></li>
+          <li>Copy to <code>/config/www/chronicle-card.js</code></li>
+          <li>Go to <strong>Settings → Dashboards → Resources</strong></li>
+          <li>Add resource: <code>/local/chronicle-card.js</code> as JavaScript Module</li>
+          <li>Add the card to your dashboard</li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section id="faq">
+    <div class="section-header center reveal">
+      <div class="section-label">FAQ</div>
+      <h2 class="section-title">Common questions</h2>
+    </div>
+
+    <div class="faq-list">
+      <div class="faq-item reveal">
+        <button class="faq-question" onclick="toggleFaq(this)">
+          Does it work with Frigate?
+          <svg class="faq-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-answer">
+          <p>Yes! Chronicle has first-class Frigate support via the REST/WebSocket adapter. It connects to Frigate's WebSocket API, maps detection events to timeline entries, and renders camera snapshots as inline thumbnails. See the examples in the documentation for a ready-to-use Frigate config.</p>
+        </div>
+      </div>
+      <div class="faq-item reveal reveal-delay-1">
+        <button class="faq-question" onclick="toggleFaq(this)">
+          Do I need to write YAML?
+          <svg class="faq-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-answer">
+          <p>No! Chronicle includes a full visual config editor that lets you add sources, configure appearance, set up filters and grouping — all through the HA dashboard editor GUI. YAML is available for advanced users but never required.</p>
+        </div>
+      </div>
+      <div class="faq-item reveal reveal-delay-2">
+        <button class="faq-question" onclick="toggleFaq(this)">
+          What HA version is required?
+          <svg class="faq-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-answer">
+          <p>Chronicle Card requires Home Assistant 2024.1.0 or newer. It uses modern HA APIs for calendar access, history queries, and WebSocket communication that are available from that version onward.</p>
+        </div>
+      </div>
+      <div class="faq-item reveal reveal-delay-3">
+        <button class="faq-question" onclick="toggleFaq(this)">
+          Can I combine multiple sources?
+          <svg class="faq-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-answer">
+          <p>Absolutely. You can add as many sources as you like — mix calendars, Frigate cameras, door sensors, and static events in a single card. Everything merges into one chronological timeline with proper grouping and filtering.</p>
+        </div>
+      </div>
+      <div class="faq-item reveal reveal-delay-4">
+        <button class="faq-question" onclick="toggleFaq(this)">
+          How does performance scale?
+          <svg class="faq-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-answer">
+          <p>Chronicle uses virtual scrolling to only render visible events, debounced fetching to minimize API calls, and a media URL cache (3-hour TTL) for thumbnails. It handles hundreds of events smoothly even on lower-powered devices.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA BANNER -->
+  <section class="cta-banner reveal">
+    <h2>Ready to chronicle<br>your smart home?</h2>
+    <p>Install in seconds via HACS. Free, open source, MIT licensed.</p>
+    <div class="hero-ctas" style="margin-top:0">
+      <a href="#install" class="cta-primary">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Install Now
+      </a>
+      <a href="https://github.com/KadenThomp36/chronicle-card" class="cta-secondary" target="_blank" rel="noopener">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+        GitHub
+      </a>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a href="#" class="logo">
+          <svg viewBox="0 0 28 28" fill="none" width="28" height="28">
+            <rect width="28" height="28" rx="7" fill="var(--blue)" opacity="0.1"/>
+            <line x1="9" y1="6" x2="9" y2="22" stroke="var(--blue)" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="9" cy="9" r="2.5" fill="var(--orange)"/>
+            <circle cx="9" cy="16" r="2.5" fill="var(--blue)"/>
+            <circle cx="9" cy="22" r="2.5" fill="var(--purple)"/>
+            <rect x="14" y="8" width="10" height="2" rx="1" fill="var(--text-faint)"/>
+            <rect x="14" y="15" width="8" height="2" rx="1" fill="var(--text-faint)"/>
+          </svg>
+          Chronicle<span class="logo-dot">.</span>
+        </a>
+        <p>A universal timeline card for Home Assistant. Open source, community-driven, built with care.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Resources</h4>
+        <a href="https://github.com/KadenThomp36/chronicle-card" target="_blank">Documentation</a>
+        <a href="https://github.com/KadenThomp36/chronicle-card/issues" target="_blank">Bug Reports</a>
+        <a href="https://github.com/KadenThomp36/chronicle-card/releases" target="_blank">Releases</a>
+      </div>
+      <div class="footer-col">
+        <h4>Community</h4>
+        <a href="https://github.com/KadenThomp36/chronicle-card/discussions" target="_blank">Discussions</a>
+        <a href="https://community.home-assistant.io/" target="_blank">HA Community</a>
+      </div>
+      <div class="footer-col">
+        <h4>Support</h4>
+        <a href="https://buymeacoffee.com/kadenthomp36" target="_blank">Buy Me a Coffee</a>
+        <a href="https://github.com/KadenThomp36/chronicle-card/blob/main/LICENSE" target="_blank">MIT License</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>&copy; <span id="year"></span> Chronicle Card. MIT License.</span>
+      <div class="footer-socials">
+        <a href="https://github.com/KadenThomp36/chronicle-card" target="_blank" aria-label="GitHub">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+        </a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Theme toggle
+    function toggleTheme() {
+      document.documentElement.classList.toggle('dark');
+      document.documentElement.classList.toggle('light');
+      localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+    }
+    // Restore theme
+    const saved = localStorage.getItem('theme');
+    if (saved === 'light') {
+      document.documentElement.classList.remove('dark');
+      document.documentElement.classList.add('light');
+    } else if (!saved && window.matchMedia('(prefers-color-scheme: light)').matches) {
+      document.documentElement.classList.remove('dark');
+      document.documentElement.classList.add('light');
+    }
+
+    // Scroll reveal
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); } });
+    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+    // Header scroll
+    window.addEventListener('scroll', () => {
+      document.getElementById('header').classList.toggle('header-scrolled', window.scrollY > 20);
+    });
+
+    // Active nav link
+    const sections = document.querySelectorAll('section[id]');
+    const navLinks = document.querySelectorAll('.nav-links a');
+    window.addEventListener('scroll', () => {
+      const mid = window.scrollY + window.innerHeight / 3;
+      let current = '';
+      sections.forEach(s => {
+        if (s.offsetTop <= mid) current = s.id;
+      });
+      navLinks.forEach(a => {
+        a.classList.toggle('active', a.getAttribute('href') === '#' + current);
+      });
+    });
+
+    // Source tabs
+    document.querySelectorAll('.source-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.source-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.source-content').forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+      });
+    });
+
+    // FAQ accordion
+    function toggleFaq(btn) {
+      const item = btn.parentElement;
+      const wasOpen = item.classList.contains('open');
+      document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+      if (!wasOpen) item.classList.add('open');
+    }
+
+    // Copy code
+    function copyCode(btn) {
+      const code = btn.closest('.code-block').querySelector('.code-body').textContent;
+      navigator.clipboard.writeText(code).then(() => {
+        btn.textContent = 'Copied!';
+        setTimeout(() => btn.textContent = 'Copy', 2000);
+      });
+    }
+
+    // Year
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
