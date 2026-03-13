@@ -1477,7 +1477,7 @@ function e(e,t,i,r){var a,o=arguments.length,s=o<3?t:null===r?r=Object.getOwnPro
       margin: 2px 0 0;
       line-height: 1.4;
     }
-  `,e([he({attribute:!1})],et.prototype,"source",void 0),e([he({type:Number})],et.prototype,"index",void 0),e([he({attribute:!1})],et.prototype,"hass",void 0),et=e([ce("chronicle-source-editor")],et);let tt=class extends ne{setConfig(e){this._config={...me,...e,filters:{...me.filters,...e.filters},grouping:{...me.grouping,...e.grouping},appearance:{...me.appearance,...e.appearance}}}render(){if(!this._config)return G;const e=this._config,t=e.grouping??{},i=e.appearance??{};return B`
+  `,e([he({attribute:!1})],et.prototype,"source",void 0),e([he({type:Number})],et.prototype,"index",void 0),e([he({attribute:!1})],et.prototype,"hass",void 0),et=e([ce("chronicle-source-editor")],et);let tt=class extends ne{connectedCallback(){super.connectedCallback(),customElements.get("ha-form")||customElements.get("hui-tile-card")?.getConfigElement(),customElements.get("ha-entity-picker")||customElements.get("hui-entities-card")?.getConfigElement()}setConfig(e){this._config={...me,...e,filters:{...me.filters,...e.filters},grouping:{...me.grouping,...e.grouping},appearance:{...me.appearance,...e.appearance}}}render(){if(!this._config)return G;const e=this._config,t=e.grouping??{},i=e.appearance??{};return B`
       <div class="editor">
         <!-- General -->
         <details open>

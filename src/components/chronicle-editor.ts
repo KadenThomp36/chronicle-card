@@ -2,12 +2,18 @@ import { LitElement, html, css, nothing } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { HomeAssistant } from '../types';
 import { ChronicleCardConfig, DEFAULT_CONFIG } from '../models/config';
+import { loadHaComponents } from '../utils/load-ha-components';
 import './source-editor';
 
 @customElement('chronicle-card-editor')
 export class ChronicleEditor extends LitElement {
   @property({ attribute: false }) hass?: HomeAssistant;
   @state() private _config!: ChronicleCardConfig;
+
+  connectedCallback(): void {
+    super.connectedCallback();
+    loadHaComponents();
+  }
 
   static styles = css`
     :host {
