@@ -55,6 +55,9 @@
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html { scroll-behavior: smooth; scroll-padding-top: 80px; }
+    html {
+      overflow-x: hidden;
+    }
     body {
       font-family: 'DM Sans', sans-serif;
       background: var(--surface);
@@ -898,7 +901,9 @@
       .nav-links { display: none; }
       .mobile-menu-btn { display: block; }
       .version-badge { display: none; }
+      .btn-get-started { display: none; }
       .hero { padding: 120px 16px 60px; }
+      .hero-badge { font-size: 12px; padding: 6px 14px; }
       .hero-ctas { flex-direction: column; align-items: center; }
       section { padding: 60px 16px; }
       .install-card { padding: 24px 20px; }
