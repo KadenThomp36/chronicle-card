@@ -31,7 +31,7 @@ A universal, extensible timeline card for [Home Assistant](https://www.home-assi
 
 ### HACS (Recommended)
 
-> **Note:** HACS Default store submission is pending. For now, add as a custom repository.
+> **Note:** HACS Default store listing is pending approval. For now, add as a custom repository. Once approved, a one-click install button will be available.
 
 1. Open HACS in your Home Assistant instance
 2. Go to the **three-dot menu** (top right) > **Custom repositories**
