@@ -684,11 +684,13 @@
     .install-steps { list-style: none; counter-reset: step; }
     .install-steps li {
       counter-increment: step;
-      display: flex; align-items: flex-start; gap: 14px;
+      display: grid;
+      grid-template-columns: 28px 1fr;
+      gap: 14px;
+      align-items: start;
       padding: 10px 0;
       font-size: 14px;
       color: var(--text-dim);
-      min-width: 0;
     }
     .install-steps li::before {
       content: counter(step);
@@ -702,6 +704,9 @@
       font-weight: 700;
       border: 1px solid color-mix(in srgb, var(--blue) 20%, transparent);
     }
+    .install-steps li > span {
+      min-width: 0;
+    }
     .install-steps code {
       word-break: break-all;
       font-size: 12px;
@@ -714,7 +719,9 @@
       display: flex;
       align-items: center;
       gap: 6px;
-      margin-top: 4px;
+      margin-top: 6px;
+      max-width: 100%;
+      min-width: 0;
     }
     .copy-url-wrap code {
       flex: 1;
@@ -723,9 +730,9 @@
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-      font-size: 12px;
+      font-size: 11px;
       background: var(--surface);
-      padding: 6px 10px;
+      padding: 8px 10px;
       border-radius: 6px;
       border: 1px solid var(--border);
     }
@@ -2172,8 +2179,8 @@
         </h3>
         <p>HACS Default Store approval pending — install via custom repo for now.</p>
         <ol class="install-steps">
-          <li>Open <strong>HACS</strong> in your Home Assistant instance</li>
-          <li>Click the <strong>three-dot menu</strong> (top right) → <strong>Custom repositories</strong></li>
+          <li><span>Open <strong>HACS</strong> in your Home Assistant instance</span></li>
+          <li><span>Click the <strong>three-dot menu</strong> (top right) → <strong>Custom repositories</strong></span></li>
           <li>
             <span>Paste the repo URL and select <strong>Dashboard</strong>
               <span class="copy-url-wrap">
@@ -2184,8 +2191,8 @@
               </span>
             </span>
           </li>
-          <li>Click <strong>Add</strong>, then find Chronicle Card and click <strong>Download</strong></li>
-          <li>Restart Home Assistant and add the card to any dashboard</li>
+          <li><span>Click <strong>Add</strong>, then find Chronicle Card and click <strong>Download</strong></span></li>
+          <li><span>Restart Home Assistant and add the card to any dashboard</span></li>
         </ol>
       </div>
       <div class="install-card reveal reveal-delay-1">
@@ -2195,11 +2202,9 @@
         </h3>
         <p>For those who prefer full control.</p>
         <ol class="install-steps">
-          <li>Download <code>chronicle-card.js</code> from the <a href="https://github.com/KadenThomp36/chronicle-card/releases" style="color:var(--blue)">latest release</a></li>
-          <li>
-            <span>Copy to <code>/config/www/chronicle-card.js</code></span>
-          </li>
-          <li>Go to <strong>Settings → Dashboards → Resources</strong></li>
+          <li><span>Download <code>chronicle-card.js</code> from the <a href="https://github.com/KadenThomp36/chronicle-card/releases" style="color:var(--blue)">latest release</a></span></li>
+          <li><span>Copy to <code>/config/www/chronicle-card.js</code></span></li>
+          <li><span>Go to <strong>Settings → Dashboards → Resources</strong></span></li>
           <li>
             <span>Add resource as JavaScript Module:
               <span class="copy-url-wrap">
@@ -2210,7 +2215,7 @@
               </span>
             </span>
           </li>
-          <li>Add the card to your dashboard</li>
+          <li><span>Add the card to your dashboard</span></li>
         </ol>
       </div>
     </div>
