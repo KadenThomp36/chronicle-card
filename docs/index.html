@@ -671,11 +671,14 @@
       border: 1px solid var(--border);
       border-radius: var(--radius);
       padding: 36px;
+      min-width: 0;
+      overflow: hidden;
     }
     .install-card h3 {
       font-size: 20px; font-weight: 700;
       margin-bottom: 8px;
       display: flex; align-items: center; gap: 10px;
+      flex-wrap: wrap;
     }
     .install-card p { color: var(--text-dim); margin-bottom: 24px; font-size: 14px; }
     .install-steps { list-style: none; counter-reset: step; }
@@ -685,6 +688,7 @@
       padding: 10px 0;
       font-size: 14px;
       color: var(--text-dim);
+      min-width: 0;
     }
     .install-steps li::before {
       content: counter(step);
@@ -698,10 +702,47 @@
       font-weight: 700;
       border: 1px solid color-mix(in srgb, var(--blue) 20%, transparent);
     }
+    .install-steps code {
+      word-break: break-all;
+      font-size: 12px;
+    }
     .install-highlight {
       border-color: var(--blue);
       background: linear-gradient(135deg, var(--surface-2), color-mix(in srgb, var(--blue) 5%, var(--surface-2)));
     }
+    .copy-url-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 4px;
+    }
+    .copy-url-wrap code {
+      flex: 1;
+      min-width: 0;
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 12px;
+      background: var(--surface);
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+    .copy-btn {
+      flex-shrink: 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px 8px;
+      cursor: pointer;
+      color: var(--text-dim);
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+    }
+    .copy-btn:hover { color: var(--blue); border-color: var(--blue); }
+    .copy-btn.copied { color: #4CAF50; border-color: #4CAF50; }
     .pending-badge {
       font-size: 11px; font-weight: 700;
       background: var(--blue);
@@ -853,6 +894,8 @@
       .hero { padding: 120px 16px 60px; }
       .hero-ctas { flex-direction: column; align-items: center; }
       section { padding: 60px 16px; }
+      .install-card { padding: 24px 20px; }
+      .install-card h3 { font-size: 18px; }
       .footer-grid { grid-template-columns: 1fr; gap: 24px; }
       .footer-bottom { flex-direction: column; gap: 12px; text-align: center; }
       .source-tabs { overflow-x: auto; width: 100%; }
@@ -2131,7 +2174,16 @@
         <ol class="install-steps">
           <li>Open <strong>HACS</strong> in your Home Assistant instance</li>
           <li>Click the <strong>three-dot menu</strong> (top right) → <strong>Custom repositories</strong></li>
-          <li>Paste <code>https://github.com/KadenThomp36/chronicle-card</code> and select <strong>Dashboard</strong></li>
+          <li>
+            <span>Paste the repo URL and select <strong>Dashboard</strong>
+              <span class="copy-url-wrap">
+                <code id="repo-url">https://github.com/KadenThomp36/chronicle-card</code>
+                <button class="copy-btn" onclick="copyUrl(this, 'repo-url')" title="Copy URL">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                </button>
+              </span>
+            </span>
+          </li>
           <li>Click <strong>Add</strong>, then find Chronicle Card and click <strong>Download</strong></li>
           <li>Restart Home Assistant and add the card to any dashboard</li>
         </ol>
@@ -2144,9 +2196,20 @@
         <p>For those who prefer full control.</p>
         <ol class="install-steps">
           <li>Download <code>chronicle-card.js</code> from the <a href="https://github.com/KadenThomp36/chronicle-card/releases" style="color:var(--blue)">latest release</a></li>
-          <li>Copy to <code>/config/www/chronicle-card.js</code></li>
+          <li>
+            <span>Copy to <code>/config/www/chronicle-card.js</code></span>
+          </li>
           <li>Go to <strong>Settings → Dashboards → Resources</strong></li>
-          <li>Add resource: <code>/local/chronicle-card.js</code> as JavaScript Module</li>
+          <li>
+            <span>Add resource as JavaScript Module:
+              <span class="copy-url-wrap">
+                <code id="resource-path">/local/chronicle-card.js</code>
+                <button class="copy-btn" onclick="copyUrl(this, 'resource-path')" title="Copy path">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                </button>
+              </span>
+            </span>
+          </li>
           <li>Add the card to your dashboard</li>
         </ol>
       </div>
@@ -2338,6 +2401,18 @@
       navigator.clipboard.writeText(code).then(() => {
         btn.textContent = 'Copied!';
         setTimeout(() => btn.textContent = 'Copy', 2000);
+      });
+    }
+
+    function copyUrl(btn, id) {
+      const text = document.getElementById(id).textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        btn.classList.add('copied');
+        btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>';
+        setTimeout(() => {
+          btn.classList.remove('copied');
+          btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>';
+        }, 2000);
       });
     }
 
