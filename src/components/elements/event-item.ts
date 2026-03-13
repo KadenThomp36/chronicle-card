@@ -11,6 +11,16 @@ function validIcon(icon: string): string {
   return icon && icon.startsWith('mdi:') ? icon : CATEGORY_ICONS.default;
 }
 
+/** Mix a hex color toward white to create a light tint for icon contrast. */
+function tintColor(hex: string, amount = 0.82): string {
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  if (!m) return '#ffffff';
+  const r = Math.round(parseInt(m[1], 16) + (255 - parseInt(m[1], 16)) * amount);
+  const g = Math.round(parseInt(m[2], 16) + (255 - parseInt(m[2], 16)) * amount);
+  const b = Math.round(parseInt(m[3], 16) + (255 - parseInt(m[3], 16)) * amount);
+  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+}
+
 @customElement('chronicle-event-item')
 export class EventItem extends LitElement {
   @property({ attribute: false }) event!: ChronicleEvent;
@@ -60,7 +70,6 @@ export class EventItem extends LitElement {
     }
     .icon-wrap ha-icon {
       --mdc-icon-size: 17px;
-      color: #fff;
       filter: drop-shadow(0 1px 1px rgba(0,0,0,0.15));
     }
     :host([compact]) .icon-wrap {
@@ -204,7 +213,7 @@ export class EventItem extends LitElement {
       <div class="event-row">
         ${showIcons ? html`
           <div class="icon-wrap" style="background-color: ${e.color}">
-            <ha-icon .icon=${validIcon(e.icon)}></ha-icon>
+            <ha-icon .icon=${validIcon(e.icon)} style="color: ${tintColor(e.color)}"></ha-icon>
           </div>
         ` : ''}
 

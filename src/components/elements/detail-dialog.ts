@@ -189,7 +189,7 @@ export class DetailDialog extends LitElement {
         .close-btn {
           position: absolute;
           top: 12px; right: 12px;
-          width: 30px; height: 30px;
+          width: 32px; height: 32px;
           border-radius: 50%;
           border: none;
           background: rgba(127,127,127,0.12);
@@ -203,12 +203,15 @@ export class DetailDialog extends LitElement {
           z-index: 2;
           padding: 0;
           transition: background 0.15s ease;
+          line-height: 0;
         }
         .close-btn:hover {
           background: rgba(127,127,127,0.22);
         }
         .close-btn svg {
           display: block;
+          width: 14px;
+          height: 14px;
         }
 
         .tags {
@@ -231,8 +234,7 @@ export class DetailDialog extends LitElement {
           font-weight: 600;
           letter-spacing: 0.4px;
           text-transform: uppercase;
-          height: 22px;
-          padding: 0 10px;
+          padding: 4px 10px;
           border-radius: 20px;
           color: #fff;
           display: inline-flex;

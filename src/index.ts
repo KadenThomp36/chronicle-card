@@ -10,7 +10,7 @@ windowWithCards.customCards.push({
   name: 'Chronicle Card',
   description: 'A universal, extensible timeline card for Home Assistant',
   preview: true,
-  documentationURL: 'https://github.com/KadenThomp36/chronicle-card',
+  documentationURL: 'https://github.com/chronicle-card/chronicle-card',
 });
 
 console.info(

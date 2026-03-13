@@ -622,7 +622,7 @@
       </ul>
     </nav>
     <div class="nav-right">
-      <span class="version-badge">v1.7.1</span>
+      <span class="version-badge">v1.8.0</span>
       <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
       </button>
@@ -937,7 +937,7 @@
       <!-- ===== HISTORY SOURCE ===== -->
       <div class="doc-section" id="source-history">
         <h2>History Source</h2>
-        <p>Converts entity state changes into timeline events. Chronicle reads the <code>device_class</code> attribute for smart human-readable translations.</p>
+        <p>Converts entity state changes into timeline events. Each history source watches a single entity &mdash; add one source per entity you want to track. Setting <code>name</code> on a history source overrides the entity's <code>friendly_name</code> in event titles. Chronicle reads the <code>device_class</code> attribute for smart human-readable translations, and automatically deduplicates repeated words in titles and descriptions (e.g. &ldquo;Doorbell Motion Motion Cleared&rdquo; becomes &ldquo;Doorbell Motion Cleared&rdquo;).</p>
 
         <div class="code-block">
           <div class="code-header">
@@ -946,11 +946,16 @@
           </div>
           <div class="code-body"><span class="hl-key">sources</span>:
   - <span class="hl-key">type</span>: <span class="hl-str">history</span>
-    <span class="hl-key">entities</span>:
-      - <span class="hl-str">binary_sensor.front_door</span>
-      - <span class="hl-str">lock.front_door_lock</span>
-      - <span class="hl-str">alarm_control_panel.home</span>
-    <span class="hl-key">name</span>: <span class="hl-str">Security History</span>
+    <span class="hl-key">entity</span>: <span class="hl-str">binary_sensor.front_door</span>
+    <span class="hl-key">name</span>: <span class="hl-str">Front Door</span>
+    <span class="hl-key">default_severity</span>: <span class="hl-str">warning</span>
+  - <span class="hl-key">type</span>: <span class="hl-str">history</span>
+    <span class="hl-key">entity</span>: <span class="hl-str">lock.front_door_lock</span>
+    <span class="hl-key">name</span>: <span class="hl-str">Front Door Lock</span>
+    <span class="hl-key">default_severity</span>: <span class="hl-str">warning</span>
+  - <span class="hl-key">type</span>: <span class="hl-str">history</span>
+    <span class="hl-key">entity</span>: <span class="hl-str">alarm_control_panel.home</span>
+    <span class="hl-key">name</span>: <span class="hl-str">Alarm Panel</span>
     <span class="hl-key">default_severity</span>: <span class="hl-str">warning</span></div>
         </div>
 
@@ -963,12 +968,26 @@
           </div>
           <div class="code-body"><span class="hl-key">sources</span>:
   - <span class="hl-key">type</span>: <span class="hl-str">history</span>
-    <span class="hl-key">entities</span>:
-      - <span class="hl-str">binary_sensor.garage_tilt</span>
+    <span class="hl-key">entity</span>: <span class="hl-str">binary_sensor.garage_tilt</span>
     <span class="hl-key">name</span>: <span class="hl-str">Garage</span>
     <span class="hl-key">state_map</span>:
       <span class="hl-str">"on"</span>: <span class="hl-str">"Garage Opened"</span>
       <span class="hl-str">"off"</span>: <span class="hl-str">"Garage Closed"</span></div>
+        </div>
+
+        <h3>State Filter</h3>
+        <p>Use <code>state_filter</code> to only create events when the new state matches one of the listed values. For example, to log only when a motion sensor turns on (ignoring the &ldquo;off&rdquo; / cleared transition):</p>
+        <div class="code-block">
+          <div class="code-header">
+            <span>yaml</span>
+            <button class="code-copy" onclick="copyCode(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy</button>
+          </div>
+          <div class="code-body"><span class="hl-key">sources</span>:
+  - <span class="hl-key">type</span>: <span class="hl-str">history</span>
+    <span class="hl-key">entity</span>: <span class="hl-str">binary_sensor.hallway_motion</span>
+    <span class="hl-key">name</span>: <span class="hl-str">Hallway Motion</span>
+    <span class="hl-key">state_filter</span>:
+      - <span class="hl-str">"on"</span></div>
         </div>
 
         <h3>Device Class Translations</h3>
@@ -988,6 +1007,18 @@
             <tr><td>vibration</td><td>Vibration</td><td>Still</td></tr>
             <tr><td>connectivity</td><td>Connected</td><td>Disconnected</td></tr>
             <tr><td>battery</td><td>Low</td><td>Normal</td></tr>
+          </tbody>
+        </table>
+
+        <h3>History Source Options</h3>
+        <table class="doc-table">
+          <thead>
+            <tr><th>Option</th><th>Type</th><th>Description</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>entity</code></td><td>string</td><td>Entity ID to track (one entity per history source)</td></tr>
+            <tr><td><code>state_filter</code></td><td>string[]</td><td>Only create events when the new state matches a value in this list. E.g. <code>["on"]</code> to ignore &ldquo;off&rdquo; transitions.</td></tr>
+            <tr><td><code>state_map</code></td><td>object</td><td>Map of state values to custom display strings</td></tr>
           </tbody>
         </table>
       </div>
@@ -1038,7 +1069,7 @@
       <!-- ===== FILTERS ===== -->
       <div class="doc-section" id="filters">
         <h2>Filters</h2>
-        <p>Filter events by category, severity, source, entity, or free-text search.</p>
+        <p>Filter events by category, severity, source, entity, or free-text search. The visual editor exposes these as a dedicated Filters section with a search field, comma-separated categories input, severity checkboxes (critical, warning, info, debug), and source/entity dropdowns.</p>
         <div class="code-block">
           <div class="code-header">
             <span>yaml</span>
@@ -1074,7 +1105,7 @@
       <!-- ===== GROUPING ===== -->
       <div class="doc-section" id="grouping">
         <h2>Grouping</h2>
-        <p>Group nearby events together to reduce visual clutter.</p>
+        <p>Group nearby events together to reduce visual clutter. The grouping window uses a sliding comparison &mdash; each event is compared to the <em>previous</em> event in the group rather than the first, which produces more natural chaining of related events. Group summaries are context-aware: when all grouped events share the same label the summary uses that label (e.g. &ldquo;7 cat events&rdquo;), and when events are mixed it falls back to the source or entity name (e.g. &ldquo;7 Frigate events&rdquo;).</p>
         <div class="code-block">
           <div class="code-header">
             <span>yaml</span>
@@ -1092,7 +1123,7 @@
           </thead>
           <tbody>
             <tr><td><code>enabled</code></td><td>boolean</td><td><code>false</code></td><td>Enable event grouping</td></tr>
-            <tr><td><code>window_seconds</code></td><td>number</td><td><code>120</code></td><td>Time window (in seconds) for grouping nearby events</td></tr>
+            <tr><td><code>window_seconds</code></td><td>number</td><td><code>120</code></td><td>Sliding time window (in seconds) &mdash; each event is compared to the previous event in the group</td></tr>
             <tr><td><code>min_group_size</code></td><td>number</td><td><code>3</code></td><td>Minimum number of events to form a group</td></tr>
             <tr><td><code>group_by</code></td><td>string</td><td><code>category</code></td><td><code>category</code>, <code>source</code>, <code>entity</code>, or <code>none</code></td></tr>
           </tbody>
@@ -1192,9 +1223,9 @@
         <h2>Icon &amp; Color Resolution</h2>
         <p>Chronicle resolves icons and colors through a 5-level chain. The first match wins.</p>
         <ol class="resolution-chain">
-          <li><code>icon_map</code> / <code>color_map</code> &mdash; custom per-source overrides</li>
+          <li><code>color_map</code> / <code>icon_map</code> &mdash; custom per-source overrides</li>
+          <li><code>default_color</code> / <code>default_icon</code> &mdash; per-source fallback values</li>
           <li>Fuzzy keyword inference &mdash; 150+ built-in rules that match event titles and categories</li>
-          <li><code>default_icon</code> / <code>default_color</code> &mdash; per-source fallback values</li>
           <li>Category defaults &mdash; built-in icons for common categories</li>
           <li>Global fallback &mdash; <code>mdi:calendar-clock</code> / <code>#78909C</code></li>
         </ol>
@@ -1384,11 +1415,16 @@
     <span class="hl-key">media_url_template</span>: <span class="hl-str">/api/frigate/notifications/{id}/snapshot.jpg</span>
     <span class="hl-key">default_severity</span>: <span class="hl-str">warning</span>
   - <span class="hl-key">type</span>: <span class="hl-str">history</span>
-    <span class="hl-key">entities</span>:
-      - <span class="hl-str">binary_sensor.front_door</span>
-      - <span class="hl-str">binary_sensor.back_door</span>
-      - <span class="hl-str">lock.front_door_lock</span>
-    <span class="hl-key">name</span>: <span class="hl-str">Doors &amp; Locks</span>
+    <span class="hl-key">entity</span>: <span class="hl-str">binary_sensor.front_door</span>
+    <span class="hl-key">name</span>: <span class="hl-str">Front Door</span>
+    <span class="hl-key">default_severity</span>: <span class="hl-str">warning</span>
+  - <span class="hl-key">type</span>: <span class="hl-str">history</span>
+    <span class="hl-key">entity</span>: <span class="hl-str">binary_sensor.back_door</span>
+    <span class="hl-key">name</span>: <span class="hl-str">Back Door</span>
+    <span class="hl-key">default_severity</span>: <span class="hl-str">warning</span>
+  - <span class="hl-key">type</span>: <span class="hl-str">history</span>
+    <span class="hl-key">entity</span>: <span class="hl-str">lock.front_door_lock</span>
+    <span class="hl-key">name</span>: <span class="hl-str">Front Door Lock</span>
     <span class="hl-key">default_severity</span>: <span class="hl-str">warning</span></div>
         </div>
       </div>
@@ -1406,13 +1442,24 @@
 <span class="hl-key">title</span>: <span class="hl-str">Security Log</span>
 <span class="hl-key">sources</span>:
   - <span class="hl-key">type</span>: <span class="hl-str">history</span>
-    <span class="hl-key">entities</span>:
-      - <span class="hl-str">binary_sensor.front_door</span>
-      - <span class="hl-str">binary_sensor.back_door</span>
-      - <span class="hl-str">binary_sensor.garage_door</span>
-      - <span class="hl-str">lock.front_door_lock</span>
-      - <span class="hl-str">alarm_control_panel.home</span>
-    <span class="hl-key">name</span>: <span class="hl-str">Security</span>
+    <span class="hl-key">entity</span>: <span class="hl-str">binary_sensor.front_door</span>
+    <span class="hl-key">name</span>: <span class="hl-str">Front Door</span>
+    <span class="hl-key">default_severity</span>: <span class="hl-str">warning</span>
+  - <span class="hl-key">type</span>: <span class="hl-str">history</span>
+    <span class="hl-key">entity</span>: <span class="hl-str">binary_sensor.back_door</span>
+    <span class="hl-key">name</span>: <span class="hl-str">Back Door</span>
+    <span class="hl-key">default_severity</span>: <span class="hl-str">warning</span>
+  - <span class="hl-key">type</span>: <span class="hl-str">history</span>
+    <span class="hl-key">entity</span>: <span class="hl-str">binary_sensor.garage_door</span>
+    <span class="hl-key">name</span>: <span class="hl-str">Garage Door</span>
+    <span class="hl-key">default_severity</span>: <span class="hl-str">warning</span>
+  - <span class="hl-key">type</span>: <span class="hl-str">history</span>
+    <span class="hl-key">entity</span>: <span class="hl-str">lock.front_door_lock</span>
+    <span class="hl-key">name</span>: <span class="hl-str">Front Door Lock</span>
+    <span class="hl-key">default_severity</span>: <span class="hl-str">warning</span>
+  - <span class="hl-key">type</span>: <span class="hl-str">history</span>
+    <span class="hl-key">entity</span>: <span class="hl-str">alarm_control_panel.home</span>
+    <span class="hl-key">name</span>: <span class="hl-str">Alarm Panel</span>
     <span class="hl-key">default_severity</span>: <span class="hl-str">warning</span>
 <span class="hl-key">appearance</span>:
   <span class="hl-key">compact</span>: <span class="hl-num">true</span>

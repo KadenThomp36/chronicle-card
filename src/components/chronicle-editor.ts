@@ -165,6 +165,29 @@ export class ChronicleEditor extends LitElement {
     .switch input:checked + .slider::before {
       transform: translateX(18px);
     }
+
+    .severity-checks {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .check-label {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 13px;
+      color: var(--primary-text-color, #333);
+      cursor: pointer;
+      text-transform: none;
+      letter-spacing: 0;
+      font-weight: 400;
+    }
+    .check-label input[type="checkbox"] {
+      width: auto;
+      padding: 0;
+      margin: 0;
+      cursor: pointer;
+    }
   `;
 
   setConfig(config: ChronicleCardConfig): void {
@@ -249,6 +272,59 @@ export class ChronicleEditor extends LitElement {
               <button class="add-btn" @click=${() => this._addSource('rest')}>+ REST API</button>
               <button class="add-btn" @click=${() => this._addSource('history')}>+ History</button>
               <button class="add-btn" @click=${() => this._addSource('static')}>+ Static</button>
+            </div>
+          </div>
+        </details>
+
+        <!-- Filters -->
+        <details>
+          <summary>Filters</summary>
+          <div class="section-body">
+            <div class="field">
+              <label>Search</label>
+              <input type="text"
+                .value=${c.filters?.search ?? ''}
+                @input=${(e: any) => this._setNested('filters', 'search', e.target.value)}
+                placeholder="Filter events by keyword..."
+              />
+            </div>
+            <div class="field">
+              <label>Categories (comma-separated)</label>
+              <input type="text"
+                .value=${(c.filters?.categories ?? []).join(', ')}
+                @input=${(e: any) => this._setNested('filters', 'categories', this._csvToArray(e.target.value))}
+                placeholder="motion, door, security, person"
+              />
+            </div>
+            <div class="field">
+              <label>Severities</label>
+              <div class="severity-checks">
+                ${(['critical', 'warning', 'info', 'debug'] as const).map(sev => {
+                  const checked = (c.filters?.severities ?? []).includes(sev);
+                  return html`
+                    <label class="check-label">
+                      <input type="checkbox" .checked=${checked} @change=${(e: any) => this._toggleSeverityFilter(sev, e.target.checked)} />
+                      <span>${sev.charAt(0).toUpperCase() + sev.slice(1)}</span>
+                    </label>
+                  `;
+                })}
+              </div>
+            </div>
+            <div class="field">
+              <label>Sources (comma-separated)</label>
+              <input type="text"
+                .value=${(c.filters?.sources ?? []).join(', ')}
+                @input=${(e: any) => this._setNested('filters', 'sources', this._csvToArray(e.target.value))}
+                placeholder="Frigate, Front Door History"
+              />
+            </div>
+            <div class="field">
+              <label>Entities (comma-separated)</label>
+              <input type="text"
+                .value=${(c.filters?.entities ?? []).join(', ')}
+                @input=${(e: any) => this._setNested('filters', 'entities', this._csvToArray(e.target.value))}
+                placeholder="binary_sensor.front_door, lock.front_door"
+              />
             </div>
           </div>
         </details>
@@ -362,6 +438,23 @@ export class ChronicleEditor extends LitElement {
   private _setSeverityColor(severity: string, color: string) {
     const current = this._config.appearance?.severity_colors ?? {};
     this._setNested('appearance', 'severity_colors', { ...current, [severity]: color });
+  }
+
+  private _csvToArray(value: string): string[] {
+    const trimmed = value.trim();
+    if (!trimmed) return [];
+    return trimmed.split(',').map(s => s.trim()).filter(Boolean);
+  }
+
+  private _toggleSeverityFilter(severity: string, checked: boolean) {
+    const current = [...(this._config.filters?.severities ?? [])];
+    if (checked && !current.includes(severity as any)) {
+      current.push(severity as any);
+    } else if (!checked) {
+      const idx = current.indexOf(severity as any);
+      if (idx >= 0) current.splice(idx, 1);
+    }
+    this._setNested('filters', 'severities', current);
   }
 
   private _addSource(type: 'calendar' | 'rest' | 'history' | 'static') {

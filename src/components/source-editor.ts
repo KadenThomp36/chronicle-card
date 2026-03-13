@@ -11,32 +11,89 @@ export class SourceEditor extends LitElement {
   static styles = css`
     :host {
       display: block;
+      margin-bottom: 6px;
     }
-    .source-card {
+
+    /* Collapsible source wrapper */
+    details {
       border: 1px solid var(--divider-color, rgba(127,127,127,0.2));
       border-radius: 10px;
-      padding: 12px;
-      margin-bottom: 8px;
+      overflow: hidden;
       background: var(--secondary-background-color, rgba(127,127,127,0.04));
     }
-    .source-header {
+    summary {
+      padding: 10px 12px;
+      font-size: 13px;
+      cursor: pointer;
+      user-select: none;
+      list-style: none;
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      margin-bottom: 10px;
+      gap: 8px;
+    }
+    summary::-webkit-details-marker { display: none; }
+    summary::before {
+      content: '▸';
+      transition: transform 0.15s ease;
+      font-size: 10px;
+      color: var(--secondary-text-color, #999);
+      flex-shrink: 0;
+    }
+    details[open] > summary::before {
+      transform: rotate(90deg);
+    }
+
+    .type-badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      flex-shrink: 0;
+    }
+    .type-badge.calendar { background: rgba(33,150,243,0.12); color: #1976d2; }
+    .type-badge.rest { background: rgba(156,39,176,0.12); color: #7b1fa2; }
+    .type-badge.history { background: rgba(255,152,0,0.12); color: #e65100; }
+    .type-badge.static { background: rgba(76,175,80,0.12); color: #2e7d32; }
+
+    .source-name {
+      font-weight: 500;
+      color: var(--primary-text-color, #333);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      min-width: 0;
+    }
+    .source-hint {
+      font-size: 11px;
+      color: var(--secondary-text-color, #999);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      min-width: 0;
+      flex: 1;
     }
     .remove-btn {
       border: none;
       background: none;
       color: var(--error-color, #db4437);
       cursor: pointer;
-      font-size: 12px;
-      padding: 4px 8px;
+      font-size: 11px;
+      padding: 3px 6px;
       border-radius: 4px;
       font-family: inherit;
+      flex-shrink: 0;
+      margin-left: auto;
     }
     .remove-btn:hover {
       background: rgba(219, 68, 55, 0.1);
+    }
+
+    .source-body {
+      padding: 12px;
+      border-top: 1px solid var(--divider-color, rgba(127,127,127,0.12));
     }
     .field {
       margin-bottom: 8px;
@@ -94,55 +151,73 @@ export class SourceEditor extends LitElement {
     }
   `;
 
+  /** Build the summary hint (entity or url). */
+  private _getHint(): string {
+    if (this.source.entity) return this.source.entity;
+    if (this.source.url) return this.source.url;
+    if (this.source.events?.length) return `${this.source.events.length} event(s)`;
+    return '';
+  }
+
   protected render() {
     if (!this.source) return nothing;
 
+    const name = this.source.name || 'Unnamed';
+    const hint = this._getHint();
+    const type = this.source.type;
+
     return html`
-      <div class="source-card">
-        <div class="source-header">
-          <div class="field" style="flex:1; margin-bottom:0; margin-right:8px;">
-            <label>Source Type</label>
-            <select .value=${this.source.type} @change=${this._onTypeChange}>
-              <option value="calendar">Calendar Entity</option>
-              <option value="rest">REST API</option>
-              <option value="history">Entity History</option>
-              <option value="static">Static Events</option>
-            </select>
-          </div>
+      <details>
+        <summary>
+          <span class="type-badge ${type}">${type}</span>
+          <span class="source-name">${name}</span>
+          ${hint ? html`<span class="source-hint">${hint}</span>` : nothing}
           <button class="remove-btn" @click=${this._remove}>Remove</button>
-        </div>
-
-        <div class="field">
-          <label>Name</label>
-          <input type="text" .value=${this.source.name ?? ''} @input=${(e: any) => this._update('name', e.target.value)} placeholder="Source display name" />
-        </div>
-
-        ${this._renderTypeFields()}
-
-        <div class="section-label">Appearance</div>
-
-        <div class="row">
-          <div class="field">
-            <label>Default Icon</label>
-            <input type="text" .value=${this.source.default_icon ?? ''} @input=${(e: any) => this._update('default_icon', e.target.value)} placeholder="mdi:calendar-clock" />
+        </summary>
+        <div class="source-body">
+          <div class="row">
+            <div class="field" style="flex:2;">
+              <label>Source Type</label>
+              <select .value=${this.source.type} @change=${this._onTypeChange}>
+                <option value="calendar">Calendar Entity</option>
+                <option value="rest">REST API</option>
+                <option value="history">Entity History</option>
+                <option value="static">Static Events</option>
+              </select>
+            </div>
+            <div class="field" style="flex:3;">
+              <label>Name</label>
+              <input type="text" .value=${this.source.name ?? ''} @input=${(e: any) => this._update('name', e.target.value)} placeholder="Source display name" />
+            </div>
           </div>
-          <div class="field">
-            <label>Default Color</label>
-            <input type="color" .value=${this.source.default_color ?? '#2196F3'} @input=${(e: any) => this._update('default_color', e.target.value)} />
-          </div>
-          <div class="field">
-            <label>Severity</label>
-            <select .value=${this.source.default_severity ?? 'info'} @change=${(e: any) => this._update('default_severity', e.target.value)}>
-              <option value="critical">Critical</option>
-              <option value="warning">Warning</option>
-              <option value="info">Info</option>
-              <option value="debug">Debug</option>
-            </select>
-          </div>
-        </div>
 
-        ${this._renderIconColorMaps()}
-      </div>
+          ${this._renderTypeFields()}
+
+          <div class="section-label">Appearance</div>
+
+          <div class="row">
+            <div class="field">
+              <label>Default Icon</label>
+              <input type="text" .value=${this.source.default_icon ?? ''} @input=${(e: any) => this._update('default_icon', e.target.value)} placeholder="mdi:calendar-clock" />
+            </div>
+            <div class="field">
+              <label>Default Color</label>
+              <input type="color" .value=${this.source.default_color ?? '#2196F3'} @input=${(e: any) => this._update('default_color', e.target.value)} />
+            </div>
+            <div class="field">
+              <label>Severity</label>
+              <select .value=${this.source.default_severity ?? 'info'} @change=${(e: any) => this._update('default_severity', e.target.value)}>
+                <option value="critical">Critical</option>
+                <option value="warning">Warning</option>
+                <option value="info">Info</option>
+                <option value="debug">Debug</option>
+              </select>
+            </div>
+          </div>
+
+          ${this._renderIconColorMaps()}
+        </div>
+      </details>
     `;
   }
 
@@ -200,13 +275,29 @@ export class SourceEditor extends LitElement {
       case 'history':
         return html`
           <div class="field">
-            <label>Entities (comma-separated)</label>
+            <label>Entity</label>
             <input type="text"
-              .value=${(this.source.entities ?? []).join(', ')}
-              @input=${(e: any) => this._update('entities', e.target.value.split(',').map((s: string) => s.trim()).filter(Boolean))}
-              placeholder="binary_sensor.front_door, lock.front_door_lock"
+              .value=${this.source.entity ?? ''}
+              @input=${(e: any) => this._update('entity', e.target.value)}
+              placeholder="binary_sensor.front_door_opening"
             />
-            <p class="help-text">Each state change becomes a timeline event. Titles use device class for human-readable labels (e.g. "Front Door Opened").</p>
+            <p class="help-text">Each state change becomes a timeline event.</p>
+          </div>
+          <div class="field">
+            <label>State Filter (comma-separated, optional)</label>
+            <input type="text"
+              .value=${(this.source.state_filter ?? []).join(', ')}
+              @input=${(e: any) => {
+                const val = e.target.value.trim();
+                if (!val) {
+                  this._update('state_filter', undefined);
+                } else {
+                  this._update('state_filter', val.split(',').map((s: string) => s.trim()).filter(Boolean));
+                }
+              }}
+              placeholder="on, locked, open"
+            />
+            <p class="help-text">Only log events when the new state matches one of these values. Leave empty to log all state changes.</p>
           </div>
           <div class="field">
             <label>State Labels (JSON, optional)</label>
@@ -362,7 +453,9 @@ export class SourceEditor extends LitElement {
     }));
   }
 
-  private _remove() {
+  private _remove(e: Event) {
+    e.preventDefault();
+    e.stopPropagation();
     this.dispatchEvent(new CustomEvent('source-removed', {
       bubbles: true,
       composed: true,

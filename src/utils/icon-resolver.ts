@@ -201,11 +201,11 @@ export function resolveIcon(
     }
   }
 
-  // 2. Fuzzy keyword inference
+  // 2. Fuzzy keyword inference (gives per-event icons like cat/person/vehicle)
   const inferred = inferIcon(title, category, label);
   if (inferred) return inferred;
 
-  // 3. Source default icon
+  // 3. Source default icon (fallback when no keyword matches)
   if (defaultIcon) return defaultIcon;
 
   // 4. Exact category match
@@ -234,10 +234,10 @@ export function resolveColor(
     }
   }
 
+  if (defaultColor) return defaultColor;
+
   const inferred = inferColor(title, category, label);
   if (inferred) return inferred;
-
-  if (defaultColor) return defaultColor;
   if (CATEGORY_COLORS[category]) return CATEGORY_COLORS[category];
   return CATEGORY_COLORS.default;
 }

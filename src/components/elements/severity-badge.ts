@@ -11,13 +11,13 @@ export class SeverityBadge extends LitElement {
   static styles = css`
     :host {
       display: inline-flex;
+      flex-shrink: 0;
     }
     .badge {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      height: 16px;
-      padding: 0 7px;
+      padding: 3px 7px;
       border-radius: 20px;
       font-size: 9px;
       font-weight: 600;

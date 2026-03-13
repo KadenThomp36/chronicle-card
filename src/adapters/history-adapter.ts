@@ -131,17 +131,18 @@ export class HistoryAdapter implements ISourceAdapter {
   }
 
   async fetchEvents(hass: HomeAssistant, range: TimeRange): Promise<ChronicleEvent[]> {
-    const entities = this.getEntities();
-    if (entities.length === 0) {
-      console.warn('[chronicle-card] HistoryAdapter: no entities configured');
+    const entity = this.config.entity;
+    if (!entity) {
+      console.warn('[chronicle-card] HistoryAdapter: no entity configured');
       return [];
     }
+
+    const stateFilter = this.config.state_filter?.length ? new Set(this.config.state_filter) : null;
 
     try {
       const startISO = range.start.toISOString();
       const endISO = range.end.toISOString();
-      const entityFilter = entities.join(',');
-      const path = `history/period/${startISO}?filter_entity_id=${entityFilter}&end_time=${endISO}&minimal_response`;
+      const path = `history/period/${startISO}?filter_entity_id=${entity}&end_time=${endISO}&minimal_response`;
 
       const response = await hass.callApi<HistoryState[][]>('GET', path);
 
@@ -160,13 +161,17 @@ export class HistoryAdapter implements ISourceAdapter {
         for (let i = 1; i < entityHistory.length; i++) {
           const prev = entityHistory[i - 1];
           const curr = entityHistory[i];
-          const entityId = curr.entity_id || entityHistory[0].entity_id;
+          const entityId = curr.entity_id || entityHistory[0].entity_id || entity;
 
-          if (!entityId) continue;
+          // Skip if state didn't actually change (attribute-only updates)
+          if (prev.state === curr.state) continue;
 
-          // Skip unavailable/unknown transitions — they're noise
+          // Skip unavailable/unknown transitions
           if (curr.state === 'unavailable' || curr.state === 'unknown') continue;
           if (prev.state === 'unavailable' || prev.state === 'unknown') continue;
+
+          // Apply state_filter — only create event if new state is in the allow-list
+          if (stateFilter && !stateFilter.has(curr.state)) continue;
 
           const event = this.stateChangeToEvent(hass, entityId, prev, curr);
           events.push(event);
@@ -184,7 +189,10 @@ export class HistoryAdapter implements ISourceAdapter {
     hass: HomeAssistant,
     onEvent: (e: ChronicleEvent) => void,
   ): Promise<() => void> {
-    const entities = new Set(this.getEntities());
+    const entity = this.config.entity;
+    if (!entity) return () => {};
+
+    const stateFilter = this.config.state_filter?.length ? new Set(this.config.state_filter) : null;
 
     const unsubscribe = await hass.connection.subscribeEvents((hassEvent) => {
       const data = hassEvent.data as {
@@ -193,39 +201,22 @@ export class HistoryAdapter implements ISourceAdapter {
         new_state?: HistoryState;
       };
 
-      const entityId = data.entity_id;
-      if (!entityId || !entities.has(entityId)) {
-        return;
-      }
-
-      if (!data.old_state || !data.new_state) {
-        return;
-      }
-
-      if (data.old_state.state === data.new_state.state) {
-        return;
-      }
+      if (data.entity_id !== entity) return;
+      if (!data.old_state || !data.new_state) return;
+      if (data.old_state.state === data.new_state.state) return;
 
       // Skip unavailable/unknown
       if (data.new_state.state === 'unavailable' || data.new_state.state === 'unknown') return;
       if (data.old_state.state === 'unavailable' || data.old_state.state === 'unknown') return;
 
-      const event = this.stateChangeToEvent(hass, entityId, data.old_state, data.new_state);
+      // Apply state_filter
+      if (stateFilter && !stateFilter.has(data.new_state.state)) return;
+
+      const event = this.stateChangeToEvent(hass, entity, data.old_state, data.new_state);
       onEvent(event);
     }, 'state_changed');
 
     return unsubscribe;
-  }
-
-  private getEntities(): string[] {
-    const entities: string[] = [];
-    if (this.config.entity) {
-      entities.push(this.config.entity);
-    }
-    if (this.config.entities) {
-      entities.push(...this.config.entities);
-    }
-    return entities;
   }
 
   /** Get the device_class from the current HA state, or from attributes snapshot. */
@@ -284,6 +275,27 @@ export class HistoryAdapter implements ISourceAdapter {
     return DOMAIN_CATEGORY[domain] || 'default';
   }
 
+  /**
+   * Strip leading words from a label that overlap with trailing words of the
+   * display name, so "Doorbell Motion" + "Motion Cleared" → "Doorbell Motion Cleared"
+   * instead of "Doorbell Motion Motion Cleared".
+   */
+  private stripOverlap(name: string, label: string): string {
+    const nameWords = name.toLowerCase().split(/\s+/);
+    const labelParts = label.split(/\s+/);
+    const labelLower = labelParts.map(w => w.toLowerCase());
+
+    for (let len = Math.min(nameWords.length, labelLower.length); len > 0; len--) {
+      const tail = nameWords.slice(-len);
+      const head = labelLower.slice(0, len);
+      if (tail.every((w, i) => w === head[i])) {
+        const remainder = labelParts.slice(len).join(' ');
+        return remainder || label;
+      }
+    }
+    return label;
+  }
+
   private stateChangeToEvent(
     hass: HomeAssistant,
     entityId: string,
@@ -294,12 +306,19 @@ export class HistoryAdapter implements ISourceAdapter {
     const category = this.detectCategory(entityId, deviceClass);
     const friendlyName = hass.states[entityId]?.attributes?.friendly_name as string || entityId;
 
+    // Source name overrides entity friendly name for display
+    const displayName = this.config.name || friendlyName;
+
     const newLabel = this.humanizeState(entityId, currState.state, deviceClass);
     const oldLabel = this.humanizeState(entityId, prevState.state, deviceClass);
 
-    // Clean title: "Front Door Opened" instead of "Front Door: on -> off"
-    const title = `${friendlyName} ${newLabel}`;
-    const description = `${oldLabel} \u2192 ${newLabel}`;
+    // Smart title: strip word overlap so "Doorbell Motion" + "Motion Cleared" → "Doorbell Motion Cleared"
+    const title = `${displayName} ${this.stripOverlap(displayName, newLabel)}`;
+
+    // Short description: strip the same overlap from both labels
+    const shortOld = this.stripOverlap(displayName, oldLabel);
+    const shortNew = this.stripOverlap(displayName, newLabel);
+    const description = `${shortOld} \u2192 ${shortNew}`;
 
     return {
       id: `history:${entityId}:${currState.last_changed}`,
@@ -314,7 +333,6 @@ export class HistoryAdapter implements ISourceAdapter {
       category,
       severity: (this.config.default_severity || 'info') as SeverityLevel,
       entityId,
-      entityName: friendlyName,
       actions: this.config.actions,
       metadata: {
         old_state: prevState.state,

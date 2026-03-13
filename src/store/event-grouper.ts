@@ -16,7 +16,7 @@ export function groupEvents(
   const result: Array<ChronicleEvent | EventGroup> = [];
   let currentBucket: ChronicleEvent[] = [];
   let bucketKey: string | null = null;
-  let bucketAnchor: number | null = null;
+  let lastTs: number | null = null;
 
   const getKey = (e: ChronicleEvent): string => {
     switch (groupBy) {
@@ -27,15 +27,36 @@ export function groupEvents(
     }
   };
 
+  const buildSummary = (bucket: ChronicleEvent[]): string => {
+    const count = bucket.length;
+    const rep = bucket[0];
+
+    // Check if all events share the same label/category
+    const uniqueLabels = new Set(bucket.map(e => e.label || e.category).filter(Boolean));
+
+    if (uniqueLabels.size === 1) {
+      return `${count} ${[...uniqueLabels][0]} events`;
+    }
+
+    // Mixed labels — use the grouping dimension
+    switch (groupBy) {
+      case 'source':
+        return `${count} ${rep.sourceId} events`;
+      case 'entity':
+        return `${count} ${rep.entityName || rep.entityId || 'entity'} events`;
+      default:
+        return `${count} ${rep.category} events`;
+    }
+  };
+
   const flushBucket = () => {
     if (currentBucket.length === 0) return;
     if (currentBucket.length >= minSize) {
       const representative = currentBucket[0];
-      const categoryLabel = representative.category || representative.sourceType;
       result.push({
         representative,
         events: currentBucket,
-        summary: `${currentBucket.length} ${categoryLabel} events`,
+        summary: buildSummary(currentBucket),
         expanded: false,
       });
     } else {
@@ -43,7 +64,7 @@ export function groupEvents(
     }
     currentBucket = [];
     bucketKey = null;
-    bucketAnchor = null;
+    lastTs = null;
   };
 
   for (const event of events) {
@@ -52,20 +73,22 @@ export function groupEvents(
 
     if (bucketKey === null) {
       bucketKey = key;
-      bucketAnchor = ts;
+      lastTs = ts;
       currentBucket.push(event);
       continue;
     }
 
-    const withinWindow = bucketAnchor !== null && Math.abs(ts - bucketAnchor) <= windowMs;
+    // Sliding window: compare to the PREVIOUS event, not the first
+    const withinWindow = lastTs !== null && Math.abs(ts - lastTs) <= windowMs;
     const sameKey = key === bucketKey;
 
     if (sameKey && withinWindow) {
       currentBucket.push(event);
+      lastTs = ts;
     } else {
       flushBucket();
       bucketKey = key;
-      bucketAnchor = ts;
+      lastTs = ts;
       currentBucket.push(event);
     }
   }

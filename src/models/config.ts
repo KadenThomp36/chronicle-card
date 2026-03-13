@@ -4,7 +4,6 @@ export interface SourceConfig {
   type: 'calendar' | 'rest' | 'history' | 'static';
   name?: string;
   entity?: string;
-  entities?: string[];
   url?: string;
   response_path?: string;
   field_map?: Record<string, string>;
@@ -28,6 +27,7 @@ export interface SourceConfig {
     eventData?: Record<string, unknown>;
   }>;
   state_map?: Record<string, string>;
+  state_filter?: string[];
   events?: Array<{
     title: string;
     description?: string;
