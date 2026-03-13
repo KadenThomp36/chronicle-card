@@ -64,25 +64,37 @@ export class ChronicleEditor extends LitElement {
       text-transform: uppercase;
       letter-spacing: 0.4px;
     }
-    input, select {
-      width: 100%;
-      padding: 8px 10px;
-      border: 1px solid var(--divider-color, rgba(127,127,127,0.2));
-      border-radius: 6px;
-      background: var(--card-background-color, #fff);
-      color: var(--primary-text-color, #333);
-      font-size: 13px;
-      font-family: inherit;
-      box-sizing: border-box;
-    }
-    input:focus, select:focus {
-      outline: none;
-      border-color: var(--primary-color, #03a9f4);
-    }
     input[type="color"] {
+      width: 100%;
       height: 36px;
       padding: 2px 4px;
       cursor: pointer;
+      border: 1px solid var(--divider-color, rgba(127,127,127,0.2));
+      border-radius: 6px;
+      background: var(--card-background-color, #fff);
+      box-sizing: border-box;
+    }
+    input[type="color"]:focus {
+      outline: none;
+      border-color: var(--primary-color, #03a9f4);
+    }
+    input[type="checkbox"] {
+      width: auto;
+      padding: 0;
+      margin: 0;
+      cursor: pointer;
+    }
+    ha-textfield {
+      display: block;
+      width: 100%;
+    }
+    ha-select {
+      display: block;
+      width: 100%;
+    }
+    ha-entity-picker {
+      display: block;
+      width: 100%;
     }
 
     .row {
@@ -128,42 +140,9 @@ export class ChronicleEditor extends LitElement {
       background: rgba(3, 169, 244, 0.04);
     }
 
-    /* Toggle switch */
-    .switch {
-      position: relative;
-      width: 40px;
-      height: 22px;
-    }
-    .switch input {
-      opacity: 0;
-      width: 0;
-      height: 0;
-      position: absolute;
-    }
-    .slider {
-      position: absolute;
-      cursor: pointer;
-      inset: 0;
-      background: var(--divider-color, #ccc);
-      border-radius: 11px;
-      transition: background 0.2s ease;
-    }
-    .slider::before {
-      content: '';
-      position: absolute;
-      height: 18px;
-      width: 18px;
-      left: 2px;
-      bottom: 2px;
-      background: #fff;
-      border-radius: 50%;
-      transition: transform 0.2s ease;
-    }
-    .switch input:checked + .slider {
-      background: var(--primary-color, #03a9f4);
-    }
-    .switch input:checked + .slider::before {
-      transform: translateX(18px);
+    /* ha-switch alignment */
+    ha-switch {
+      --mdc-theme-secondary: var(--primary-color, #03a9f4);
     }
 
     .severity-checks {
@@ -183,9 +162,6 @@ export class ChronicleEditor extends LitElement {
       font-weight: 400;
     }
     .check-label input[type="checkbox"] {
-      width: auto;
-      padding: 0;
-      margin: 0;
       cursor: pointer;
     }
   `;
@@ -214,32 +190,54 @@ export class ChronicleEditor extends LitElement {
           <div class="section-body">
             <div class="field">
               <label>Title</label>
-              <input type="text" .value=${c.title ?? ''} @input=${(e: any) => this._set('title', e.target.value)} />
+              <ha-textfield
+                .value=${c.title ?? ''}
+                .label=${"Card title"}
+                @input=${(e: any) => this._set('title', e.target.value)}
+              ></ha-textfield>
             </div>
             <div class="row">
               <div class="field">
                 <label>Layout</label>
-                <select .value=${c.layout ?? 'vertical'} @change=${(e: any) => this._set('layout', e.target.value)}>
-                  <option value="vertical">Vertical</option>
-                  <option value="horizontal">Horizontal</option>
-                </select>
+                <ha-select
+                  .value=${c.layout ?? 'vertical'}
+                  @selected=${(e: any) => this._set('layout', e.detail.value)}
+                  @closed=${(e: any) => e.stopPropagation()}
+                >
+                  <mwc-list-item value="vertical">Vertical</mwc-list-item>
+                  <mwc-list-item value="horizontal">Horizontal</mwc-list-item>
+                </ha-select>
               </div>
               <div class="field">
                 <label>Time Format</label>
-                <select .value=${c.time_format ?? '24h'} @change=${(e: any) => this._set('time_format', e.target.value)}>
-                  <option value="24h">24 Hour</option>
-                  <option value="12h">12 Hour</option>
-                </select>
+                <ha-select
+                  .value=${c.time_format ?? '24h'}
+                  @selected=${(e: any) => this._set('time_format', e.detail.value)}
+                  @closed=${(e: any) => e.stopPropagation()}
+                >
+                  <mwc-list-item value="24h">24 Hour</mwc-list-item>
+                  <mwc-list-item value="12h">12 Hour</mwc-list-item>
+                </ha-select>
               </div>
             </div>
             <div class="row">
               <div class="field">
                 <label>Max Events</label>
-                <input type="number" .value=${String(c.max_events ?? 50)} @input=${(e: any) => this._set('max_events', Number(e.target.value))} />
+                <ha-textfield
+                  type="number"
+                  .value=${String(c.max_events ?? 50)}
+                  .label=${"Max events"}
+                  @input=${(e: any) => this._set('max_events', Number(e.target.value))}
+                ></ha-textfield>
               </div>
               <div class="field">
                 <label>Days Back</label>
-                <input type="number" .value=${String(c.days_back ?? 7)} @input=${(e: any) => this._set('days_back', Number(e.target.value))} />
+                <ha-textfield
+                  type="number"
+                  .value=${String(c.days_back ?? 7)}
+                  .label=${"Days back"}
+                  @input=${(e: any) => this._set('days_back', Number(e.target.value))}
+                ></ha-textfield>
               </div>
             </div>
             <div class="toggle-row">
@@ -282,19 +280,19 @@ export class ChronicleEditor extends LitElement {
           <div class="section-body">
             <div class="field">
               <label>Search</label>
-              <input type="text"
+              <ha-textfield
                 .value=${c.filters?.search ?? ''}
+                .label=${"Filter events by keyword..."}
                 @input=${(e: any) => this._setNested('filters', 'search', e.target.value)}
-                placeholder="Filter events by keyword..."
-              />
+              ></ha-textfield>
             </div>
             <div class="field">
               <label>Categories (comma-separated)</label>
-              <input type="text"
+              <ha-textfield
                 .value=${(c.filters?.categories ?? []).join(', ')}
+                .label=${"motion, door, security, person"}
                 @input=${(e: any) => this._setNested('filters', 'categories', this._csvToArray(e.target.value))}
-                placeholder="motion, door, security, person"
-              />
+              ></ha-textfield>
             </div>
             <div class="field">
               <label>Severities</label>
@@ -312,19 +310,37 @@ export class ChronicleEditor extends LitElement {
             </div>
             <div class="field">
               <label>Sources (comma-separated)</label>
-              <input type="text"
+              <ha-textfield
                 .value=${(c.filters?.sources ?? []).join(', ')}
+                .label=${"Frigate, Front Door History"}
                 @input=${(e: any) => this._setNested('filters', 'sources', this._csvToArray(e.target.value))}
-                placeholder="Frigate, Front Door History"
-              />
+              ></ha-textfield>
             </div>
             <div class="field">
-              <label>Entities (comma-separated)</label>
-              <input type="text"
-                .value=${(c.filters?.entities ?? []).join(', ')}
-                @input=${(e: any) => this._setNested('filters', 'entities', this._csvToArray(e.target.value))}
-                placeholder="binary_sensor.front_door, lock.front_door"
-              />
+              <label>Filter Entities</label>
+              ${(c.filters?.entities ?? []).map((entity: string, idx: number) => html`
+                <div class="row" style="margin-bottom: 4px; align-items: center;">
+                  <ha-entity-picker
+                    .hass=${this.hass}
+                    .value=${entity}
+                    allow-custom-entity
+                    @value-changed=${(e: any) => this._updateFilterEntity(idx, e.detail.value)}
+                    style="flex: 1;"
+                  ></ha-entity-picker>
+                  <button
+                    class="remove-entity-btn"
+                    @click=${() => this._removeFilterEntity(idx)}
+                    title="Remove entity"
+                    style="border: none; background: none; color: var(--error-color, #db4437); cursor: pointer; font-size: 18px; padding: 4px 8px; flex-shrink: 0;"
+                  >&#x2715;</button>
+                </div>
+              `)}
+              <ha-entity-picker
+                .hass=${this.hass}
+                .value=${''}
+                allow-custom-entity
+                @value-changed=${(e: any) => this._addFilterEntity(e.detail.value)}
+              ></ha-entity-picker>
             </div>
           </div>
         </details>
@@ -340,21 +356,35 @@ export class ChronicleEditor extends LitElement {
             <div class="row">
               <div class="field">
                 <label>Window (seconds)</label>
-                <input type="number" .value=${String(g.window_seconds ?? 120)} @input=${(e: any) => this._setNested('grouping', 'window_seconds', Number(e.target.value))} />
+                <ha-textfield
+                  type="number"
+                  .value=${String(g.window_seconds ?? 120)}
+                  .label=${"Window seconds"}
+                  @input=${(e: any) => this._setNested('grouping', 'window_seconds', Number(e.target.value))}
+                ></ha-textfield>
               </div>
               <div class="field">
                 <label>Min Group Size</label>
-                <input type="number" .value=${String(g.min_group_size ?? 3)} @input=${(e: any) => this._setNested('grouping', 'min_group_size', Number(e.target.value))} />
+                <ha-textfield
+                  type="number"
+                  .value=${String(g.min_group_size ?? 3)}
+                  .label=${"Min group size"}
+                  @input=${(e: any) => this._setNested('grouping', 'min_group_size', Number(e.target.value))}
+                ></ha-textfield>
               </div>
             </div>
             <div class="field">
               <label>Group By</label>
-              <select .value=${g.group_by ?? 'category'} @change=${(e: any) => this._setNested('grouping', 'group_by', e.target.value)}>
-                <option value="category">Category</option>
-                <option value="source">Source</option>
-                <option value="entity">Entity</option>
-                <option value="none">None</option>
-              </select>
+              <ha-select
+                .value=${g.group_by ?? 'category'}
+                @selected=${(e: any) => this._setNested('grouping', 'group_by', e.detail.value)}
+                @closed=${(e: any) => e.stopPropagation()}
+              >
+                <mwc-list-item value="category">Category</mwc-list-item>
+                <mwc-list-item value="source">Source</mwc-list-item>
+                <mwc-list-item value="entity">Entity</mwc-list-item>
+                <mwc-list-item value="none">None</mwc-list-item>
+              </ha-select>
             </div>
           </div>
         </details>
@@ -365,7 +395,11 @@ export class ChronicleEditor extends LitElement {
           <div class="section-body">
             <div class="field">
               <label>Card Height</label>
-              <input type="text" .value=${a.card_height ?? '400px'} @input=${(e: any) => this._setNested('appearance', 'card_height', e.target.value)} placeholder="400px or auto" />
+              <ha-textfield
+                .value=${a.card_height ?? '400px'}
+                .label=${"400px or auto"}
+                @input=${(e: any) => this._setNested('appearance', 'card_height', e.target.value)}
+              ></ha-textfield>
             </div>
             <div class="toggle-row">
               <span class="toggle-label">Compact Mode</span>
@@ -417,10 +451,10 @@ export class ChronicleEditor extends LitElement {
 
   private _renderToggle(checked: boolean, onChange: (val: boolean) => void) {
     return html`
-      <label class="switch">
-        <input type="checkbox" .checked=${checked} @change=${(e: any) => onChange(e.target.checked)} />
-        <span class="slider"></span>
-      </label>
+      <ha-switch
+        .checked=${checked}
+        @change=${(e: any) => onChange(e.target.checked)}
+      ></ha-switch>
     `;
   }
 
@@ -444,6 +478,31 @@ export class ChronicleEditor extends LitElement {
     const trimmed = value.trim();
     if (!trimmed) return [];
     return trimmed.split(',').map(s => s.trim()).filter(Boolean);
+  }
+
+  private _addFilterEntity(value: string) {
+    if (!value) return;
+    const current = [...(this._config.filters?.entities ?? [])];
+    if (!current.includes(value)) {
+      current.push(value);
+      this._setNested('filters', 'entities', current);
+    }
+  }
+
+  private _removeFilterEntity(index: number) {
+    const current = [...(this._config.filters?.entities ?? [])];
+    current.splice(index, 1);
+    this._setNested('filters', 'entities', current);
+  }
+
+  private _updateFilterEntity(index: number, value: string) {
+    const current = [...(this._config.filters?.entities ?? [])];
+    if (value) {
+      current[index] = value;
+    } else {
+      current.splice(index, 1);
+    }
+    this._setNested('filters', 'entities', current);
   }
 
   private _toggleSeverityFilter(severity: string, checked: boolean) {

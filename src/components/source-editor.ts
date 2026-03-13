@@ -112,7 +112,7 @@ export class SourceEditor extends LitElement {
       text-transform: uppercase;
       letter-spacing: 0.4px;
     }
-    input, select, textarea {
+    textarea {
       width: 100%;
       padding: 8px 10px;
       border: 1px solid var(--divider-color, rgba(127,127,127,0.2));
@@ -123,9 +123,40 @@ export class SourceEditor extends LitElement {
       font-family: inherit;
       box-sizing: border-box;
     }
-    input:focus, select:focus, textarea:focus {
+    textarea:focus {
       outline: none;
       border-color: var(--primary-color, #03a9f4);
+    }
+    input[type="color"] {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid var(--divider-color, rgba(127,127,127,0.2));
+      border-radius: 6px;
+      background: var(--card-background-color, #fff);
+      color: var(--primary-text-color, #333);
+      font-size: 13px;
+      font-family: inherit;
+      box-sizing: border-box;
+    }
+    input[type="color"]:focus {
+      outline: none;
+      border-color: var(--primary-color, #03a9f4);
+    }
+    ha-textfield {
+      display: block;
+      width: 100%;
+    }
+    ha-select {
+      display: block;
+      width: 100%;
+    }
+    ha-entity-picker {
+      display: block;
+      width: 100%;
+    }
+    ha-icon-picker {
+      display: block;
+      width: 100%;
     }
     textarea {
       min-height: 60px;
@@ -178,16 +209,24 @@ export class SourceEditor extends LitElement {
           <div class="row">
             <div class="field" style="flex:2;">
               <label>Source Type</label>
-              <select .value=${this.source.type} @change=${this._onTypeChange}>
-                <option value="calendar">Calendar Entity</option>
-                <option value="rest">REST API</option>
-                <option value="history">Entity History</option>
-                <option value="static">Static Events</option>
-              </select>
+              <ha-select
+                .value=${this.source.type}
+                @selected=${this._onTypeChange}
+                @closed=${(e: any) => e.stopPropagation()}
+              >
+                <mwc-list-item value="calendar">Calendar Entity</mwc-list-item>
+                <mwc-list-item value="rest">REST API</mwc-list-item>
+                <mwc-list-item value="history">Entity History</mwc-list-item>
+                <mwc-list-item value="static">Static Events</mwc-list-item>
+              </ha-select>
             </div>
             <div class="field" style="flex:3;">
               <label>Name</label>
-              <input type="text" .value=${this.source.name ?? ''} @input=${(e: any) => this._update('name', e.target.value)} placeholder="Source display name" />
+              <ha-textfield
+                .value=${this.source.name ?? ''}
+                .label=${"Source display name"}
+                @input=${(e: any) => this._update('name', e.target.value)}
+              ></ha-textfield>
             </div>
           </div>
 
@@ -198,7 +237,11 @@ export class SourceEditor extends LitElement {
           <div class="row">
             <div class="field">
               <label>Default Icon</label>
-              <input type="text" .value=${this.source.default_icon ?? ''} @input=${(e: any) => this._update('default_icon', e.target.value)} placeholder="mdi:calendar-clock" />
+              <ha-icon-picker
+                .hass=${this.hass}
+                .value=${this.source.default_icon ?? ''}
+                @value-changed=${(e: any) => this._update('default_icon', e.detail.value)}
+              ></ha-icon-picker>
             </div>
             <div class="field">
               <label>Default Color</label>
@@ -206,12 +249,16 @@ export class SourceEditor extends LitElement {
             </div>
             <div class="field">
               <label>Severity</label>
-              <select .value=${this.source.default_severity ?? 'info'} @change=${(e: any) => this._update('default_severity', e.target.value)}>
-                <option value="critical">Critical</option>
-                <option value="warning">Warning</option>
-                <option value="info">Info</option>
-                <option value="debug">Debug</option>
-              </select>
+              <ha-select
+                .value=${this.source.default_severity ?? 'info'}
+                @selected=${(e: any) => this._update('default_severity', e.detail.value)}
+                @closed=${(e: any) => e.stopPropagation()}
+              >
+                <mwc-list-item value="critical">Critical</mwc-list-item>
+                <mwc-list-item value="warning">Warning</mwc-list-item>
+                <mwc-list-item value="info">Info</mwc-list-item>
+                <mwc-list-item value="debug">Debug</mwc-list-item>
+              </ha-select>
             </div>
           </div>
 
@@ -227,7 +274,13 @@ export class SourceEditor extends LitElement {
         return html`
           <div class="field">
             <label>Calendar Entity</label>
-            <input type="text" .value=${this.source.entity ?? ''} @input=${(e: any) => this._update('entity', e.target.value)} placeholder="calendar.my_calendar" />
+            <ha-entity-picker
+              .hass=${this.hass}
+              .value=${this.source.entity ?? ''}
+              .includeDomains=${["calendar"]}
+              allow-custom-entity
+              @value-changed=${(e: any) => this._update('entity', e.detail.value)}
+            ></ha-entity-picker>
           </div>
         `;
 
@@ -235,12 +288,20 @@ export class SourceEditor extends LitElement {
         return html`
           <div class="field">
             <label>API URL</label>
-            <input type="text" .value=${this.source.url ?? ''} @input=${(e: any) => this._update('url', e.target.value)} placeholder="llmvision/timeline/events?limit=50" />
+            <ha-textfield
+              .value=${this.source.url ?? ''}
+              .label=${"llmvision/timeline/events?limit=50"}
+              @input=${(e: any) => this._update('url', e.target.value)}
+            ></ha-textfield>
             <p class="help-text">Internal HA API path (no /api/ prefix needed) or full external URL</p>
           </div>
           <div class="field">
             <label>Response Path</label>
-            <input type="text" .value=${this.source.response_path ?? ''} @input=${(e: any) => this._update('response_path', e.target.value)} placeholder="events" />
+            <ha-textfield
+              .value=${this.source.response_path ?? ''}
+              .label=${"events"}
+              @input=${(e: any) => this._update('response_path', e.target.value)}
+            ></ha-textfield>
             <p class="help-text">Dot-path to the array in the JSON response (e.g. "events" or "data.items")</p>
           </div>
           <div class="field">
@@ -254,7 +315,11 @@ export class SourceEditor extends LitElement {
           </div>
           <div class="field">
             <label>Media URL Template</label>
-            <input type="text" .value=${this.source.media_url_template ?? ''} @input=${(e: any) => this._update('media_url_template', e.target.value)} placeholder="/api/frigate/notifications/{id}/snapshot.jpg" />
+            <ha-textfield
+              .value=${this.source.media_url_template ?? ''}
+              .label=${"/api/frigate/notifications/{id}/snapshot.jpg"}
+              @input=${(e: any) => this._update('media_url_template', e.target.value)}
+            ></ha-textfield>
             <p class="help-text">Build image URL from response fields using {field} placeholders. Overrides mediaUrl field mapping.</p>
           </div>
           <div class="field">
@@ -268,7 +333,12 @@ export class SourceEditor extends LitElement {
           </div>
           <div class="field">
             <label>Poll Interval (seconds)</label>
-            <input type="number" .value=${String(this.source.poll_interval ?? 60)} @input=${(e: any) => this._update('poll_interval', Number(e.target.value))} min="5" />
+            <ha-textfield
+              type="number"
+              .value=${String(this.source.poll_interval ?? 60)}
+              .label=${"Poll interval"}
+              @input=${(e: any) => this._update('poll_interval', Number(e.target.value))}
+            ></ha-textfield>
           </div>
         `;
 
@@ -276,17 +346,19 @@ export class SourceEditor extends LitElement {
         return html`
           <div class="field">
             <label>Entity</label>
-            <input type="text"
+            <ha-entity-picker
+              .hass=${this.hass}
               .value=${this.source.entity ?? ''}
-              @input=${(e: any) => this._update('entity', e.target.value)}
-              placeholder="binary_sensor.front_door_opening"
-            />
+              allow-custom-entity
+              @value-changed=${(e: any) => this._update('entity', e.detail.value)}
+            ></ha-entity-picker>
             <p class="help-text">Each state change becomes a timeline event.</p>
           </div>
           <div class="field">
             <label>State Filter (comma-separated, optional)</label>
-            <input type="text"
+            <ha-textfield
               .value=${(this.source.state_filter ?? []).join(', ')}
+              .label=${"on, locked, open"}
               @input=${(e: any) => {
                 const val = e.target.value.trim();
                 if (!val) {
@@ -295,8 +367,7 @@ export class SourceEditor extends LitElement {
                   this._update('state_filter', val.split(',').map((s: string) => s.trim()).filter(Boolean));
                 }
               }}
-              placeholder="on, locked, open"
-            />
+            ></ha-textfield>
             <p class="help-text">Only log events when the new state matches one of these values. Leave empty to log all state changes.</p>
           </div>
           <div class="field">
@@ -442,7 +513,7 @@ export class SourceEditor extends LitElement {
   }
 
   private _onTypeChange(e: any) {
-    this._update('type', e.target.value);
+    this._update('type', e.detail?.value ?? e.target.value);
   }
 
   private _update(key: string, value: unknown) {
