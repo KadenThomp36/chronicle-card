@@ -37,7 +37,8 @@ A universal, extensible timeline card for [Home Assistant](https://www.home-assi
 2. Go to the **three-dot menu** (top right) > **Custom repositories**
 3. Enter `https://github.com/KadenThomp36/chronicle-card` and select **Dashboard** as the category
 4. Click **Add**, then find **Chronicle Card** in the list and click **Download**
-5. Restart Home Assistant
+5. Go to **Settings → Dashboards → Resources**, click **Add**, and enter `/hacsfiles/chronicle-card/chronicle-card.js` as **JavaScript Module**
+6. Restart Home Assistant
 
 ### Manual
 
