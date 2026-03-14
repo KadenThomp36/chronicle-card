@@ -1,10 +1,21 @@
 import { SeverityLevel } from './event';
 
+/** Per-entity overrides within a history source. */
+export interface EntityOverrides {
+  name?: string;
+  state_filter?: string[];
+  state_map?: Record<string, string>;
+  icon?: string;
+  color?: string;
+  severity?: SeverityLevel;
+}
+
 export interface SourceConfig {
   type: 'calendar' | 'rest' | 'history' | 'static';
   name?: string;
   entity?: string;
   entities?: string[];
+  entity_config?: Record<string, EntityOverrides>;
   url?: string;
   response_path?: string;
   field_map?: Record<string, string>;

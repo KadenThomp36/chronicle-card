@@ -84,21 +84,7 @@ export class ChronicleEditor extends LitElement {
       outline: none;
       border-color: var(--primary-color, #03a9f4);
     }
-    input[type="checkbox"] {
-      width: auto;
-      padding: 0;
-      margin: 0;
-      cursor: pointer;
-    }
-    ha-textfield {
-      display: block;
-      width: 100%;
-    }
-    ha-select {
-      display: block;
-      width: 100%;
-    }
-    ha-entity-picker {
+    ha-textfield, ha-select, ha-entity-picker, ha-selector {
       display: block;
       width: 100%;
     }
@@ -151,25 +137,6 @@ export class ChronicleEditor extends LitElement {
       --mdc-theme-secondary: var(--primary-color, #03a9f4);
     }
 
-    .severity-checks {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-    .check-label {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 13px;
-      color: var(--primary-text-color, #333);
-      cursor: pointer;
-      text-transform: none;
-      letter-spacing: 0;
-      font-weight: 400;
-    }
-    .check-label input[type="checkbox"] {
-      cursor: pointer;
-    }
   `;
 
   setConfig(config: ChronicleCardConfig): void {
@@ -293,60 +260,60 @@ export class ChronicleEditor extends LitElement {
               ></ha-textfield>
             </div>
             <div class="field">
-              <label>Categories (comma-separated)</label>
-              <ha-textfield
-                .value=${(c.filters?.categories ?? []).join(', ')}
-                .label=${"motion, door, security, person"}
-                @input=${(e: any) => this._setNested('filters', 'categories', this._csvToArray(e.target.value))}
-              ></ha-textfield>
-            </div>
-            <div class="field">
-              <label>Severities</label>
-              <div class="severity-checks">
-                ${(['critical', 'warning', 'info', 'debug'] as const).map(sev => {
-                  const checked = (c.filters?.severities ?? []).includes(sev);
-                  return html`
-                    <label class="check-label">
-                      <input type="checkbox" .checked=${checked} @change=${(e: any) => this._toggleSeverityFilter(sev, e.target.checked)} />
-                      <span>${sev.charAt(0).toUpperCase() + sev.slice(1)}</span>
-                    </label>
-                  `;
-                })}
-              </div>
-            </div>
-            <div class="field">
-              <label>Sources (comma-separated)</label>
-              <ha-textfield
-                .value=${(c.filters?.sources ?? []).join(', ')}
-                .label=${"Frigate, Front Door History"}
-                @input=${(e: any) => this._setNested('filters', 'sources', this._csvToArray(e.target.value))}
-              ></ha-textfield>
-            </div>
-            <div class="field">
-              <label>Filter Entities</label>
-              ${(c.filters?.entities ?? []).map((entity: string, idx: number) => html`
-                <div class="row" style="margin-bottom: 4px; align-items: center;">
-                  <ha-entity-picker
-                    .hass=${this.hass}
-                    .value=${entity}
-                    allow-custom-entity
-                    @value-changed=${(e: any) => this._updateFilterEntity(idx, e.detail.value)}
-                    style="flex: 1;"
-                  ></ha-entity-picker>
-                  <button
-                    class="remove-entity-btn"
-                    @click=${() => this._removeFilterEntity(idx)}
-                    title="Remove entity"
-                    style="border: none; background: none; color: var(--error-color, #db4437); cursor: pointer; font-size: 18px; padding: 4px 8px; flex-shrink: 0;"
-                  >&#x2715;</button>
-                </div>
-              `)}
-              <ha-entity-picker
+              <ha-selector
                 .hass=${this.hass}
-                .value=${''}
-                allow-custom-entity
-                @value-changed=${(e: any) => this._addFilterEntity(e.detail.value)}
-              ></ha-entity-picker>
+                .selector=${{ select: {
+                  options: this._getCategoryOptions(),
+                  multiple: true,
+                  custom_value: true,
+                  mode: 'list',
+                } }}
+                .value=${c.filters?.categories ?? []}
+                .label=${"Categories"}
+                .helper=${"Filter timeline to specific event categories"}
+                @value-changed=${(e: any) => this._setNested('filters', 'categories', e.detail.value)}
+              ></ha-selector>
+            </div>
+            <div class="field">
+              <ha-selector
+                .hass=${this.hass}
+                .selector=${{ select: {
+                  options: [
+                    { value: 'critical', label: 'Critical' },
+                    { value: 'warning', label: 'Warning' },
+                    { value: 'info', label: 'Info' },
+                    { value: 'debug', label: 'Debug' },
+                  ],
+                  multiple: true,
+                } }}
+                .value=${c.filters?.severities ?? []}
+                .label=${"Severities"}
+                .helper=${"Filter timeline to specific severity levels"}
+                @value-changed=${(e: any) => this._setNested('filters', 'severities', e.detail.value)}
+              ></ha-selector>
+            </div>
+            <div class="field">
+              <ha-selector
+                .hass=${this.hass}
+                .selector=${{ select: {
+                  options: this._getSourceNameOptions(),
+                  multiple: true,
+                  custom_value: true,
+                } }}
+                .value=${c.filters?.sources ?? []}
+                .label=${"Sources"}
+                .helper=${"Filter timeline to specific source names"}
+                @value-changed=${(e: any) => this._setNested('filters', 'sources', e.detail.value)}
+              ></ha-selector>
+            </div>
+            <div class="field">
+              <ha-selector
+                .hass=${this.hass}
+                .selector=${{ entity: { multiple: true } }}
+                .value=${c.filters?.entities ?? []}
+                .label=${"Filter Entities"}
+                @value-changed=${(e: any) => this._setNested('filters', 'entities', e.detail.value ?? [])}
+              ></ha-selector>
             </div>
           </div>
         </details>
@@ -486,40 +453,30 @@ export class ChronicleEditor extends LitElement {
     return trimmed.split(',').map(s => s.trim()).filter(Boolean);
   }
 
-  private _addFilterEntity(value: string) {
-    if (!value) return;
-    const current = [...(this._config.filters?.entities ?? [])];
-    if (!current.includes(value)) {
-      current.push(value);
-      this._setNested('filters', 'entities', current);
-    }
+  /** Build category options from known categories in constants. */
+  private _getCategoryOptions(): Array<{ value: string; label: string }> {
+    return [
+      { value: 'person', label: 'Person' },
+      { value: 'vehicle', label: 'Vehicle' },
+      { value: 'animal', label: 'Animal' },
+      { value: 'pet', label: 'Pet' },
+      { value: 'security', label: 'Security' },
+      { value: 'motion', label: 'Motion' },
+      { value: 'door', label: 'Door' },
+      { value: 'lock', label: 'Lock' },
+      { value: 'camera', label: 'Camera' },
+      { value: 'light', label: 'Light' },
+      { value: 'climate', label: 'Climate' },
+      { value: 'automation', label: 'Automation' },
+      { value: 'system', label: 'System' },
+    ];
   }
 
-  private _removeFilterEntity(index: number) {
-    const current = [...(this._config.filters?.entities ?? [])];
-    current.splice(index, 1);
-    this._setNested('filters', 'entities', current);
-  }
-
-  private _updateFilterEntity(index: number, value: string) {
-    const current = [...(this._config.filters?.entities ?? [])];
-    if (value) {
-      current[index] = value;
-    } else {
-      current.splice(index, 1);
-    }
-    this._setNested('filters', 'entities', current);
-  }
-
-  private _toggleSeverityFilter(severity: string, checked: boolean) {
-    const current = [...(this._config.filters?.severities ?? [])];
-    if (checked && !current.includes(severity as any)) {
-      current.push(severity as any);
-    } else if (!checked) {
-      const idx = current.indexOf(severity as any);
-      if (idx >= 0) current.splice(idx, 1);
-    }
-    this._setNested('filters', 'severities', current);
+  /** Build source name options from the current config's sources. */
+  private _getSourceNameOptions(): Array<{ value: string; label: string }> {
+    return (this._config.sources ?? [])
+      .filter(s => s.name)
+      .map(s => ({ value: s.name!, label: s.name! }));
   }
 
   private _addSource(type: 'calendar' | 'rest' | 'history' | 'static') {

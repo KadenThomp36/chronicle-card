@@ -1,3 +1,21 @@
+# Chronicle Card v1.9.0
+
+## Per-Entity Configuration
+- New `entity_config` option on history sources for per-entity overrides
+- Each entity can have its own `name`, `state_filter`, `state_map`, `icon`, `color`, and `severity`
+- Per-entity settings override source-level defaults, which override auto-detected device class defaults
+- Multi-entity sources now use each entity's friendly name by default (instead of the source name)
+
+## Native HA Editor Components
+- Entity list: Replaced manual add/remove buttons with native `ha-selector` multi-entity chip picker
+- Per-entity settings: Native `ha-expansion-panel` per entity with `ha-selector` components inside
+- State filter: Chip-based multi-select with domain-aware state suggestions and custom value support
+- Calendar entity: Replaced `ha-entity-picker` with `ha-selector` entity selector
+- Filters section: Categories, severities, sources, and filter entities all use native `ha-selector` components
+- Removed manual entity list management (add/remove buttons, individual pickers)
+
+---
+
 # Chronicle Card v1.8.0 — Changes from v1.7.1
 
 ## History Adapter Overhaul

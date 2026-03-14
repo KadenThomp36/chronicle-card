@@ -2,6 +2,85 @@ import { LitElement, html, css, nothing } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { SourceConfig } from '../models/config';
 
+/** Domain-based state options for the per-entity state filter selector. */
+const DOMAIN_STATE_OPTIONS: Record<string, Array<{ value: string; label: string }>> = {
+  binary_sensor: [
+    { value: 'on', label: 'On' },
+    { value: 'off', label: 'Off' },
+  ],
+  lock: [
+    { value: 'locked', label: 'Locked' },
+    { value: 'unlocked', label: 'Unlocked' },
+    { value: 'jammed', label: 'Jammed' },
+    { value: 'locking', label: 'Locking' },
+    { value: 'unlocking', label: 'Unlocking' },
+  ],
+  cover: [
+    { value: 'open', label: 'Open' },
+    { value: 'closed', label: 'Closed' },
+    { value: 'opening', label: 'Opening' },
+    { value: 'closing', label: 'Closing' },
+  ],
+  light: [
+    { value: 'on', label: 'On' },
+    { value: 'off', label: 'Off' },
+  ],
+  switch: [
+    { value: 'on', label: 'On' },
+    { value: 'off', label: 'Off' },
+  ],
+  fan: [
+    { value: 'on', label: 'On' },
+    { value: 'off', label: 'Off' },
+  ],
+  input_boolean: [
+    { value: 'on', label: 'On' },
+    { value: 'off', label: 'Off' },
+  ],
+  person: [
+    { value: 'home', label: 'Home' },
+    { value: 'not_home', label: 'Away' },
+  ],
+  device_tracker: [
+    { value: 'home', label: 'Home' },
+    { value: 'not_home', label: 'Away' },
+  ],
+  alarm_control_panel: [
+    { value: 'armed_away', label: 'Armed Away' },
+    { value: 'armed_home', label: 'Armed Home' },
+    { value: 'armed_night', label: 'Armed Night' },
+    { value: 'disarmed', label: 'Disarmed' },
+    { value: 'triggered', label: 'Triggered' },
+    { value: 'pending', label: 'Pending' },
+  ],
+  climate: [
+    { value: 'off', label: 'Off' },
+    { value: 'heat', label: 'Heating' },
+    { value: 'cool', label: 'Cooling' },
+    { value: 'auto', label: 'Auto' },
+    { value: 'fan_only', label: 'Fan Only' },
+    { value: 'dry', label: 'Dry' },
+  ],
+  vacuum: [
+    { value: 'cleaning', label: 'Cleaning' },
+    { value: 'docked', label: 'Docked' },
+    { value: 'returning', label: 'Returning' },
+    { value: 'idle', label: 'Idle' },
+    { value: 'paused', label: 'Paused' },
+  ],
+  media_player: [
+    { value: 'playing', label: 'Playing' },
+    { value: 'paused', label: 'Paused' },
+    { value: 'idle', label: 'Idle' },
+    { value: 'off', label: 'Off' },
+  ],
+};
+
+const DEFAULT_STATE_OPTIONS = [
+  { value: 'on', label: 'On' },
+  { value: 'off', label: 'Off' },
+];
+
 @customElement('chronicle-source-editor')
 export class SourceEditor extends LitElement {
   @property({ attribute: false }) source!: SourceConfig;
@@ -142,19 +221,7 @@ export class SourceEditor extends LitElement {
       outline: none;
       border-color: var(--primary-color, #03a9f4);
     }
-    ha-textfield {
-      display: block;
-      width: 100%;
-    }
-    ha-select {
-      display: block;
-      width: 100%;
-    }
-    ha-entity-picker {
-      display: block;
-      width: 100%;
-    }
-    ha-icon-picker {
+    ha-textfield, ha-select, ha-entity-picker, ha-icon-picker, ha-selector {
       display: block;
       width: 100%;
     }
@@ -180,28 +247,55 @@ export class SourceEditor extends LitElement {
       margin: 2px 0 0;
       line-height: 1.4;
     }
-    .entity-row {
+
+    /* Per-entity expansion panels */
+    ha-expansion-panel {
+      margin-bottom: 4px;
+      --expansion-panel-summary-padding: 8px 12px;
+    }
+    .entity-panel-content {
+      padding: 8px 12px 12px;
       display: flex;
-      align-items: center;
-      gap: 4px;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .state-label-row {
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
       margin-bottom: 4px;
     }
-    .entity-row ha-entity-picker {
+    .state-label-row ha-textfield {
       flex: 1;
     }
-    .remove-entity-btn {
+    .state-label-remove {
       border: none;
       background: none;
       color: var(--error-color, #db4437);
       cursor: pointer;
-      font-size: 18px;
+      font-size: 16px;
       padding: 4px 8px;
       flex-shrink: 0;
       line-height: 1;
+      margin-bottom: 8px;
     }
-    .remove-entity-btn:hover {
+    .state-label-remove:hover {
       background: rgba(219, 68, 55, 0.1);
       border-radius: 4px;
+    }
+    .add-label-btn {
+      border: 1px dashed var(--divider-color, rgba(127,127,127,0.3));
+      background: transparent;
+      color: var(--primary-color, #03a9f4);
+      cursor: pointer;
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-family: inherit;
+    }
+    .add-label-btn:hover {
+      border-color: var(--primary-color, #03a9f4);
+      background: rgba(3, 169, 244, 0.04);
     }
   `;
 
@@ -231,6 +325,17 @@ export class SourceEditor extends LitElement {
       return [this.source.entity];
     }
     return [];
+  }
+
+  /** Get domain-based state options for per-entity state filter. */
+  private _getStateOptions(entityId: string): Array<{ value: string; label: string }> {
+    const domain = entityId.split('.')[0];
+    return DOMAIN_STATE_OPTIONS[domain] || DEFAULT_STATE_OPTIONS;
+  }
+
+  /** Get a friendly name for an entity. */
+  private _getFriendlyName(entityId: string): string {
+    return this.hass?.states[entityId]?.attributes?.friendly_name || entityId;
   }
 
   protected render() {
@@ -317,13 +422,13 @@ export class SourceEditor extends LitElement {
         return html`
           <div class="field">
             <label>Calendar Entity</label>
-            <ha-entity-picker
+            <ha-selector
               .hass=${this.hass}
+              .selector=${{ entity: { filter: [{ domain: 'calendar' }] } }}
               .value=${this.source.entity ?? ''}
-              .includeDomains=${["calendar"]}
-              allow-custom-entity
+              .label=${"Calendar entity"}
               @value-changed=${(e: any) => this._update('entity', e.detail.value)}
-            ></ha-entity-picker>
+            ></ha-selector>
           </div>
         `;
 
@@ -388,56 +493,17 @@ export class SourceEditor extends LitElement {
       case 'history':
         return html`
           <div class="field">
-            <label>Entities</label>
-            ${this._getHistoryEntities().map((entity: string, idx: number) => html`
-              <div class="entity-row">
-                <ha-entity-picker
-                  .hass=${this.hass}
-                  .value=${entity}
-                  allow-custom-entity
-                  @value-changed=${(e: any) => this._updateHistoryEntity(idx, e.detail.value)}
-                ></ha-entity-picker>
-                <button
-                  class="remove-entity-btn"
-                  @click=${() => this._removeHistoryEntity(idx)}
-                  title="Remove entity"
-                >&#x2715;</button>
-              </div>
-            `)}
-            <ha-entity-picker
+            <ha-selector
               .hass=${this.hass}
-              .value=${''}
-              allow-custom-entity
-              @value-changed=${(e: any) => this._addHistoryEntity(e.detail.value)}
-            ></ha-entity-picker>
-            <p class="help-text">Each state change becomes a timeline event. Add multiple entities to track them all in one source.</p>
+              .selector=${{ entity: { multiple: true } }}
+              .value=${this._getHistoryEntities()}
+              .label=${"Entities"}
+              @value-changed=${this._onEntitiesChanged}
+            ></ha-selector>
+            <p class="help-text">Each state change becomes a timeline event.</p>
           </div>
-          <div class="field">
-            <label>State Filter (comma-separated, optional)</label>
-            <ha-textfield
-              .value=${(this.source.state_filter ?? []).join(', ')}
-              .label=${"on, locked, open"}
-              @input=${(e: any) => {
-                const val = e.target.value.trim();
-                if (!val) {
-                  this._update('state_filter', undefined);
-                } else {
-                  this._update('state_filter', val.split(',').map((s: string) => s.trim()).filter(Boolean));
-                }
-              }}
-            ></ha-textfield>
-            <p class="help-text">Only log events when the new state matches one of these values. Leave empty to log all state changes.</p>
-          </div>
-          <div class="field">
-            <label>State Labels (JSON, optional)</label>
-            <textarea
-              .value=${this._mapToString(this.source.state_map)}
-              @change=${(e: any) => this._onMapChange('state_map', e)}
-              placeholder='{"on": "Opened", "off": "Closed"}'
-              style="min-height:40px;"
-            ></textarea>
-            <p class="help-text">Override how raw state values are displayed. Device class labels are used automatically when not specified.</p>
-          </div>
+          ${this._renderPerEntityConfig()}
+          ${this._renderSourceLevelDefaults()}
         `;
 
       case 'static':
@@ -458,48 +524,287 @@ export class SourceEditor extends LitElement {
     }
   }
 
-  private _addHistoryEntity(value: string) {
-    if (!value) return;
-    // Migrate legacy `entity` into `entities` on first multi-entity edit
-    const current = this.source.entities?.length
-      ? [...this.source.entities]
-      : this.source.entity ? [this.source.entity] : [];
-    if (!current.includes(value)) {
-      current.push(value);
-      this._update('entities', current);
-      // Clear the legacy single-entity field now that we have an array
-      if (this.source.entity) {
-        this._update('entity', undefined);
+  // ---------------------------------------------------------------------------
+  // Per-entity config panels
+  // ---------------------------------------------------------------------------
+
+  private _renderPerEntityConfig() {
+    const entities = this._getHistoryEntities();
+    if (entities.length === 0) return nothing;
+
+    return html`
+      <div class="section-label">Entity Settings</div>
+      <p class="help-text" style="margin-bottom: 8px;">
+        Expand an entity to customize its name, state filter, labels, icon, and severity.
+        Unconfigured entities use smart defaults based on their device class.
+      </p>
+      ${entities.map(entityId => this._renderEntityPanel(entityId))}
+    `;
+  }
+
+  private _renderEntityPanel(entityId: string) {
+    const conf = this.source.entity_config?.[entityId] ?? {};
+    const friendlyName = this._getFriendlyName(entityId);
+    const hasOverrides = Object.keys(conf).length > 0;
+    const domain = entityId.split('.')[0];
+    const stateOptions = this._getStateOptions(entityId);
+
+    // Build state_map entries for the key-value editor
+    const stateMapEntries = conf.state_map ? Object.entries(conf.state_map) : [];
+
+    return html`
+      <ha-expansion-panel
+        .outlined=${true}
+        .header=${friendlyName}
+        .secondary=${hasOverrides ? `${entityId} · customized` : entityId}
+      >
+        <div class="entity-panel-content">
+          <!-- Custom name -->
+          <ha-selector
+            .hass=${this.hass}
+            .selector=${{ text: {} }}
+            .value=${conf.name ?? ''}
+            .label=${"Custom display name"}
+            .helper=${"Override the entity's friendly name in the timeline"}
+            @value-changed=${(e: any) => this._updateEntityConfig(entityId, 'name', e.detail.value)}
+          ></ha-selector>
+
+          <!-- State filter (chip-based multi-select) -->
+          <ha-selector
+            .hass=${this.hass}
+            .selector=${{ select: { options: stateOptions, multiple: true, custom_value: true, mode: 'list' } }}
+            .value=${conf.state_filter ?? []}
+            .label=${"State filter"}
+            .helper=${"Only log events for these states. Leave empty to log all changes."}
+            @value-changed=${(e: any) => this._updateEntityConfig(entityId, 'state_filter', e.detail.value)}
+          ></ha-selector>
+
+          <!-- State labels (key-value pairs) -->
+          ${stateMapEntries.length > 0 || conf.state_map ? html`
+            <label>State Labels</label>
+            ${stateMapEntries.map(([state, label], idx) => html`
+              <div class="state-label-row">
+                <ha-textfield
+                  .value=${state}
+                  .label=${"State value"}
+                  @change=${(e: any) => this._updateStateMapKey(entityId, idx, e.target.value, label)}
+                ></ha-textfield>
+                <ha-textfield
+                  .value=${label}
+                  .label=${"Display label"}
+                  @change=${(e: any) => this._updateStateMapValue(entityId, state, e.target.value)}
+                ></ha-textfield>
+                <button
+                  class="state-label-remove"
+                  @click=${() => this._removeStateMapEntry(entityId, state)}
+                  title="Remove label"
+                >&#x2715;</button>
+              </div>
+            `)}
+          ` : nothing}
+          <button
+            class="add-label-btn"
+            @click=${() => this._addStateMapEntry(entityId)}
+          >+ Add state label</button>
+
+          <!-- Icon override -->
+          <ha-selector
+            .hass=${this.hass}
+            .selector=${{ icon: {} }}
+            .value=${conf.icon ?? ''}
+            .label=${"Icon override"}
+            @value-changed=${(e: any) => this._updateEntityConfig(entityId, 'icon', e.detail.value)}
+          ></ha-selector>
+
+          <!-- Color override -->
+          <div class="field">
+            <label>Color override</label>
+            <input
+              type="color"
+              .value=${conf.color ?? this.source.default_color ?? '#2196F3'}
+              @input=${(e: any) => this._updateEntityConfig(entityId, 'color', e.target.value)}
+            />
+          </div>
+
+          <!-- Severity override -->
+          <ha-selector
+            .hass=${this.hass}
+            .selector=${{ select: {
+              options: [
+                { value: '', label: 'Use source default' },
+                { value: 'critical', label: 'Critical' },
+                { value: 'warning', label: 'Warning' },
+                { value: 'info', label: 'Info' },
+                { value: 'debug', label: 'Debug' },
+              ],
+              mode: 'dropdown',
+            } }}
+            .value=${conf.severity ?? ''}
+            .label=${"Severity override"}
+            @value-changed=${(e: any) => this._updateEntityConfig(entityId, 'severity', e.detail.value || undefined)}
+          ></ha-selector>
+        </div>
+      </ha-expansion-panel>
+    `;
+  }
+
+  /** Source-level defaults (backward compat, shown as expandable advanced section). */
+  private _renderSourceLevelDefaults() {
+    const hasSourceFilter = (this.source.state_filter?.length ?? 0) > 0;
+    const hasSourceMap = this.source.state_map && Object.keys(this.source.state_map).length > 0;
+
+    // Only show if existing source-level config exists (backward compat)
+    if (!hasSourceFilter && !hasSourceMap) return nothing;
+
+    return html`
+      <ha-expansion-panel
+        .outlined=${true}
+        .header=${"Source-Level Defaults"}
+        .secondary=${"Legacy state_filter and state_map — per-entity settings override these"}
+      >
+        <div class="entity-panel-content">
+          <div class="field">
+            <label>State Filter (comma-separated)</label>
+            <ha-textfield
+              .value=${(this.source.state_filter ?? []).join(', ')}
+              .label=${"on, locked, open"}
+              @input=${(e: any) => {
+                const val = e.target.value.trim();
+                if (!val) {
+                  this._update('state_filter', undefined);
+                } else {
+                  this._update('state_filter', val.split(',').map((s: string) => s.trim()).filter(Boolean));
+                }
+              }}
+            ></ha-textfield>
+            <p class="help-text">Applies to all entities without a per-entity filter.</p>
+          </div>
+          <div class="field">
+            <label>State Labels (JSON)</label>
+            <textarea
+              .value=${this._mapToString(this.source.state_map)}
+              @change=${(e: any) => this._onMapChange('state_map', e)}
+              placeholder='{"on": "Opened", "off": "Closed"}'
+              style="min-height:40px;"
+            ></textarea>
+            <p class="help-text">Applies to all entities without per-entity labels.</p>
+          </div>
+        </div>
+      </ha-expansion-panel>
+    `;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Entity list handlers (native ha-selector entity multiple)
+  // ---------------------------------------------------------------------------
+
+  private _onEntitiesChanged(e: any) {
+    const value = e.detail.value;
+    if (!Array.isArray(value)) return;
+
+    this._update('entities', value.length > 0 ? value : undefined);
+
+    // Clear legacy single-entity field
+    if (this.source.entity) {
+      this._update('entity', undefined);
+    }
+
+    // Clean up entity_config for removed entities
+    if (this.source.entity_config) {
+      const validEntities = new Set(value);
+      const cleanedConfig: Record<string, any> = {};
+      for (const [key, val] of Object.entries(this.source.entity_config)) {
+        if (validEntities.has(key)) {
+          cleanedConfig[key] = val;
+        }
       }
+      this._update('entity_config', Object.keys(cleanedConfig).length > 0 ? cleanedConfig : undefined);
     }
   }
 
-  private _removeHistoryEntity(index: number) {
-    const current = this.source.entities?.length
-      ? [...this.source.entities]
-      : this.source.entity ? [this.source.entity] : [];
-    current.splice(index, 1);
-    this._update('entities', current.length ? current : undefined);
-    // Keep entity field clear once we've migrated to the array
-    if (this.source.entity) {
-      this._update('entity', undefined);
-    }
-  }
+  // ---------------------------------------------------------------------------
+  // Per-entity config handlers
+  // ---------------------------------------------------------------------------
 
-  private _updateHistoryEntity(index: number, value: string) {
-    const current = this.source.entities?.length
-      ? [...this.source.entities]
-      : this.source.entity ? [this.source.entity] : [];
-    if (value) {
-      current[index] = value;
+  private _updateEntityConfig(entityId: string, key: string, value: any) {
+    const current = { ...(this.source.entity_config ?? {}) };
+    const entityConf = { ...(current[entityId] ?? {}), [key]: value };
+
+    // Clean up empty/falsy values
+    if (!value || (Array.isArray(value) && value.length === 0)) {
+      delete (entityConf as any)[key];
+    }
+
+    if (Object.keys(entityConf).length === 0) {
+      delete current[entityId];
     } else {
-      current.splice(index, 1);
+      current[entityId] = entityConf;
     }
-    this._update('entities', current.length ? current : undefined);
-    if (this.source.entity) {
-      this._update('entity', undefined);
-    }
+
+    this._update('entity_config', Object.keys(current).length > 0 ? current : undefined);
   }
+
+  private _addStateMapEntry(entityId: string) {
+    const current = { ...(this.source.entity_config ?? {}) };
+    const entityConf = { ...(current[entityId] ?? {}) };
+    const stateMap = { ...(entityConf.state_map ?? {}), '': '' };
+    entityConf.state_map = stateMap;
+    current[entityId] = entityConf;
+    this._update('entity_config', current);
+  }
+
+  private _updateStateMapKey(entityId: string, index: number, newKey: string, label: string) {
+    const current = { ...(this.source.entity_config ?? {}) };
+    const entityConf = { ...(current[entityId] ?? {}) };
+    const entries = Object.entries(entityConf.state_map ?? {});
+    // Remove old entry, add with new key
+    if (index < entries.length) {
+      entries.splice(index, 1);
+    }
+    if (newKey) {
+      entries.push([newKey, label]);
+    }
+    entityConf.state_map = Object.fromEntries(entries);
+    if (Object.keys(entityConf.state_map).length === 0) {
+      delete entityConf.state_map;
+    }
+    current[entityId] = entityConf;
+    if (Object.keys(entityConf).length === 0) {
+      delete current[entityId];
+    }
+    this._update('entity_config', Object.keys(current).length > 0 ? current : undefined);
+  }
+
+  private _updateStateMapValue(entityId: string, state: string, label: string) {
+    const current = { ...(this.source.entity_config ?? {}) };
+    const entityConf = { ...(current[entityId] ?? {}) };
+    const stateMap = { ...(entityConf.state_map ?? {}), [state]: label };
+    entityConf.state_map = stateMap;
+    current[entityId] = entityConf;
+    this._update('entity_config', current);
+  }
+
+  private _removeStateMapEntry(entityId: string, state: string) {
+    const current = { ...(this.source.entity_config ?? {}) };
+    const entityConf = { ...(current[entityId] ?? {}) };
+    const stateMap = { ...(entityConf.state_map ?? {}) };
+    delete stateMap[state];
+    if (Object.keys(stateMap).length === 0) {
+      delete entityConf.state_map;
+    } else {
+      entityConf.state_map = stateMap;
+    }
+    if (Object.keys(entityConf).length === 0) {
+      delete current[entityId];
+    } else {
+      current[entityId] = entityConf;
+    }
+    this._update('entity_config', Object.keys(current).length > 0 ? current : undefined);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Appearance maps
+  // ---------------------------------------------------------------------------
 
   private _renderIconColorMaps() {
     if (this.source.type === 'static') return nothing;
@@ -528,6 +833,10 @@ export class SourceEditor extends LitElement {
       </div>
     `;
   }
+
+  // ---------------------------------------------------------------------------
+  // Serialization helpers
+  // ---------------------------------------------------------------------------
 
   private _fieldMapToString(): string {
     if (!this.source.field_map || Object.keys(this.source.field_map).length === 0) return '';

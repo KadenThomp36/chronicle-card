@@ -141,14 +141,20 @@ export class HistoryAdapter implements ISourceAdapter {
     return list;
   }
 
+  /** Resolve the effective state filter for an entity (per-entity → source-level → null). */
+  private getStateFilter(entityId: string): Set<string> | null {
+    const perEntity = this.config.entity_config?.[entityId]?.state_filter;
+    if (perEntity?.length) return new Set(perEntity);
+    if (this.config.state_filter?.length) return new Set(this.config.state_filter);
+    return null;
+  }
+
   async fetchEvents(hass: HomeAssistant, range: TimeRange): Promise<ChronicleEvent[]> {
     const entities = this.getEntities();
     if (entities.length === 0) {
       console.warn('[chronicle-card] HistoryAdapter: no entities configured');
       return [];
     }
-
-    const stateFilter = this.config.state_filter?.length ? new Set(this.config.state_filter) : null;
 
     try {
       const startISO = range.start.toISOString();
@@ -181,7 +187,8 @@ export class HistoryAdapter implements ISourceAdapter {
           if (curr.state === 'unavailable' || curr.state === 'unknown') continue;
           if (prev.state === 'unavailable' || prev.state === 'unknown') continue;
 
-          // Apply state_filter — only create event if new state is in the allow-list
+          // Apply per-entity or source-level state filter
+          const stateFilter = this.getStateFilter(entityId);
           if (stateFilter && !stateFilter.has(curr.state)) continue;
 
           const event = this.stateChangeToEvent(hass, entityId, prev, curr);
@@ -204,7 +211,6 @@ export class HistoryAdapter implements ISourceAdapter {
     if (entities.length === 0) return () => {};
 
     const entitySet = new Set(entities);
-    const stateFilter = this.config.state_filter?.length ? new Set(this.config.state_filter) : null;
 
     const unsubscribe = await hass.connection.subscribeEvents((hassEvent) => {
       const data = hassEvent.data as {
@@ -221,7 +227,8 @@ export class HistoryAdapter implements ISourceAdapter {
       if (data.new_state.state === 'unavailable' || data.new_state.state === 'unknown') return;
       if (data.old_state.state === 'unavailable' || data.old_state.state === 'unknown') return;
 
-      // Apply state_filter
+      // Apply per-entity or source-level state filter
+      const stateFilter = this.getStateFilter(data.entity_id);
       if (stateFilter && !stateFilter.has(data.new_state.state)) return;
 
       const event = this.stateChangeToEvent(hass, data.entity_id, data.old_state, data.new_state);
@@ -251,7 +258,11 @@ export class HistoryAdapter implements ISourceAdapter {
     state: string,
     deviceClass: string,
   ): string {
-    // 1. User-provided state_map takes priority
+    // 1. Per-entity state_map takes highest priority
+    const entityLabel = this.config.entity_config?.[entityId]?.state_map?.[state];
+    if (entityLabel) return entityLabel;
+
+    // 2. Source-level state_map
     const userLabel = this.config.state_map?.[state];
     if (userLabel) return userLabel;
 
@@ -317,11 +328,12 @@ export class HistoryAdapter implements ISourceAdapter {
     const deviceClass = this.getDeviceClass(hass, entityId, currState);
     const category = this.detectCategory(entityId, deviceClass);
     const friendlyName = hass.states[entityId]?.attributes?.friendly_name as string || entityId;
+    const entityConf = this.config.entity_config?.[entityId];
 
-    // When a custom source name is set, use it; otherwise fall back to the
-    // entity's own friendly name so events from different entities in the same
-    // source have distinct, identifiable titles.
-    const displayName = this.config.name || friendlyName;
+    // Per-entity name > friendly name for multi-entity; source name > friendly name for single-entity
+    const isMultiEntity = this.getEntities().length > 1;
+    const displayName = entityConf?.name
+      || (isMultiEntity ? friendlyName : (this.config.name || friendlyName));
 
     const newLabel = this.humanizeState(entityId, currState.state, deviceClass);
     const oldLabel = this.humanizeState(entityId, prevState.state, deviceClass);
@@ -334,6 +346,13 @@ export class HistoryAdapter implements ISourceAdapter {
     const shortNew = this.stripOverlap(displayName, newLabel);
     const description = `${shortOld} \u2192 ${shortNew}`;
 
+    // Per-entity overrides for icon, color, severity
+    const effectiveIcon = entityConf?.icon
+      || resolveIcon(title, category, undefined, this.config.icon_map, this.config.default_icon);
+    const effectiveColor = entityConf?.color
+      || resolveColor(title, category, undefined, this.config.color_map, this.config.default_color);
+    const effectiveSeverity = (entityConf?.severity || this.config.default_severity || 'info') as SeverityLevel;
+
     return {
       id: `history:${entityId}:${currState.last_changed}`,
       sourceType: 'history',
@@ -342,10 +361,10 @@ export class HistoryAdapter implements ISourceAdapter {
       description,
       start: currState.last_changed,
       end: currState.last_changed,
-      icon: resolveIcon(title, category, undefined, this.config.icon_map, this.config.default_icon),
-      color: resolveColor(title, category, undefined, this.config.color_map, this.config.default_color),
+      icon: effectiveIcon,
+      color: effectiveColor,
       category,
-      severity: (this.config.default_severity || 'info') as SeverityLevel,
+      severity: effectiveSeverity,
       entityId,
       actions: this.config.actions,
       metadata: {

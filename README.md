@@ -169,6 +169,33 @@ sources:
       "off": "Garage Closed"
 ```
 
+**Per-entity overrides** let you customize filtering, naming, and appearance for individual entities within a single source:
+
+```yaml
+sources:
+  - type: history
+    name: Doors & Locks
+    entities:
+      - binary_sensor.front_door
+      - lock.front_door_lock
+    entity_config:
+      binary_sensor.front_door:
+        name: Front Entry
+        state_filter:
+          - "on"
+      lock.front_door_lock:
+        state_filter:
+          - locked
+          - unlocked
+        state_map:
+          locked: "Secured"
+          unlocked: "Opened"
+        severity: warning
+        icon: mdi:lock-alert
+```
+
+Per-entity settings override source-level defaults, which override auto-detected device class defaults. Entities without `entity_config` use smart defaults automatically.
+
 Built-in device class translations:
 
 | Device Class | `on` | `off` |
@@ -245,8 +272,20 @@ sources:
 |--------|------|-------------|
 | `entities` | list | Entity IDs to track state changes for (recommended) |
 | `entity` | string | Single entity ID (shorthand — use `entities` for multiple) |
-| `state_filter` | list | Only log events when the new state matches one of these values |
-| `state_map` | object | Override state labels. Keys are raw states, values are display labels (e.g. `{"on": "Opened", "off": "Closed"}`) |
+| `state_filter` | list | Source-level default: only log events when the new state matches one of these values |
+| `state_map` | object | Source-level default: override state labels (e.g. `{"on": "Opened", "off": "Closed"}`) |
+| `entity_config` | object | Per-entity overrides, keyed by entity ID. See table below |
+
+**Per-Entity Config** (`entity_config.<entity_id>`):
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `name` | string | Custom display name (overrides friendly name) |
+| `state_filter` | list | Only log events matching these states (overrides source-level) |
+| `state_map` | object | Override state labels for this entity (overrides source-level) |
+| `icon` | string | MDI icon override for this entity |
+| `color` | string | Hex color override for this entity |
+| `severity` | string | Severity override (`critical`, `warning`, `info`, `debug`) |
 
 ### Source Options (Static)
 

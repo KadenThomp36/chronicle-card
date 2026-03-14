@@ -1017,11 +1017,56 @@
             <tr><th>Option</th><th>Type</th><th>Description</th></tr>
           </thead>
           <tbody>
-            <tr><td><code>entity</code></td><td>string</td><td>Entity ID to track (one entity per history source)</td></tr>
-            <tr><td><code>state_filter</code></td><td>string[]</td><td>Only create events when the new state matches a value in this list. E.g. <code>["on"]</code> to ignore &ldquo;off&rdquo; transitions.</td></tr>
-            <tr><td><code>state_map</code></td><td>object</td><td>Map of state values to custom display strings</td></tr>
+            <tr><td><code>entities</code></td><td>string[]</td><td>Entity IDs to track state changes for (recommended)</td></tr>
+            <tr><td><code>entity</code></td><td>string</td><td>Single entity ID (shorthand &mdash; use <code>entities</code> for multiple)</td></tr>
+            <tr><td><code>state_filter</code></td><td>string[]</td><td>Source-level default: only log events when the new state matches one of these values</td></tr>
+            <tr><td><code>state_map</code></td><td>object</td><td>Source-level default: map of state values to custom display strings</td></tr>
+            <tr><td><code>entity_config</code></td><td>object</td><td>Per-entity overrides, keyed by entity ID (see table below)</td></tr>
           </tbody>
         </table>
+
+        <h3>Per-Entity Config (<code>entity_config.&lt;entity_id&gt;</code>)</h3>
+        <p>Customize filtering, naming, and appearance for individual entities within a history source. Per-entity settings override source-level defaults, which override auto-detected device class defaults.</p>
+        <table class="doc-table">
+          <thead>
+            <tr><th>Option</th><th>Type</th><th>Description</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>name</code></td><td>string</td><td>Custom display name (overrides the entity&rsquo;s friendly name)</td></tr>
+            <tr><td><code>state_filter</code></td><td>string[]</td><td>Only log events matching these states (overrides source-level filter)</td></tr>
+            <tr><td><code>state_map</code></td><td>object</td><td>Override state labels for this entity (overrides source-level map)</td></tr>
+            <tr><td><code>icon</code></td><td>string</td><td>MDI icon override (e.g. <code>mdi:lock-alert</code>)</td></tr>
+            <tr><td><code>color</code></td><td>string</td><td>Hex color override (e.g. <code>#FF9800</code>)</td></tr>
+            <tr><td><code>severity</code></td><td>string</td><td>Severity override: <code>critical</code>, <code>warning</code>, <code>info</code>, or <code>debug</code></td></tr>
+          </tbody>
+        </table>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span>yaml</span>
+            <button class="code-copy" onclick="copyCode(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy</button>
+          </div>
+          <div class="code-body"><span class="hl-key">sources</span>:
+  - <span class="hl-key">type</span>: <span class="hl-str">history</span>
+    <span class="hl-key">name</span>: <span class="hl-str">Doors &amp; Locks</span>
+    <span class="hl-key">entities</span>:
+      - <span class="hl-str">binary_sensor.front_door</span>
+      - <span class="hl-str">lock.front_door_lock</span>
+    <span class="hl-key">entity_config</span>:
+      <span class="hl-key">binary_sensor.front_door</span>:
+        <span class="hl-key">name</span>: <span class="hl-str">Front Entry</span>
+        <span class="hl-key">state_filter</span>:
+          - <span class="hl-str">"on"</span>
+      <span class="hl-key">lock.front_door_lock</span>:
+        <span class="hl-key">state_filter</span>:
+          - <span class="hl-str">locked</span>
+          - <span class="hl-str">unlocked</span>
+        <span class="hl-key">state_map</span>:
+          <span class="hl-key">locked</span>: <span class="hl-str">Secured</span>
+          <span class="hl-key">unlocked</span>: <span class="hl-str">Opened</span>
+        <span class="hl-key">severity</span>: <span class="hl-str">warning</span>
+        <span class="hl-key">icon</span>: <span class="hl-str">mdi:lock-alert</span></div>
+        </div>
       </div>
 
       <!-- ===== STATIC SOURCE ===== -->
