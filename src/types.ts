@@ -11,6 +11,7 @@ export interface HomeAssistant {
 
 export interface HassConnection {
   subscribeEvents: (callback: (event: HassEvent) => void, eventType?: string) => Promise<() => void>;
+  subscribeMessage: <T>(callback: (msg: T) => void, msg: Record<string, unknown>) => Promise<() => void>;
 }
 
 export interface HassEvent {

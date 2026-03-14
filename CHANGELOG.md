@@ -1,5 +1,39 @@
 # Chronicle Card v1.9.0
 
+## Jinja2 Template Support & Native Actions for History Events
+
+### `image_template` — Dynamic Thumbnails via Jinja2
+- New `image_template` option on history sources renders a Jinja2 template per event to produce dynamic `mediaUrl` values
+- Template context variables: `entity_id`, `state`, `old_state`, `timestamp`, `attributes`, `source_name`
+- Batch rendering: all events sharing the same template are rendered in a single WebSocket call (chunked at 50)
+- Works at source level and per-entity (per-entity overrides source-level)
+- Example: `image_template: "/local/cameras/{{ entity_id }}/{{ timestamp }}.jpg"`
+
+### Native `tap_action` / `hold_action`
+- Timeline events now support HA's standard action system
+- `tap_action` and `hold_action` support: `more-info`, `navigate`, `call-service`, `none`
+- Default tap behavior (open detail dialog) is preserved when no action is configured
+- `more-info` fires `hass-more-info` to open the entity's native HA dialog
+- `navigate` uses `history.pushState` for in-app navigation
+- `call-service` calls any HA service with data and target
+- Hold detection via pointer events with 500ms threshold
+
+### "More Info" Button in Detail Dialog
+- New pill button in the event detail dialog opens the entity's native HA more-info dialog
+- Only shown for events with an `entityId`
+- Closes the detail dialog first, then opens more-info
+
+### Editor UI
+- History sources now show an "Image Template & Actions" section
+- Jinja2 template field uses `ha-selector` with `{ template: {} }` for syntax highlighting
+- Tap/hold action editors with dropdown for action type and conditional fields (navigation path, service)
+- Per-entity panels include template and action override fields
+- Force-loads `hui-action-editor` component from HA
+
+---
+
+# Chronicle Card v1.8.3
+
 ## Per-Entity Configuration
 - New `entity_config` option on history sources for per-entity overrides
 - Each entity can have its own `name`, `state_filter`, `state_map`, `icon`, `color`, and `severity`

@@ -5,6 +5,7 @@ import { ISourceAdapter } from '../adapters/adapter';
 import { adapterRegistry } from '../adapters/adapter-registry';
 import { groupEvents } from './event-grouper';
 import { resolveMediaUrl } from '../utils/media-resolver';
+import { isJinjaTemplate, renderTemplateBatch, TemplateContext } from '../utils/template-renderer';
 import { DEFAULT_POLL_INTERVAL } from '../constants';
 
 type ChangeCallback = () => void;
@@ -110,6 +111,9 @@ export class EventStore {
     // Resolve media content IDs to URLs
     await this.resolveMedia(hass, unique);
 
+    // Resolve Jinja2 image templates to URLs
+    await this.resolveTemplates(hass, unique);
+
     // Check if data actually changed
     const hash = this.computeHash(unique);
     if (hash === this.lastHash) {
@@ -182,9 +186,14 @@ export class EventStore {
     this.notify();
   }
 
-  injectLiveEvent(event: ChronicleEvent): void {
+  async injectLiveEvent(event: ChronicleEvent, hass?: HomeAssistant): Promise<void> {
     // Add to front if not duplicate
     if (this.allEvents.some((e) => e.id === event.id)) return;
+
+    // Resolve template for this single live event
+    if (hass) {
+      await this.resolveTemplates(hass, [event]);
+    }
 
     this.allEvents.unshift(event);
     this.lastHash = this.computeHash(this.allEvents);
@@ -199,7 +208,7 @@ export class EventStore {
       if (adapter.subscribeLive) {
         try {
           const unsub = await adapter.subscribeLive(hass, (event) => {
-            this.injectLiveEvent(event);
+            this.injectLiveEvent(event, hass);
           });
           this.liveUnsubscribers.push(unsub);
         } catch (err) {
@@ -238,6 +247,55 @@ export class EventStore {
         needsResolution[i].mediaUrl = result.value;
       }
     }
+  }
+
+  /**
+   * Resolve Jinja2 image_template → mediaUrl for events that have a template in metadata.
+   * Groups events by their template string and uses batch rendering (one WS call per unique template).
+   */
+  private async resolveTemplates(hass: HomeAssistant, events: ChronicleEvent[]): Promise<void> {
+    // Group events by their _image_template (skip if no template or mediaUrl already set)
+    const groups = new Map<string, ChronicleEvent[]>();
+    for (const e of events) {
+      const tpl = e.metadata?._image_template as string | undefined;
+      if (!tpl || !isJinjaTemplate(tpl) || e.mediaUrl) continue;
+      const list = groups.get(tpl) || [];
+      list.push(e);
+      groups.set(tpl, list);
+    }
+
+    if (groups.size === 0) return;
+
+    const promises: Promise<void>[] = [];
+
+    for (const [template, evts] of groups) {
+      promises.push(
+        (async () => {
+          const contexts: TemplateContext[] = evts.map((e) => ({
+            entity_id: e.entityId || '',
+            state: (e.metadata?.new_state as string) || '',
+            old_state: (e.metadata?.old_state as string) || '',
+            timestamp: e.start,
+            attributes: (e.metadata?.attributes as Record<string, unknown>) || {},
+            source_name: (e.metadata?.source_name as string) || '',
+          }));
+
+          try {
+            const results = await renderTemplateBatch(hass, template, contexts);
+            for (let i = 0; i < evts.length; i++) {
+              const url = results[i]?.trim();
+              if (url) {
+                evts[i].mediaUrl = url;
+              }
+            }
+          } catch (err) {
+            console.warn('[chronicle-card] Template resolution failed:', err);
+          }
+        })(),
+      );
+    }
+
+    await Promise.allSettled(promises);
   }
 
   private computeHash(events: ChronicleEvent[]): string {

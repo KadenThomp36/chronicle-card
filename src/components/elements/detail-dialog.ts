@@ -275,6 +275,31 @@ export class DetailDialog extends LitElement {
           color: var(--primary-text-color, #333);
           font-size: 12.5px;
         }
+
+        .more-info-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 8px 16px;
+          border-radius: 20px;
+          border: 1px solid var(--divider-color, rgba(127,127,127,0.2));
+          background: var(--secondary-background-color, rgba(127,127,127,0.06));
+          color: var(--primary-color, #03a9f4);
+          font-size: 12px;
+          font-weight: 600;
+          font-family: inherit;
+          cursor: pointer;
+          margin-bottom: 16px;
+          transition: background 0.15s ease, border-color 0.15s ease;
+          line-height: 1;
+        }
+        .more-info-btn:hover {
+          background: rgba(3, 169, 244, 0.08);
+          border-color: var(--primary-color, #03a9f4);
+        }
+        .more-info-btn svg {
+          display: block;
+        }
       </style>
 
       <div class="overlay"></div>
@@ -310,6 +335,13 @@ export class DetailDialog extends LitElement {
 
             ${e.description ? `<div class="description">${this._escHtml(e.description)}</div>` : ''}
 
+            ${e.entityId ? `
+              <button class="more-info-btn" data-entity="${this._escHtml(e.entityId)}">
+                <svg viewBox="0 0 24 24" width="14" height="14"><path d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="currentColor"/></svg>
+                More Info
+              </button>
+            ` : ''}
+
             <div class="meta-table">
               ${e.entityName ? `
                 <span class="meta-label">Entity</span>
@@ -336,8 +368,25 @@ export class DetailDialog extends LitElement {
     // Attach event listeners
     const overlay = shadow.querySelector('.overlay');
     const closeBtn = shadow.querySelector('.close-btn');
+    const moreInfoBtn = shadow.querySelector('.more-info-btn');
     overlay?.addEventListener('click', () => this.close());
     closeBtn?.addEventListener('click', () => this.close());
+    moreInfoBtn?.addEventListener('click', () => {
+      const entityId = moreInfoBtn.getAttribute('data-entity');
+      if (entityId) {
+        this.close();
+        // Delay to let dialog close animation finish before opening more-info
+        setTimeout(() => {
+          document.body.dispatchEvent(
+            new CustomEvent('hass-more-info', {
+              bubbles: true,
+              composed: true,
+              detail: { entityId },
+            }),
+          );
+        }, 100);
+      }
+    });
   }
 
   private _escHtml(text: string): string {

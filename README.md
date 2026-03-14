@@ -196,6 +196,44 @@ sources:
 
 Per-entity settings override source-level defaults, which override auto-detected device class defaults. Entities without `entity_config` use smart defaults automatically.
 
+**Dynamic image thumbnails** — Use Jinja2 templates to generate per-event thumbnail URLs:
+
+```yaml
+sources:
+  - type: history
+    entities:
+      - binary_sensor.front_door
+    name: Door Activity
+    image_template: >-
+      /local/cameras/front_door/{{ timestamp | replace(':', '-') }}.jpg
+```
+
+Template variables: `entity_id`, `state`, `old_state`, `timestamp`, `attributes`, `source_name`. Templates are batch-rendered in a single WebSocket call for performance.
+
+**Tap & hold actions** — Attach HA's standard action system to timeline events:
+
+```yaml
+sources:
+  - type: history
+    entities:
+      - binary_sensor.front_door
+    name: Front Door
+    tap_action:
+      action: more-info        # Opens HA's native entity dialog
+    hold_action:
+      action: navigate
+      navigation_path: /lovelace/cameras
+    entity_config:
+      binary_sensor.front_door:
+        tap_action:
+          action: call-service
+          service: camera.snapshot
+          service_data:
+            filename: /config/www/snapshot.jpg
+```
+
+Action types: `more-info`, `navigate`, `call-service`, `none`. Default tap (no config) opens the detail dialog.
+
 Built-in device class translations:
 
 | Device Class | `on` | `off` |
@@ -275,6 +313,9 @@ sources:
 | `state_filter` | list | Source-level default: only log events when the new state matches one of these values |
 | `state_map` | object | Source-level default: override state labels (e.g. `{"on": "Opened", "off": "Closed"}`) |
 | `entity_config` | object | Per-entity overrides, keyed by entity ID. See table below |
+| `image_template` | string | Jinja2 template rendered per event to produce a thumbnail URL. Variables: `entity_id`, `state`, `old_state`, `timestamp`, `attributes`, `source_name` |
+| `tap_action` | object | Action on tap: `{ action: "more-info" \| "navigate" \| "call-service" \| "none" }` |
+| `hold_action` | object | Action on hold (500ms): same format as `tap_action` |
 
 **Per-Entity Config** (`entity_config.<entity_id>`):
 
@@ -286,6 +327,9 @@ sources:
 | `icon` | string | MDI icon override for this entity |
 | `color` | string | Hex color override for this entity |
 | `severity` | string | Severity override (`critical`, `warning`, `info`, `debug`) |
+| `image_template` | string | Per-entity image template override |
+| `tap_action` | object | Per-entity tap action override |
+| `hold_action` | object | Per-entity hold action override |
 
 ### Source Options (Static)
 

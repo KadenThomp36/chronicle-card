@@ -1022,6 +1022,9 @@
             <tr><td><code>state_filter</code></td><td>string[]</td><td>Source-level default: only log events when the new state matches one of these values</td></tr>
             <tr><td><code>state_map</code></td><td>object</td><td>Source-level default: map of state values to custom display strings</td></tr>
             <tr><td><code>entity_config</code></td><td>object</td><td>Per-entity overrides, keyed by entity ID (see table below)</td></tr>
+            <tr><td><code>image_template</code></td><td>string</td><td>Jinja2 template rendered per event to produce a thumbnail URL. Variables: <code>entity_id</code>, <code>state</code>, <code>old_state</code>, <code>timestamp</code>, <code>attributes</code>, <code>source_name</code></td></tr>
+            <tr><td><code>tap_action</code></td><td>object</td><td>Action on tap: <code>more-info</code>, <code>navigate</code>, <code>call-service</code>, or <code>none</code></td></tr>
+            <tr><td><code>hold_action</code></td><td>object</td><td>Action on hold (500ms): same format as <code>tap_action</code></td></tr>
           </tbody>
         </table>
 
@@ -1038,6 +1041,9 @@
             <tr><td><code>icon</code></td><td>string</td><td>MDI icon override (e.g. <code>mdi:lock-alert</code>)</td></tr>
             <tr><td><code>color</code></td><td>string</td><td>Hex color override (e.g. <code>#FF9800</code>)</td></tr>
             <tr><td><code>severity</code></td><td>string</td><td>Severity override: <code>critical</code>, <code>warning</code>, <code>info</code>, or <code>debug</code></td></tr>
+            <tr><td><code>image_template</code></td><td>string</td><td>Per-entity image template override (overrides source-level)</td></tr>
+            <tr><td><code>tap_action</code></td><td>object</td><td>Per-entity tap action override</td></tr>
+            <tr><td><code>hold_action</code></td><td>object</td><td>Per-entity hold action override</td></tr>
           </tbody>
         </table>
 

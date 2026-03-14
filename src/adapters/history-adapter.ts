@@ -353,6 +353,15 @@ export class HistoryAdapter implements ISourceAdapter {
       || resolveColor(title, category, undefined, this.config.color_map, this.config.default_color);
     const effectiveSeverity = (entityConf?.severity || this.config.default_severity || 'info') as SeverityLevel;
 
+    // Resolve image_template and action overrides (per-entity > source-level)
+    const imageTemplate = entityConf?.image_template || this.config.image_template;
+    const tapAction = entityConf?.tap_action || this.config.tap_action;
+    const holdAction = entityConf?.hold_action || this.config.hold_action;
+
+    // Collect entity attributes for template context
+    const liveEntity = hass.states[entityId];
+    const attributes = liveEntity?.attributes ?? currState.attributes ?? {};
+
     return {
       id: `history:${entityId}:${currState.last_changed}`,
       sourceType: 'history',
@@ -367,6 +376,8 @@ export class HistoryAdapter implements ISourceAdapter {
       severity: effectiveSeverity,
       entityId,
       actions: this.config.actions,
+      tapAction,
+      holdAction,
       metadata: {
         old_state: prevState.state,
         new_state: currState.state,
@@ -374,6 +385,9 @@ export class HistoryAdapter implements ISourceAdapter {
         new_label: newLabel,
         device_class: deviceClass,
         last_updated: currState.last_updated,
+        attributes,
+        source_name: this.config.name || 'history',
+        _image_template: imageTemplate,
       },
     };
   }

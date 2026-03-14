@@ -1,11 +1,14 @@
 import { LitElement, html, css, nothing } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { ChronicleEvent } from '../../models/event';
-import { AppearanceConfig } from '../../models/config';
+import { AppearanceConfig, ActionConfig } from '../../models/config';
+import { HomeAssistant } from '../../types';
 import { CATEGORY_ICONS } from '../../constants';
 import { formatTime } from '../../utils/date-utils';
 import './severity-badge';
 import './action-button';
+
+const HOLD_DURATION = 500;
 
 function validIcon(icon: string): string {
   return icon && icon.startsWith('mdi:') ? icon : CATEGORY_ICONS.default;
@@ -25,7 +28,7 @@ function tintColor(hex: string, amount = 0.82): string {
 export class EventItem extends LitElement {
   @property({ attribute: false }) event!: ChronicleEvent;
   @property({ attribute: false }) appearance?: AppearanceConfig;
-  @property({ attribute: false }) hass?: any;
+  @property({ attribute: false }) hass?: HomeAssistant;
   @property({ type: Boolean }) compact = false;
   @property({ type: String }) timeFormat: '12h' | '24h' = '24h';
   @property({ type: Boolean, reflect: true }) animated = false;
@@ -217,7 +220,12 @@ export class EventItem extends LitElement {
           </div>
         ` : ''}
 
-        <div class="event-item" @click=${this._showDetail}>
+        <div class="event-item"
+          @pointerdown=${this._onPointerDown}
+          @pointerup=${this._onPointerUp}
+          @pointercancel=${this._onPointerCancel}
+          @contextmenu=${(e: Event) => { if (this.event.holdAction) e.preventDefault(); }}
+        >
           <div class="content">
             <div class="top-row">
               <span class="title">${e.title}</span>
@@ -252,13 +260,106 @@ export class EventItem extends LitElement {
     `;
   }
 
-  private _showDetail() {
-    this.dispatchEvent(
-      new CustomEvent('chronicle-show-detail', {
-        bubbles: true,
-        composed: true,
-        detail: { event: this.event },
-      }),
-    );
+  private _holdTimer: ReturnType<typeof setTimeout> | null = null;
+  private _holdFired = false;
+  private _startX = 0;
+  private _startY = 0;
+
+  private _onPointerDown(e: PointerEvent) {
+    this._holdFired = false;
+    this._startX = e.clientX;
+    this._startY = e.clientY;
+    this._holdTimer = setTimeout(() => {
+      this._holdFired = true;
+      this._handleAction('hold');
+    }, HOLD_DURATION);
+  }
+
+  private _onPointerUp(e: PointerEvent) {
+    if (this._holdTimer) {
+      clearTimeout(this._holdTimer);
+      this._holdTimer = null;
+    }
+    // Ignore if pointer moved (user was scrolling, not tapping)
+    const dx = e.clientX - this._startX;
+    const dy = e.clientY - this._startY;
+    if (Math.abs(dx) > 10 || Math.abs(dy) > 10) return;
+
+    if (!this._holdFired) {
+      this._handleAction('tap');
+    }
+  }
+
+  private _onPointerCancel() {
+    if (this._holdTimer) {
+      clearTimeout(this._holdTimer);
+      this._holdTimer = null;
+    }
+  }
+
+  private _handleAction(type: 'tap' | 'hold') {
+    const config = type === 'hold' ? this.event.holdAction : this.event.tapAction;
+
+    // No config → tap opens detail dialog (existing default behavior)
+    if (!config) {
+      if (type === 'tap') {
+        this.dispatchEvent(
+          new CustomEvent('chronicle-show-detail', {
+            bubbles: true,
+            composed: true,
+            detail: { event: this.event },
+          }),
+        );
+      }
+      return;
+    }
+
+    switch (config.action) {
+      case 'more-info':
+        if (this.event.entityId) {
+          const evt = new CustomEvent('hass-more-info', {
+            bubbles: true,
+            composed: true,
+            detail: { entityId: this.event.entityId },
+          });
+          (document.body as any).dispatchEvent(evt);
+        }
+        break;
+
+      case 'navigate':
+        if (config.navigation_path) {
+          history.pushState(null, '', config.navigation_path);
+          const locEvt = new CustomEvent('location-changed', {
+            bubbles: true,
+            composed: true,
+          });
+          window.dispatchEvent(locEvt);
+        }
+        break;
+
+      case 'call-service':
+        if (config.service && this.hass) {
+          const [domain, service] = config.service.split('.', 2);
+          if (domain && service) {
+            this.hass.callService(domain, service, config.service_data ?? {}, config.target);
+          }
+        }
+        break;
+
+      case 'none':
+        break;
+
+      default:
+        // Unknown action — fall back to detail dialog for tap
+        if (type === 'tap') {
+          this.dispatchEvent(
+            new CustomEvent('chronicle-show-detail', {
+              bubbles: true,
+              composed: true,
+              detail: { event: this.event },
+            }),
+          );
+        }
+    }
   }
 }

@@ -1,6 +1,6 @@
 import { LitElement, html, css, nothing } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
-import { SourceConfig } from '../models/config';
+import { SourceConfig, ActionConfig } from '../models/config';
 
 /** Domain-based state options for the per-entity state filter selector. */
 const DOMAIN_STATE_OPTIONS: Record<string, Array<{ value: string; label: string }>> = {
@@ -503,6 +503,7 @@ export class SourceEditor extends LitElement {
             <p class="help-text">Each state change becomes a timeline event.</p>
           </div>
           ${this._renderPerEntityConfig()}
+          ${this._renderTemplateAndActions()}
           ${this._renderSourceLevelDefaults()}
         `;
 
@@ -643,9 +644,133 @@ export class SourceEditor extends LitElement {
             .label=${"Severity override"}
             @value-changed=${(e: any) => this._updateEntityConfig(entityId, 'severity', e.detail.value || undefined)}
           ></ha-selector>
+
+          <!-- Per-entity image template -->
+          <ha-selector
+            .hass=${this.hass}
+            .selector=${{ template: {} }}
+            .value=${conf.image_template ?? ''}
+            .label=${"Image template override"}
+            .helper=${"Overrides the source-level image template for this entity"}
+            @value-changed=${(e: any) => this._updateEntityConfig(entityId, 'image_template', e.detail.value || undefined)}
+          ></ha-selector>
+
+          <!-- Per-entity tap action -->
+          <label>Tap Action</label>
+          <ha-select
+            .value=${conf.tap_action?.action ?? ''}
+            @change=${(e: any) => {
+              const v = e.target.value;
+              this._updateEntityConfig(entityId, 'tap_action', v ? { action: v } : undefined);
+            }}
+            @closed=${(e: any) => e.stopPropagation()}
+          >
+            <mwc-list-item value="">Use source default</mwc-list-item>
+            <mwc-list-item value="more-info">More Info</mwc-list-item>
+            <mwc-list-item value="navigate">Navigate</mwc-list-item>
+            <mwc-list-item value="call-service">Call Service</mwc-list-item>
+            <mwc-list-item value="none">None</mwc-list-item>
+          </ha-select>
+
+          <!-- Per-entity hold action -->
+          <label>Hold Action</label>
+          <ha-select
+            .value=${conf.hold_action?.action ?? ''}
+            @change=${(e: any) => {
+              const v = e.target.value;
+              this._updateEntityConfig(entityId, 'hold_action', v ? { action: v } : undefined);
+            }}
+            @closed=${(e: any) => e.stopPropagation()}
+          >
+            <mwc-list-item value="">Use source default</mwc-list-item>
+            <mwc-list-item value="more-info">More Info</mwc-list-item>
+            <mwc-list-item value="navigate">Navigate</mwc-list-item>
+            <mwc-list-item value="call-service">Call Service</mwc-list-item>
+            <mwc-list-item value="none">None</mwc-list-item>
+          </ha-select>
         </div>
       </ha-expansion-panel>
     `;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Template + Actions (history sources)
+  // ---------------------------------------------------------------------------
+
+  private _renderTemplateAndActions() {
+    if (this.source.type !== 'history') return nothing;
+
+    return html`
+      <div class="section-label">Image Template & Actions</div>
+      <div class="field">
+        <ha-selector
+          .hass=${this.hass}
+          .selector=${{ template: {} }}
+          .value=${this.source.image_template ?? ''}
+          .label=${"Image template (Jinja2)"}
+          .helper=${"Dynamic thumbnail per event. Variables: entity_id, state, old_state, timestamp, attributes, source_name"}
+          @value-changed=${(e: any) => this._update('image_template', e.detail.value || undefined)}
+        ></ha-selector>
+      </div>
+      <div class="row">
+        <div class="field">
+          ${this._renderActionEditor('tap_action', 'Tap Action', this.source.tap_action)}
+        </div>
+        <div class="field">
+          ${this._renderActionEditor('hold_action', 'Hold Action', this.source.hold_action)}
+        </div>
+      </div>
+      <p class="help-text">
+        Default tap opens the detail dialog. "More Info" opens the entity's native HA dialog.
+      </p>
+    `;
+  }
+
+  private _renderActionEditor(key: string, label: string, config?: ActionConfig) {
+    return html`
+      <label>${label}</label>
+      <ha-select
+        .value=${config?.action ?? ''}
+        @change=${(e: any) => this._onActionTypeChange(key, e.target.value)}
+        @closed=${(e: any) => e.stopPropagation()}
+      >
+        <mwc-list-item value="">Default</mwc-list-item>
+        <mwc-list-item value="more-info">More Info</mwc-list-item>
+        <mwc-list-item value="navigate">Navigate</mwc-list-item>
+        <mwc-list-item value="call-service">Call Service</mwc-list-item>
+        <mwc-list-item value="none">None</mwc-list-item>
+      </ha-select>
+      ${config?.action === 'navigate' ? html`
+        <ha-textfield
+          .value=${config.navigation_path ?? ''}
+          .label=${"Navigation path"}
+          @input=${(e: any) => this._updateActionField(key, 'navigation_path', e.target.value)}
+          style="margin-top: 4px;"
+        ></ha-textfield>
+      ` : nothing}
+      ${config?.action === 'call-service' ? html`
+        <ha-textfield
+          .value=${config.service ?? ''}
+          .label=${"Service (e.g. light.toggle)"}
+          @input=${(e: any) => this._updateActionField(key, 'service', e.target.value)}
+          style="margin-top: 4px;"
+        ></ha-textfield>
+      ` : nothing}
+    `;
+  }
+
+  private _onActionTypeChange(key: string, value: string) {
+    if (!value) {
+      this._update(key, undefined);
+    } else {
+      const existing = (this.source as any)[key] ?? {};
+      this._update(key, { ...existing, action: value });
+    }
+  }
+
+  private _updateActionField(actionKey: string, field: string, value: string) {
+    const existing = (this.source as any)[actionKey] ?? {};
+    this._update(actionKey, { ...existing, [field]: value || undefined });
   }
 
   /** Source-level defaults (backward compat, shown as expandable advanced section). */

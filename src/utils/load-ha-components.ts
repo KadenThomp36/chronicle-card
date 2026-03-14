@@ -7,4 +7,7 @@ export const loadHaComponents = () => {
   if (!customElements.get('ha-entity-picker')) {
     (customElements.get('hui-entities-card') as any)?.getConfigElement();
   }
+  if (!customElements.get('hui-action-editor')) {
+    (customElements.get('hui-button-card') as any)?.getConfigElement();
+  }
 };

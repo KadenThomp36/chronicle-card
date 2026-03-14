@@ -1,5 +1,14 @@
 import { SeverityLevel } from './event';
 
+/** HA-standard action configuration for tap/hold on timeline events. */
+export interface ActionConfig {
+  action: 'more-info' | 'navigate' | 'call-service' | 'none';
+  navigation_path?: string;
+  service?: string;
+  service_data?: Record<string, unknown>;
+  target?: { entity_id?: string | string[]; device_id?: string | string[]; area_id?: string | string[] };
+}
+
 /** Per-entity overrides within a history source. */
 export interface EntityOverrides {
   name?: string;
@@ -8,6 +17,9 @@ export interface EntityOverrides {
   icon?: string;
   color?: string;
   severity?: SeverityLevel;
+  image_template?: string;
+  tap_action?: ActionConfig;
+  hold_action?: ActionConfig;
 }
 
 export interface SourceConfig {
@@ -40,6 +52,9 @@ export interface SourceConfig {
   }>;
   state_map?: Record<string, string>;
   state_filter?: string[];
+  image_template?: string;
+  tap_action?: ActionConfig;
+  hold_action?: ActionConfig;
   events?: Array<{
     title: string;
     description?: string;

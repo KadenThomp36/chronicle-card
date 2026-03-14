@@ -1,3 +1,5 @@
+import { ActionConfig } from './config';
+
 export type SeverityLevel = 'critical' | 'warning' | 'info' | 'debug';
 export type SourceType = 'calendar' | 'rest' | 'history' | 'static';
 
@@ -19,6 +21,8 @@ export interface ChronicleEvent {
   entityId?: string;
   entityName?: string;
   actions?: ChronicleAction[];
+  tapAction?: ActionConfig;
+  holdAction?: ActionConfig;
   metadata?: Record<string, unknown>;
 }
 
