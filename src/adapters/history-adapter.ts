@@ -130,10 +130,21 @@ export class HistoryAdapter implements ISourceAdapter {
     this.config = config;
   }
 
+  private getEntities(): string[] {
+    const list: string[] = [];
+    if (this.config.entities?.length) {
+      list.push(...this.config.entities);
+    }
+    if (this.config.entity && !list.includes(this.config.entity)) {
+      list.push(this.config.entity);
+    }
+    return list;
+  }
+
   async fetchEvents(hass: HomeAssistant, range: TimeRange): Promise<ChronicleEvent[]> {
-    const entity = this.config.entity;
-    if (!entity) {
-      console.warn('[chronicle-card] HistoryAdapter: no entity configured');
+    const entities = this.getEntities();
+    if (entities.length === 0) {
+      console.warn('[chronicle-card] HistoryAdapter: no entities configured');
       return [];
     }
 
@@ -142,7 +153,7 @@ export class HistoryAdapter implements ISourceAdapter {
     try {
       const startISO = range.start.toISOString();
       const endISO = range.end.toISOString();
-      const path = `history/period/${startISO}?filter_entity_id=${entity}&end_time=${endISO}&minimal_response`;
+      const path = `history/period/${startISO}?filter_entity_id=${entities.join(',')}&end_time=${endISO}&minimal_response`;
 
       const response = await hass.callApi<HistoryState[][]>('GET', path);
 
@@ -161,7 +172,7 @@ export class HistoryAdapter implements ISourceAdapter {
         for (let i = 1; i < entityHistory.length; i++) {
           const prev = entityHistory[i - 1];
           const curr = entityHistory[i];
-          const entityId = curr.entity_id || entityHistory[0].entity_id || entity;
+          const entityId = curr.entity_id || entityHistory[0].entity_id;
 
           // Skip if state didn't actually change (attribute-only updates)
           if (prev.state === curr.state) continue;
@@ -189,9 +200,10 @@ export class HistoryAdapter implements ISourceAdapter {
     hass: HomeAssistant,
     onEvent: (e: ChronicleEvent) => void,
   ): Promise<() => void> {
-    const entity = this.config.entity;
-    if (!entity) return () => {};
+    const entities = this.getEntities();
+    if (entities.length === 0) return () => {};
 
+    const entitySet = new Set(entities);
     const stateFilter = this.config.state_filter?.length ? new Set(this.config.state_filter) : null;
 
     const unsubscribe = await hass.connection.subscribeEvents((hassEvent) => {
@@ -201,7 +213,7 @@ export class HistoryAdapter implements ISourceAdapter {
         new_state?: HistoryState;
       };
 
-      if (data.entity_id !== entity) return;
+      if (!data.entity_id || !entitySet.has(data.entity_id)) return;
       if (!data.old_state || !data.new_state) return;
       if (data.old_state.state === data.new_state.state) return;
 
@@ -212,7 +224,7 @@ export class HistoryAdapter implements ISourceAdapter {
       // Apply state_filter
       if (stateFilter && !stateFilter.has(data.new_state.state)) return;
 
-      const event = this.stateChangeToEvent(hass, entity, data.old_state, data.new_state);
+      const event = this.stateChangeToEvent(hass, data.entity_id, data.old_state, data.new_state);
       onEvent(event);
     }, 'state_changed');
 
@@ -306,7 +318,9 @@ export class HistoryAdapter implements ISourceAdapter {
     const category = this.detectCategory(entityId, deviceClass);
     const friendlyName = hass.states[entityId]?.attributes?.friendly_name as string || entityId;
 
-    // Source name overrides entity friendly name for display
+    // When a custom source name is set, use it; otherwise fall back to the
+    // entity's own friendly name so events from different entities in the same
+    // source have distinct, identifiable titles.
     const displayName = this.config.name || friendlyName;
 
     const newLabel = this.humanizeState(entityId, currState.state, deviceClass);

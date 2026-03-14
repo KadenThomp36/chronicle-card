@@ -180,14 +180,57 @@ export class SourceEditor extends LitElement {
       margin: 2px 0 0;
       line-height: 1.4;
     }
+    .entity-row {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-bottom: 4px;
+    }
+    .entity-row ha-entity-picker {
+      flex: 1;
+    }
+    .remove-entity-btn {
+      border: none;
+      background: none;
+      color: var(--error-color, #db4437);
+      cursor: pointer;
+      font-size: 18px;
+      padding: 4px 8px;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+    .remove-entity-btn:hover {
+      background: rgba(219, 68, 55, 0.1);
+      border-radius: 4px;
+    }
   `;
 
   /** Build the summary hint (entity or url). */
   private _getHint(): string {
+    if (this.source.type === 'history') {
+      const entities = this._getHistoryEntities();
+      if (entities.length === 1) return entities[0];
+      if (entities.length > 1) return `${entities.length} entities`;
+    }
     if (this.source.entity) return this.source.entity;
     if (this.source.url) return this.source.url;
     if (this.source.events?.length) return `${this.source.events.length} event(s)`;
     return '';
+  }
+
+  /**
+   * Return the canonical entities list for the history source, migrating a
+   * legacy `entity` string into the `entities` array on first access when
+   * `entities` is not yet set.
+   */
+  private _getHistoryEntities(): string[] {
+    if (this.source.entities?.length) {
+      return this.source.entities;
+    }
+    if (this.source.entity) {
+      return [this.source.entity];
+    }
+    return [];
   }
 
   protected render() {
@@ -200,7 +243,7 @@ export class SourceEditor extends LitElement {
     return html`
       <details>
         <summary>
-          <span class="type-badge ${type}">${type}</span>
+          <span class="type-badge ${type}">${{calendar:'calendar',rest:'rest',history:'entity state',static:'template'}[type] || type}</span>
           <span class="source-name">${name}</span>
           ${hint ? html`<span class="source-hint">${hint}</span>` : nothing}
           <button class="remove-btn" @click=${this._remove}>Remove</button>
@@ -216,8 +259,8 @@ export class SourceEditor extends LitElement {
               >
                 <mwc-list-item value="calendar">Calendar Entity</mwc-list-item>
                 <mwc-list-item value="rest">REST API</mwc-list-item>
-                <mwc-list-item value="history">Entity History</mwc-list-item>
-                <mwc-list-item value="static">Static Events</mwc-list-item>
+                <mwc-list-item value="history">Entity State</mwc-list-item>
+                <mwc-list-item value="static">Template</mwc-list-item>
               </ha-select>
             </div>
             <div class="field" style="flex:3;">
@@ -345,14 +388,29 @@ export class SourceEditor extends LitElement {
       case 'history':
         return html`
           <div class="field">
-            <label>Entity</label>
+            <label>Entities</label>
+            ${this._getHistoryEntities().map((entity: string, idx: number) => html`
+              <div class="entity-row">
+                <ha-entity-picker
+                  .hass=${this.hass}
+                  .value=${entity}
+                  allow-custom-entity
+                  @value-changed=${(e: any) => this._updateHistoryEntity(idx, e.detail.value)}
+                ></ha-entity-picker>
+                <button
+                  class="remove-entity-btn"
+                  @click=${() => this._removeHistoryEntity(idx)}
+                  title="Remove entity"
+                >&#x2715;</button>
+              </div>
+            `)}
             <ha-entity-picker
               .hass=${this.hass}
-              .value=${this.source.entity ?? ''}
+              .value=${''}
               allow-custom-entity
-              @value-changed=${(e: any) => this._update('entity', e.detail.value)}
+              @value-changed=${(e: any) => this._addHistoryEntity(e.detail.value)}
             ></ha-entity-picker>
-            <p class="help-text">Each state change becomes a timeline event.</p>
+            <p class="help-text">Each state change becomes a timeline event. Add multiple entities to track them all in one source.</p>
           </div>
           <div class="field">
             <label>State Filter (comma-separated, optional)</label>
@@ -397,6 +455,49 @@ export class SourceEditor extends LitElement {
 
       default:
         return nothing;
+    }
+  }
+
+  private _addHistoryEntity(value: string) {
+    if (!value) return;
+    // Migrate legacy `entity` into `entities` on first multi-entity edit
+    const current = this.source.entities?.length
+      ? [...this.source.entities]
+      : this.source.entity ? [this.source.entity] : [];
+    if (!current.includes(value)) {
+      current.push(value);
+      this._update('entities', current);
+      // Clear the legacy single-entity field now that we have an array
+      if (this.source.entity) {
+        this._update('entity', undefined);
+      }
+    }
+  }
+
+  private _removeHistoryEntity(index: number) {
+    const current = this.source.entities?.length
+      ? [...this.source.entities]
+      : this.source.entity ? [this.source.entity] : [];
+    current.splice(index, 1);
+    this._update('entities', current.length ? current : undefined);
+    // Keep entity field clear once we've migrated to the array
+    if (this.source.entity) {
+      this._update('entity', undefined);
+    }
+  }
+
+  private _updateHistoryEntity(index: number, value: string) {
+    const current = this.source.entities?.length
+      ? [...this.source.entities]
+      : this.source.entity ? [this.source.entity] : [];
+    if (value) {
+      current[index] = value;
+    } else {
+      current.splice(index, 1);
+    }
+    this._update('entities', current.length ? current : undefined);
+    if (this.source.entity) {
+      this._update('entity', undefined);
     }
   }
 

@@ -243,7 +243,9 @@ sources:
 
 | Option | Type | Description |
 |--------|------|-------------|
-| `entities` | list | Entity IDs to track state changes for |
+| `entities` | list | Entity IDs to track state changes for (recommended) |
+| `entity` | string | Single entity ID (shorthand — use `entities` for multiple) |
+| `state_filter` | list | Only log events when the new state matches one of these values |
 | `state_map` | object | Override state labels. Keys are raw states, values are display labels (e.g. `{"on": "Opened", "off": "Closed"}`) |
 
 ### Source Options (Static)
