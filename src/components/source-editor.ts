@@ -211,7 +211,7 @@ export class SourceEditor extends LitElement {
               <label>Source Type</label>
               <ha-select
                 .value=${this.source.type}
-                @selected=${this._onTypeChange}
+                @change=${this._onTypeChange}
                 @closed=${(e: any) => e.stopPropagation()}
               >
                 <mwc-list-item value="calendar">Calendar Entity</mwc-list-item>
@@ -251,7 +251,7 @@ export class SourceEditor extends LitElement {
               <label>Severity</label>
               <ha-select
                 .value=${this.source.default_severity ?? 'info'}
-                @selected=${(e: any) => this._update('default_severity', e.detail.value)}
+                @change=${(e: any) => this._update('default_severity', e.target.value)}
                 @closed=${(e: any) => e.stopPropagation()}
               >
                 <mwc-list-item value="critical">Critical</mwc-list-item>
@@ -513,7 +513,7 @@ export class SourceEditor extends LitElement {
   }
 
   private _onTypeChange(e: any) {
-    this._update('type', e.detail?.value ?? e.target.value);
+    this._update('type', e.target.value);
   }
 
   private _update(key: string, value: unknown) {

@@ -1123,7 +1123,7 @@ function e(e,t,i,r){var a,o=arguments.length,s=o<3?t:null===r?r=Object.getOwnPro
               <label>Source Type</label>
               <ha-select
                 .value=${this.source.type}
-                @selected=${this._onTypeChange}
+                @change=${this._onTypeChange}
                 @closed=${e=>e.stopPropagation()}
               >
                 <mwc-list-item value="calendar">Calendar Entity</mwc-list-item>
@@ -1163,7 +1163,7 @@ function e(e,t,i,r){var a,o=arguments.length,s=o<3?t:null===r?r=Object.getOwnPro
               <label>Severity</label>
               <ha-select
                 .value=${this.source.default_severity??"info"}
-                @selected=${e=>this._update("default_severity",e.detail.value)}
+                @change=${e=>this._update("default_severity",e.target.value)}
                 @closed=${e=>e.stopPropagation()}
               >
                 <mwc-list-item value="critical">Critical</mwc-list-item>
@@ -1305,7 +1305,7 @@ function e(e,t,i,r){var a,o=arguments.length,s=o<3?t:null===r?r=Object.getOwnPro
           ></textarea>
         </div>
       </div>
-    `}_fieldMapToString(){if(!this.source.field_map||0===Object.keys(this.source.field_map).length)return"";try{return JSON.stringify(this.source.field_map,null,2)}catch{return""}}_wsParamsToString(){if(!this.source.ws_params||0===Object.keys(this.source.ws_params).length)return"";try{return JSON.stringify(this.source.ws_params,null,2)}catch{return""}}_onWsParamsChange(e){const t=e.target.value.trim();if(t)try{const e=JSON.parse(t);"object"!=typeof e||Array.isArray(e)||this._update("ws_params",e)}catch{}else this._update("ws_params",void 0)}_onFieldMapChange(e){const t=e.target.value.trim();if(t)try{const e=JSON.parse(t);"object"!=typeof e||Array.isArray(e)||this._update("field_map",e)}catch{}else this._update("field_map",void 0)}_staticEventsToString(){if(!this.source.events||0===this.source.events.length)return"";try{return JSON.stringify(this.source.events,null,2)}catch{return""}}_onStaticEventsChange(e){const t=e.target.value.trim();if(t)try{const e=JSON.parse(t);Array.isArray(e)&&this._update("events",e)}catch{}else this._update("events",void 0)}_mapToString(e){if(!e||0===Object.keys(e).length)return"";try{return JSON.stringify(e)}catch{return""}}_onMapChange(e,t){const i=t.target.value.trim();if(i)try{const t=JSON.parse(i);"object"!=typeof t||Array.isArray(t)||this._update(e,t)}catch{}else this._update(e,void 0)}_onTypeChange(e){this._update("type",e.detail?.value??e.target.value)}_update(e,t){this.dispatchEvent(new CustomEvent("source-changed",{bubbles:!0,composed:!0,detail:{index:this.index,key:e,value:t}}))}_remove(e){e.preventDefault(),e.stopPropagation(),this.dispatchEvent(new CustomEvent("source-removed",{bubbles:!0,composed:!0,detail:{index:this.index}}))}};et.styles=s`
+    `}_fieldMapToString(){if(!this.source.field_map||0===Object.keys(this.source.field_map).length)return"";try{return JSON.stringify(this.source.field_map,null,2)}catch{return""}}_wsParamsToString(){if(!this.source.ws_params||0===Object.keys(this.source.ws_params).length)return"";try{return JSON.stringify(this.source.ws_params,null,2)}catch{return""}}_onWsParamsChange(e){const t=e.target.value.trim();if(t)try{const e=JSON.parse(t);"object"!=typeof e||Array.isArray(e)||this._update("ws_params",e)}catch{}else this._update("ws_params",void 0)}_onFieldMapChange(e){const t=e.target.value.trim();if(t)try{const e=JSON.parse(t);"object"!=typeof e||Array.isArray(e)||this._update("field_map",e)}catch{}else this._update("field_map",void 0)}_staticEventsToString(){if(!this.source.events||0===this.source.events.length)return"";try{return JSON.stringify(this.source.events,null,2)}catch{return""}}_onStaticEventsChange(e){const t=e.target.value.trim();if(t)try{const e=JSON.parse(t);Array.isArray(e)&&this._update("events",e)}catch{}else this._update("events",void 0)}_mapToString(e){if(!e||0===Object.keys(e).length)return"";try{return JSON.stringify(e)}catch{return""}}_onMapChange(e,t){const i=t.target.value.trim();if(i)try{const t=JSON.parse(i);"object"!=typeof t||Array.isArray(t)||this._update(e,t)}catch{}else this._update(e,void 0)}_onTypeChange(e){this._update("type",e.target.value)}_update(e,t){this.dispatchEvent(new CustomEvent("source-changed",{bubbles:!0,composed:!0,detail:{index:this.index,key:e,value:t}}))}_remove(e){e.preventDefault(),e.stopPropagation(),this.dispatchEvent(new CustomEvent("source-removed",{bubbles:!0,composed:!0,detail:{index:this.index}}))}};et.styles=s`
     :host {
       display: block;
       margin-bottom: 6px;
@@ -1496,7 +1496,7 @@ function e(e,t,i,r){var a,o=arguments.length,s=o<3?t:null===r?r=Object.getOwnPro
                 <label>Layout</label>
                 <ha-select
                   .value=${e.layout??"vertical"}
-                  @selected=${e=>this._set("layout",e.detail.value)}
+                  @change=${e=>this._set("layout",e.target.value)}
                   @closed=${e=>e.stopPropagation()}
                 >
                   <mwc-list-item value="vertical">Vertical</mwc-list-item>
@@ -1507,7 +1507,7 @@ function e(e,t,i,r){var a,o=arguments.length,s=o<3?t:null===r?r=Object.getOwnPro
                 <label>Time Format</label>
                 <ha-select
                   .value=${e.time_format??"24h"}
-                  @selected=${e=>this._set("time_format",e.detail.value)}
+                  @change=${e=>this._set("time_format",e.target.value)}
                   @closed=${e=>e.stopPropagation()}
                 >
                   <mwc-list-item value="24h">24 Hour</mwc-list-item>
@@ -1669,7 +1669,7 @@ function e(e,t,i,r){var a,o=arguments.length,s=o<3?t:null===r?r=Object.getOwnPro
               <label>Group By</label>
               <ha-select
                 .value=${t.group_by??"category"}
-                @selected=${e=>this._setNested("grouping","group_by",e.detail.value)}
+                @change=${e=>this._setNested("grouping","group_by",e.target.value)}
                 @closed=${e=>e.stopPropagation()}
               >
                 <mwc-list-item value="category">Category</mwc-list-item>
@@ -1898,4 +1898,4 @@ function e(e,t,i,r){var a,o=arguments.length,s=o<3?t:null===r?r=Object.getOwnPro
     .check-label input[type="checkbox"] {
       cursor: pointer;
     }
-  `,e([he({attribute:!1})],tt.prototype,"hass",void 0),e([ue()],tt.prototype,"_config",void 0),tt=e([ce("chronicle-card-editor")],tt);const it=window;it.customCards=it.customCards||[],it.customCards.push({type:"chronicle-card",name:"Chronicle Card",description:"A universal, extensible timeline card for Home Assistant",preview:!0,documentationURL:"https://github.com/chronicle-card/chronicle-card"}),console.info("%c CHRONICLE-CARD %c v1.8.1 ","color: #fff; background: #2196F3; font-weight: 700; padding: 2px 6px; border-radius: 4px 0 0 4px;","color: #2196F3; background: #e3f2fd; font-weight: 500; padding: 2px 6px; border-radius: 0 4px 4px 0;");
+  `,e([he({attribute:!1})],tt.prototype,"hass",void 0),e([ue()],tt.prototype,"_config",void 0),tt=e([ce("chronicle-card-editor")],tt);const it=window;it.customCards=it.customCards||[],it.customCards.push({type:"chronicle-card",name:"Chronicle Card",description:"A universal, extensible timeline card for Home Assistant",preview:!0,documentationURL:"https://github.com/chronicle-card/chronicle-card"}),console.info("%c CHRONICLE-CARD %c v1.8.2 ","color: #fff; background: #2196F3; font-weight: 700; padding: 2px 6px; border-radius: 4px 0 0 4px;","color: #2196F3; background: #e3f2fd; font-weight: 500; padding: 2px 6px; border-radius: 0 4px 4px 0;");

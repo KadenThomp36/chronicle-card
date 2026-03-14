@@ -207,7 +207,7 @@ export class ChronicleEditor extends LitElement {
                 <label>Layout</label>
                 <ha-select
                   .value=${c.layout ?? 'vertical'}
-                  @selected=${(e: any) => this._set('layout', e.detail.value)}
+                  @change=${(e: any) => this._set('layout', e.target.value)}
                   @closed=${(e: any) => e.stopPropagation()}
                 >
                   <mwc-list-item value="vertical">Vertical</mwc-list-item>
@@ -218,7 +218,7 @@ export class ChronicleEditor extends LitElement {
                 <label>Time Format</label>
                 <ha-select
                   .value=${c.time_format ?? '24h'}
-                  @selected=${(e: any) => this._set('time_format', e.detail.value)}
+                  @change=${(e: any) => this._set('time_format', e.target.value)}
                   @closed=${(e: any) => e.stopPropagation()}
                 >
                   <mwc-list-item value="24h">24 Hour</mwc-list-item>
@@ -383,7 +383,7 @@ export class ChronicleEditor extends LitElement {
               <label>Group By</label>
               <ha-select
                 .value=${g.group_by ?? 'category'}
-                @selected=${(e: any) => this._setNested('grouping', 'group_by', e.detail.value)}
+                @change=${(e: any) => this._setNested('grouping', 'group_by', e.target.value)}
                 @closed=${(e: any) => e.stopPropagation()}
               >
                 <mwc-list-item value="category">Category</mwc-list-item>
