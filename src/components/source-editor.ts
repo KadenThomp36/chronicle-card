@@ -297,6 +297,38 @@ export class SourceEditor extends LitElement {
       border-color: var(--primary-color, #03a9f4);
       background: rgba(3, 169, 244, 0.04);
     }
+
+    .clearable-row {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .clearable-row > :first-child {
+      flex: 1;
+      min-width: 0;
+    }
+    .clear-btn {
+      flex-shrink: 0;
+      width: 28px;
+      height: 28px;
+      border: 1px solid var(--divider-color, rgba(127,127,127,0.2));
+      border-radius: 50%;
+      background: var(--secondary-background-color, rgba(127,127,127,0.06));
+      color: var(--secondary-text-color, #888);
+      cursor: pointer;
+      font-size: 16px;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+    .clear-btn:hover {
+      background: rgba(219, 68, 55, 0.1);
+      color: var(--error-color, #db4437);
+      border-color: var(--error-color, #db4437);
+    }
   `;
 
   /** Build the summary hint (entity or url). */
@@ -609,22 +641,32 @@ export class SourceEditor extends LitElement {
           >+ Add state label</button>
 
           <!-- Icon override -->
-          <ha-selector
-            .hass=${this.hass}
-            .selector=${{ icon: {} }}
-            .value=${conf.icon ?? ''}
-            .label=${"Icon override"}
-            @value-changed=${(e: any) => this._updateEntityConfig(entityId, 'icon', e.detail.value)}
-          ></ha-selector>
+          <div class="clearable-row">
+            <ha-selector
+              .hass=${this.hass}
+              .selector=${{ icon: {} }}
+              .value=${conf.icon ?? ''}
+              .label=${"Icon override"}
+              @value-changed=${(e: any) => this._updateEntityConfig(entityId, 'icon', e.detail.value)}
+            ></ha-selector>
+            ${conf.icon ? html`
+              <button class="clear-btn" @click=${() => this._updateEntityConfig(entityId, 'icon', undefined)} title="Clear icon override">&times;</button>
+            ` : nothing}
+          </div>
 
           <!-- Color override -->
-          <div class="field">
-            <label>Color override</label>
-            <input
-              type="color"
-              .value=${conf.color ?? this.source.default_color ?? '#2196F3'}
-              @input=${(e: any) => this._updateEntityConfig(entityId, 'color', e.target.value)}
-            />
+          <div class="clearable-row">
+            <div class="field" style="flex:1;margin-bottom:0;">
+              <label>Color override</label>
+              <input
+                type="color"
+                .value=${conf.color ?? this.source.default_color ?? '#2196F3'}
+                @input=${(e: any) => this._updateEntityConfig(entityId, 'color', e.target.value)}
+              />
+            </div>
+            ${conf.color ? html`
+              <button class="clear-btn" @click=${() => this._updateEntityConfig(entityId, 'color', undefined)} title="Clear color override">&times;</button>
+            ` : nothing}
           </div>
 
           <!-- Severity override -->
