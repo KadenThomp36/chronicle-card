@@ -144,8 +144,8 @@ export class HistoryAdapter implements ISourceAdapter {
   /** Resolve the effective state filter for an entity (per-entity → source-level → null). */
   private getStateFilter(entityId: string): Set<string> | null {
     const perEntity = this.config.entity_config?.[entityId]?.state_filter;
-    if (perEntity?.length) return new Set(perEntity);
-    if (this.config.state_filter?.length) return new Set(this.config.state_filter);
+    if (perEntity?.length) return new Set(perEntity.map(s => s.toLowerCase()));
+    if (this.config.state_filter?.length) return new Set(this.config.state_filter.map(s => s.toLowerCase()));
     return null;
   }
 
@@ -189,7 +189,7 @@ export class HistoryAdapter implements ISourceAdapter {
 
           // Apply per-entity or source-level state filter
           const stateFilter = this.getStateFilter(entityId);
-          if (stateFilter && !stateFilter.has(curr.state)) continue;
+          if (stateFilter && !stateFilter.has(curr.state.toLowerCase())) continue;
 
           const event = this.stateChangeToEvent(hass, entityId, prev, curr);
           events.push(event);
@@ -229,7 +229,7 @@ export class HistoryAdapter implements ISourceAdapter {
 
       // Apply per-entity or source-level state filter
       const stateFilter = this.getStateFilter(data.entity_id);
-      if (stateFilter && !stateFilter.has(data.new_state.state)) return;
+      if (stateFilter && !stateFilter.has(data.new_state.state.toLowerCase())) return;
 
       const event = this.stateChangeToEvent(hass, data.entity_id, data.old_state, data.new_state);
       onEvent(event);
