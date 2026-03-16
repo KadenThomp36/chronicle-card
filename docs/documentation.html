@@ -938,7 +938,7 @@
       <!-- ===== HISTORY SOURCE ===== -->
       <div class="doc-section" id="source-history">
         <h2>History Source</h2>
-        <p>Converts entity state changes into timeline events. Each history source watches a single entity &mdash; add one source per entity you want to track. Setting <code>name</code> on a history source overrides the entity's <code>friendly_name</code> in event titles. Chronicle reads the <code>device_class</code> attribute for smart human-readable translations, and automatically deduplicates repeated words in titles and descriptions (e.g. &ldquo;Doorbell Motion Motion Cleared&rdquo; becomes &ldquo;Doorbell Motion Cleared&rdquo;).</p>
+        <p>Converts entity state changes into timeline events. A single history source can watch multiple entities via the <code>entities</code> list, with per-entity overrides via <code>entity_config</code>. Chronicle reads the <code>device_class</code> attribute for smart human-readable translations, and automatically deduplicates repeated words in titles and descriptions (e.g. &ldquo;Doorbell Motion Motion Cleared&rdquo; becomes &ldquo;Doorbell Motion Cleared&rdquo;). You can attach Jinja2 templates for dynamic thumbnails and HA-native tap/hold actions to each event.</p>
 
         <div class="code-block">
           <div class="code-header">

@@ -205,10 +205,16 @@ sources:
       - binary_sensor.front_door
     name: Door Activity
     image_template: >-
-      /local/cameras/front_door/{{ timestamp | replace(':', '-') }}.jpg
+      {% if state == 'on' %}
+        /local/door_open.png
+      {% else %}
+        /local/door_closed.png
+      {% endif %}
 ```
 
 Template variables: `entity_id`, `state`, `old_state`, `timestamp`, `attributes`, `source_name`. Templates are batch-rendered in a single WebSocket call for performance.
+
+> **Note:** Use `/local/` URLs (files in `/config/www/`) or integration-specific proxy URLs (e.g. Frigate snapshots). HA's `/api/camera_proxy/` URLs require bearer token auth that `<img>` tags cannot send.
 
 **Tap & hold actions** — Attach HA's standard action system to timeline events:
 
@@ -223,16 +229,9 @@ sources:
     hold_action:
       action: navigate
       navigation_path: /lovelace/cameras
-    entity_config:
-      binary_sensor.front_door:
-        tap_action:
-          action: call-service
-          service: camera.snapshot
-          service_data:
-            filename: /config/www/snapshot.jpg
 ```
 
-Action types: `more-info`, `navigate`, `call-service`, `none`. Default tap (no config) opens the detail dialog.
+Action types: `more-info`, `navigate`, `call-service`, `none`. Default tap (no config) opens the Chronicle detail dialog.
 
 Built-in device class translations:
 

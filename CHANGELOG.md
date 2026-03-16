@@ -1,52 +1,52 @@
-# Chronicle Card v1.9.0
+# Chronicle Card v1.9.0 — Changes from v1.8.1
 
-## Jinja2 Template Support & Native Actions for History Events
+## Jinja2 Template Support
 
-### `image_template` — Dynamic Thumbnails via Jinja2
-- New `image_template` option on history sources renders a Jinja2 template per event to produce dynamic `mediaUrl` values
+### `image_template` — Dynamic Thumbnails
+- New `image_template` option on history sources renders a Jinja2 template per event to produce dynamic thumbnail URLs
 - Template context variables: `entity_id`, `state`, `old_state`, `timestamp`, `attributes`, `source_name`
-- Batch rendering: all events sharing the same template are rendered in a single WebSocket call (chunked at 50)
+- Batch rendering: all events sharing the same template are rendered in a single WebSocket call (chunked at 50 events)
 - Works at source level and per-entity (per-entity overrides source-level)
-- Example: `image_template: "/local/cameras/{{ entity_id }}/{{ timestamp }}.jpg"`
+- Use `/local/` URLs or integration-specific proxies (HA's `/api/camera_proxy/` requires auth that `<img>` tags can't send)
 
 ### Native `tap_action` / `hold_action`
 - Timeline events now support HA's standard action system
 - `tap_action` and `hold_action` support: `more-info`, `navigate`, `call-service`, `none`
-- Default tap behavior (open detail dialog) is preserved when no action is configured
-- `more-info` fires `hass-more-info` to open the entity's native HA dialog
+- Default tap behavior (open Chronicle detail dialog) is preserved when no action is configured
+- `more-info` fires `hass-more-info` from inside HA's DOM tree to open the entity's native dialog
 - `navigate` uses `history.pushState` for in-app navigation
 - `call-service` calls any HA service with data and target
-- Hold detection via pointer events with 500ms threshold
+- Hold detection via pointer events with 500ms threshold, scroll-aware on touch devices
+- Editor shows "Detail Dialog (default)" as an explicit option — can always revert after changing
 
 ### "More Info" Button in Detail Dialog
 - New pill button in the event detail dialog opens the entity's native HA more-info dialog
-- Only shown for events with an `entityId`
+- Only shown for history source events (calendar/REST/static events don't have meaningful HA entity dialogs)
 - Closes the detail dialog first, then opens more-info
-
-### Editor UI
-- History sources now show an "Image Template & Actions" section
-- Jinja2 template field uses `ha-selector` with `{ template: {} }` for syntax highlighting
-- Tap/hold action editors with dropdown for action type and conditional fields (navigation path, service)
-- Per-entity panels include template and action override fields
-- Force-loads `hui-action-editor` component from HA
-
----
-
-# Chronicle Card v1.8.3
 
 ## Per-Entity Configuration
 - New `entity_config` option on history sources for per-entity overrides
-- Each entity can have its own `name`, `state_filter`, `state_map`, `icon`, `color`, and `severity`
+- Each entity can have its own `name`, `state_filter`, `state_map`, `icon`, `color`, `severity`, `image_template`, `tap_action`, and `hold_action`
 - Per-entity settings override source-level defaults, which override auto-detected device class defaults
 - Multi-entity sources now use each entity's friendly name by default (instead of the source name)
 
 ## Native HA Editor Components
 - Entity list: Replaced manual add/remove buttons with native `ha-selector` multi-entity chip picker
 - Per-entity settings: Native `ha-expansion-panel` per entity with `ha-selector` components inside
-- State filter: Chip-based multi-select with domain-aware state suggestions and custom value support
+- State filter: Chip-based multi-select with domain-aware state suggestions and custom value support (case-insensitive matching)
 - Calendar entity: Replaced `ha-entity-picker` with `ha-selector` entity selector
 - Filters section: Categories, severities, sources, and filter entities all use native `ha-selector` components
-- Removed manual entity list management (add/remove buttons, individual pickers)
+- Image template field uses `ha-selector` with `{ template: {} }` for Jinja2 syntax highlighting
+- Tap/hold action editors use `ha-selector` dropdowns with conditional sub-fields (navigation path, service name)
+- Icon and color override fields have × clear buttons to revert to source defaults
+- Removed legacy source-level `state_filter`/`state_map` from GUI (still supported via YAML)
+- Force-loads `hui-action-editor` component from HA
+
+## Bug Fixes
+- Fixed `ha-select` dropdowns not applying changes inside `ha-expansion-panel` — switched to `ha-selector`
+- Fixed `ha-entity-picker` not rendering (lazy-load timing issue)
+- Fixed per-entity state filter case sensitivity (`"Off"` now matches `"off"`)
+- Fixed `hass-more-info` event not reaching HA — was dispatched on `document.body` instead of from inside HA's DOM tree
 
 ---
 
