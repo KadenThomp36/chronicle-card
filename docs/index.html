@@ -1780,7 +1780,7 @@
       </ul>
     </nav>
     <div class="nav-right">
-      <span class="version-badge">v1.8.0</span>
+      <span class="version-badge">v1.9.1</span>
       <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
       </button>
@@ -1989,9 +1989,9 @@
         <p>Converts raw state changes into human-readable timeline events. A binary_sensor with device_class "door" becomes "Front Door Opened" / "Front Door Closed" automatically.</p>
         <ul class="source-features">
           <li>Reads device_class for smart translations (door, motion, lock, smoke, etc.)</li>
-          <li>Custom <code>state_map</code> to override any label</li>
-          <li>Works with binary sensors, locks, alarms, covers, climate</li>
-          <li>Automatic severity assignment based on entity type</li>
+          <li>Per-entity config: name, icon, color, severity, and state filter overrides</li>
+          <li>Jinja2 <code>image_template</code> for dynamic thumbnails per event</li>
+          <li>Native <code>tap_action</code> / <code>hold_action</code> (more-info, navigate, call-service)</li>
         </ul>
       </div>
       <div class="code-block">
@@ -2001,12 +2001,14 @@
         </div>
         <div class="code-body"><span class="key">sources</span>:
   - <span class="key">type</span>: <span class="str">history</span>
-    <span class="key">entities</span>:
-      - <span class="str">binary_sensor.front_door</span>
-      - <span class="str">lock.front_door_lock</span>
-      - <span class="str">alarm_control_panel.home</span>
-    <span class="key">name</span>: <span class="str">Security History</span>
-    <span class="key">default_severity</span>: <span class="str">warning</span></div>
+    <span class="key">entity</span>: <span class="str">binary_sensor.front_door</span>
+    <span class="key">name</span>: <span class="str">Security</span>
+    <span class="key">default_severity</span>: <span class="str">warning</span>
+    <span class="key">entity_config</span>:
+      <span class="key">lock.front_door_lock</span>:
+        <span class="key">name</span>: <span class="str">Front Lock</span>
+      <span class="key">alarm_control_panel.home</span>:
+        <span class="key">name</span>: <span class="str">Alarm</span></div>
       </div>
     </div>
 
