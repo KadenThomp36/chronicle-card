@@ -698,38 +698,46 @@ export class SourceEditor extends LitElement {
           ></ha-selector>
 
           <!-- Per-entity tap action -->
-          <label>Tap Action</label>
-          <ha-select
+          <ha-selector
+            .hass=${this.hass}
+            .selector=${{ select: {
+              options: [
+                { value: '', label: 'Use source default' },
+                { value: 'more-info', label: 'More Info' },
+                { value: 'navigate', label: 'Navigate' },
+                { value: 'call-service', label: 'Call Service' },
+                { value: 'none', label: 'None' },
+              ],
+              mode: 'dropdown',
+            } }}
             .value=${conf.tap_action?.action ?? ''}
-            @change=${(e: any) => {
-              const v = e.target.value;
+            .label=${"Tap Action"}
+            @value-changed=${(e: any) => {
+              const v = e.detail.value;
               this._updateEntityConfig(entityId, 'tap_action', v ? { action: v } : undefined);
             }}
-            @closed=${(e: any) => e.stopPropagation()}
-          >
-            <mwc-list-item value="">Use source default</mwc-list-item>
-            <mwc-list-item value="more-info">More Info</mwc-list-item>
-            <mwc-list-item value="navigate">Navigate</mwc-list-item>
-            <mwc-list-item value="call-service">Call Service</mwc-list-item>
-            <mwc-list-item value="none">None</mwc-list-item>
-          </ha-select>
+          ></ha-selector>
 
           <!-- Per-entity hold action -->
-          <label>Hold Action</label>
-          <ha-select
+          <ha-selector
+            .hass=${this.hass}
+            .selector=${{ select: {
+              options: [
+                { value: '', label: 'Use source default' },
+                { value: 'more-info', label: 'More Info' },
+                { value: 'navigate', label: 'Navigate' },
+                { value: 'call-service', label: 'Call Service' },
+                { value: 'none', label: 'None' },
+              ],
+              mode: 'dropdown',
+            } }}
             .value=${conf.hold_action?.action ?? ''}
-            @change=${(e: any) => {
-              const v = e.target.value;
+            .label=${"Hold Action"}
+            @value-changed=${(e: any) => {
+              const v = e.detail.value;
               this._updateEntityConfig(entityId, 'hold_action', v ? { action: v } : undefined);
             }}
-            @closed=${(e: any) => e.stopPropagation()}
-          >
-            <mwc-list-item value="">Use source default</mwc-list-item>
-            <mwc-list-item value="more-info">More Info</mwc-list-item>
-            <mwc-list-item value="navigate">Navigate</mwc-list-item>
-            <mwc-list-item value="call-service">Call Service</mwc-list-item>
-            <mwc-list-item value="none">None</mwc-list-item>
-          </ha-select>
+          ></ha-selector>
         </div>
       </ha-expansion-panel>
     `;
@@ -770,18 +778,22 @@ export class SourceEditor extends LitElement {
 
   private _renderActionEditor(key: string, label: string, config?: ActionConfig) {
     return html`
-      <label>${label}</label>
-      <ha-select
+      <ha-selector
+        .hass=${this.hass}
+        .selector=${{ select: {
+          options: [
+            { value: '', label: 'Default' },
+            { value: 'more-info', label: 'More Info' },
+            { value: 'navigate', label: 'Navigate' },
+            { value: 'call-service', label: 'Call Service' },
+            { value: 'none', label: 'None' },
+          ],
+          mode: 'dropdown',
+        } }}
         .value=${config?.action ?? ''}
-        @change=${(e: any) => this._onActionTypeChange(key, e.target.value)}
-        @closed=${(e: any) => e.stopPropagation()}
-      >
-        <mwc-list-item value="">Default</mwc-list-item>
-        <mwc-list-item value="more-info">More Info</mwc-list-item>
-        <mwc-list-item value="navigate">Navigate</mwc-list-item>
-        <mwc-list-item value="call-service">Call Service</mwc-list-item>
-        <mwc-list-item value="none">None</mwc-list-item>
-      </ha-select>
+        .label=${label}
+        @value-changed=${(e: any) => this._onActionTypeChange(key, e.detail.value)}
+      ></ha-selector>
       ${config?.action === 'navigate' ? html`
         <ha-textfield
           .value=${config.navigation_path ?? ''}
