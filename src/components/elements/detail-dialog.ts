@@ -377,7 +377,8 @@ export class DetailDialog extends LitElement {
         this.close();
         // Delay to let dialog close animation finish before opening more-info
         setTimeout(() => {
-          document.body.dispatchEvent(
+          // Dispatch from this element (inside HA's card DOM tree) so HA picks it up
+          this.dispatchEvent(
             new CustomEvent('hass-more-info', {
               bubbles: true,
               composed: true,

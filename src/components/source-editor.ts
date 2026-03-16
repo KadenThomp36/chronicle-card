@@ -698,46 +698,10 @@ export class SourceEditor extends LitElement {
           ></ha-selector>
 
           <!-- Per-entity tap action -->
-          <ha-selector
-            .hass=${this.hass}
-            .selector=${{ select: {
-              options: [
-                { value: '', label: 'Use source default' },
-                { value: 'more-info', label: 'More Info' },
-                { value: 'navigate', label: 'Navigate' },
-                { value: 'call-service', label: 'Call Service' },
-                { value: 'none', label: 'None' },
-              ],
-              mode: 'dropdown',
-            } }}
-            .value=${conf.tap_action?.action ?? ''}
-            .label=${"Tap Action"}
-            @value-changed=${(e: any) => {
-              const v = e.detail.value;
-              this._updateEntityConfig(entityId, 'tap_action', v ? { action: v } : undefined);
-            }}
-          ></ha-selector>
+          ${this._renderEntityActionEditor(entityId, 'tap_action', 'Tap Action', conf.tap_action)}
 
           <!-- Per-entity hold action -->
-          <ha-selector
-            .hass=${this.hass}
-            .selector=${{ select: {
-              options: [
-                { value: '', label: 'Use source default' },
-                { value: 'more-info', label: 'More Info' },
-                { value: 'navigate', label: 'Navigate' },
-                { value: 'call-service', label: 'Call Service' },
-                { value: 'none', label: 'None' },
-              ],
-              mode: 'dropdown',
-            } }}
-            .value=${conf.hold_action?.action ?? ''}
-            .label=${"Hold Action"}
-            @value-changed=${(e: any) => {
-              const v = e.detail.value;
-              this._updateEntityConfig(entityId, 'hold_action', v ? { action: v } : undefined);
-            }}
-          ></ha-selector>
+          ${this._renderEntityActionEditor(entityId, 'hold_action', 'Hold Action', conf.hold_action)}
         </div>
       </ha-expansion-panel>
     `;
@@ -827,50 +791,58 @@ export class SourceEditor extends LitElement {
     this._update(actionKey, { ...existing, [field]: value || undefined });
   }
 
-  /** Source-level defaults (backward compat, shown as expandable advanced section). */
-  private _renderSourceLevelDefaults() {
-    const hasSourceFilter = (this.source.state_filter?.length ?? 0) > 0;
-    const hasSourceMap = this.source.state_map && Object.keys(this.source.state_map).length > 0;
-
-    // Only show if existing source-level config exists (backward compat)
-    if (!hasSourceFilter && !hasSourceMap) return nothing;
-
+  private _renderEntityActionEditor(entityId: string, key: string, label: string, config?: ActionConfig) {
     return html`
-      <ha-expansion-panel
-        .outlined=${true}
-        .header=${"Source-Level Defaults"}
-        .secondary=${"Legacy state_filter and state_map — per-entity settings override these"}
-      >
-        <div class="entity-panel-content">
-          <div class="field">
-            <label>State Filter (comma-separated)</label>
-            <ha-textfield
-              .value=${(this.source.state_filter ?? []).join(', ')}
-              .label=${"on, locked, open"}
-              @input=${(e: any) => {
-                const val = e.target.value.trim();
-                if (!val) {
-                  this._update('state_filter', undefined);
-                } else {
-                  this._update('state_filter', val.split(',').map((s: string) => s.trim()).filter(Boolean));
-                }
-              }}
-            ></ha-textfield>
-            <p class="help-text">Applies to all entities without a per-entity filter.</p>
-          </div>
-          <div class="field">
-            <label>State Labels (JSON)</label>
-            <textarea
-              .value=${this._mapToString(this.source.state_map)}
-              @change=${(e: any) => this._onMapChange('state_map', e)}
-              placeholder='{"on": "Opened", "off": "Closed"}'
-              style="min-height:40px;"
-            ></textarea>
-            <p class="help-text">Applies to all entities without per-entity labels.</p>
-          </div>
-        </div>
-      </ha-expansion-panel>
+      <ha-selector
+        .hass=${this.hass}
+        .selector=${{ select: {
+          options: [
+            { value: '', label: 'Use source default' },
+            { value: 'more-info', label: 'More Info' },
+            { value: 'navigate', label: 'Navigate' },
+            { value: 'call-service', label: 'Call Service' },
+            { value: 'none', label: 'None' },
+          ],
+          mode: 'dropdown',
+        } }}
+        .value=${config?.action ?? ''}
+        .label=${label}
+        @value-changed=${(e: any) => {
+          const v = e.detail.value;
+          this._updateEntityConfig(entityId, key, v ? { ...(config ?? {}), action: v } : undefined);
+        }}
+      ></ha-selector>
+      ${config?.action === 'navigate' ? html`
+        <ha-textfield
+          .value=${config.navigation_path ?? ''}
+          .label=${"Navigation path"}
+          @input=${(e: any) => {
+            this._updateEntityConfig(entityId, key, { ...(config ?? {}), navigation_path: e.target.value || undefined });
+          }}
+          style="margin-top: 4px;"
+        ></ha-textfield>
+      ` : nothing}
+      ${config?.action === 'call-service' ? html`
+        <ha-textfield
+          .value=${config.service ?? ''}
+          .label=${"Service (e.g. light.toggle)"}
+          @input=${(e: any) => {
+            this._updateEntityConfig(entityId, key, { ...(config ?? {}), service: e.target.value || undefined });
+          }}
+          style="margin-top: 4px;"
+        ></ha-textfield>
+      ` : nothing}
     `;
+  }
+
+  /**
+   * Source-level defaults (state_filter, state_map) are still supported via YAML
+   * but no longer shown in the GUI to reduce visual noise. Per-entity config
+   * panels are the preferred way to configure these.
+   */
+  private _renderSourceLevelDefaults() {
+    // No longer rendered in the editor — YAML-only for backward compat
+    return nothing;
   }
 
   // ---------------------------------------------------------------------------

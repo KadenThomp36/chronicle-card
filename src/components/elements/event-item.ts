@@ -317,12 +317,13 @@ export class EventItem extends LitElement {
     switch (config.action) {
       case 'more-info':
         if (this.event.entityId) {
-          const evt = new CustomEvent('hass-more-info', {
-            bubbles: true,
-            composed: true,
-            detail: { entityId: this.event.entityId },
-          });
-          (document.body as any).dispatchEvent(evt);
+          this.dispatchEvent(
+            new CustomEvent('hass-more-info', {
+              bubbles: true,
+              composed: true,
+              detail: { entityId: this.event.entityId },
+            }),
+          );
         }
         break;
 
