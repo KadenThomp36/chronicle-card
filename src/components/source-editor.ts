@@ -674,7 +674,7 @@ export class SourceEditor extends LitElement {
             .hass=${this.hass}
             .selector=${{ select: {
               options: [
-                { value: '', label: 'Use source default' },
+                { value: 'default', label: 'Detail Dialog (default)' },
                 { value: 'critical', label: 'Critical' },
                 { value: 'warning', label: 'Warning' },
                 { value: 'info', label: 'Info' },
@@ -746,7 +746,7 @@ export class SourceEditor extends LitElement {
         .hass=${this.hass}
         .selector=${{ select: {
           options: [
-            { value: '', label: 'Default' },
+            { value: 'default', label: 'Detail Dialog (default)' },
             { value: 'more-info', label: 'More Info' },
             { value: 'navigate', label: 'Navigate' },
             { value: 'call-service', label: 'Call Service' },
@@ -754,7 +754,7 @@ export class SourceEditor extends LitElement {
           ],
           mode: 'dropdown',
         } }}
-        .value=${config?.action ?? ''}
+        .value=${config?.action || 'default'}
         .label=${label}
         @value-changed=${(e: any) => this._onActionTypeChange(key, e.detail.value)}
       ></ha-selector>
@@ -778,7 +778,7 @@ export class SourceEditor extends LitElement {
   }
 
   private _onActionTypeChange(key: string, value: string) {
-    if (!value) {
+    if (!value || value === 'default') {
       this._update(key, undefined);
     } else {
       const existing = (this.source as any)[key] ?? {};
@@ -797,7 +797,7 @@ export class SourceEditor extends LitElement {
         .hass=${this.hass}
         .selector=${{ select: {
           options: [
-            { value: '', label: 'Use source default' },
+            { value: 'default', label: 'Detail Dialog (default)' },
             { value: 'more-info', label: 'More Info' },
             { value: 'navigate', label: 'Navigate' },
             { value: 'call-service', label: 'Call Service' },
@@ -805,11 +805,11 @@ export class SourceEditor extends LitElement {
           ],
           mode: 'dropdown',
         } }}
-        .value=${config?.action ?? ''}
+        .value=${config?.action || 'default'}
         .label=${label}
         @value-changed=${(e: any) => {
           const v = e.detail.value;
-          this._updateEntityConfig(entityId, key, v ? { ...(config ?? {}), action: v } : undefined);
+          this._updateEntityConfig(entityId, key, (v && v !== 'default') ? { ...(config ?? {}), action: v } : undefined);
         }}
       ></ha-selector>
       ${config?.action === 'navigate' ? html`

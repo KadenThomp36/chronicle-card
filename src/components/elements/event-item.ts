@@ -300,8 +300,8 @@ export class EventItem extends LitElement {
   private _handleAction(type: 'tap' | 'hold') {
     const config = type === 'hold' ? this.event.holdAction : this.event.tapAction;
 
-    // No config → tap opens detail dialog (existing default behavior)
-    if (!config) {
+    // No config or 'default' → tap opens detail dialog (existing default behavior)
+    if (!config || config.action === 'default') {
       if (type === 'tap') {
         this.dispatchEvent(
           new CustomEvent('chronicle-show-detail', {

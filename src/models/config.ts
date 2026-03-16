@@ -2,7 +2,7 @@ import { SeverityLevel } from './event';
 
 /** HA-standard action configuration for tap/hold on timeline events. */
 export interface ActionConfig {
-  action: 'more-info' | 'navigate' | 'call-service' | 'none';
+  action: 'more-info' | 'navigate' | 'call-service' | 'none' | 'default';
   navigation_path?: string;
   service?: string;
   service_data?: Record<string, unknown>;
