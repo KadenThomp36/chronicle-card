@@ -48,7 +48,7 @@ export const CATEGORY_COLORS: Record<string, string> = {
   default: '#78909C',
 };
 
-export const CARD_VERSION = '1.9.1';
+export const CARD_VERSION = '1.9.2-rc.1';
 export const CARD_NAME = 'chronicle-card';
 export const EDITOR_NAME = 'chronicle-card-editor';
 

@@ -1,7 +1,6 @@
 import { HomeAssistant } from '../types';
 
 const JINJA_RE = /\{[%{]/;
-const BATCH_DELIMITER = '|||DELIM|||';
 const TEMPLATE_TIMEOUT = 5000;
 const BATCH_CHUNK_SIZE = 50;
 
@@ -68,10 +67,11 @@ export async function renderTemplate(
 }
 
 /**
- * Render a user template for multiple event contexts in a single WS call.
+ * Render a user template for multiple event contexts.
  *
- * Wraps the user template in a Jinja2 `{% for %}` loop, passing an `_events`
- * array as variables, and splits the result by a delimiter.
+ * Each context is rendered individually via HA's `render_template` WS call,
+ * passing variables directly so they're available at the top-level Jinja2 scope.
+ * Processes in parallel chunks to balance speed and WS load.
  */
 export async function renderTemplateBatch(
   hass: HomeAssistant,
@@ -80,46 +80,17 @@ export async function renderTemplateBatch(
 ): Promise<string[]> {
   if (contexts.length === 0) return [];
 
-  // Process in chunks to avoid oversized WS messages
   const allResults: string[] = [];
 
   for (let i = 0; i < contexts.length; i += BATCH_CHUNK_SIZE) {
     const chunk = contexts.slice(i, i + BATCH_CHUNK_SIZE);
-    const results = await _renderChunk(hass, userTemplate, chunk);
-    allResults.push(...results);
+    const results = await Promise.allSettled(
+      chunk.map((ctx) => renderTemplate(hass, userTemplate, { ...ctx })),
+    );
+    for (const r of results) {
+      allResults.push(r.status === 'fulfilled' ? r.value.trim() : '');
+    }
   }
 
   return allResults;
-}
-
-async function _renderChunk(
-  hass: HomeAssistant,
-  userTemplate: string,
-  contexts: TemplateContext[],
-): Promise<string[]> {
-  // Build batch template:
-  // {% for _ctx in _events %}
-  //   {% set entity_id = _ctx.entity_id %}{% set state = _ctx.state %}...
-  //   {{ USER_TEMPLATE }}{% if not loop.last %}|||DELIM|||{% endif %}
-  // {% endfor %}
-  const batchTemplate = [
-    '{% for _ctx in _events %}',
-    '{% set entity_id = _ctx.entity_id %}',
-    '{% set state = _ctx.state %}',
-    '{% set old_state = _ctx.old_state %}',
-    '{% set timestamp = _ctx.timestamp %}',
-    '{% set attributes = _ctx.attributes %}',
-    '{% set source_name = _ctx.source_name %}',
-    userTemplate,
-    `{% if not loop.last %}${BATCH_DELIMITER}{% endif %}`,
-    '{% endfor %}',
-  ].join('');
-
-  try {
-    const raw = await renderTemplate(hass, batchTemplate, { _events: contexts });
-    return raw.split(BATCH_DELIMITER).map((s) => s.trim());
-  } catch (err) {
-    console.warn('[chronicle-card] Batch template render failed:', err);
-    return contexts.map(() => '');
-  }
 }
