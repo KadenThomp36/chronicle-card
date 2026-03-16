@@ -429,16 +429,21 @@ export class SourceEditor extends LitElement {
             </div>
             <div class="field">
               <label>Severity</label>
-              <ha-select
+              <ha-selector
+                .hass=${this.hass}
+                .selector=${{ select: {
+                  options: [
+                    { value: 'critical', label: 'Critical' },
+                    { value: 'warning', label: 'Warning' },
+                    { value: 'info', label: 'Info' },
+                    { value: 'debug', label: 'Debug' },
+                  ],
+                  mode: 'dropdown',
+                } }}
                 .value=${this.source.default_severity ?? 'info'}
-                @change=${(e: any) => this._update('default_severity', e.target.value)}
-                @closed=${(e: any) => e.stopPropagation()}
-              >
-                <mwc-list-item value="critical">Critical</mwc-list-item>
-                <mwc-list-item value="warning">Warning</mwc-list-item>
-                <mwc-list-item value="info">Info</mwc-list-item>
-                <mwc-list-item value="debug">Debug</mwc-list-item>
-              </ha-select>
+                .label=${"Default severity"}
+                @value-changed=${(e: any) => this._update('default_severity', e.detail.value)}
+              ></ha-selector>
             </div>
           </div>
 

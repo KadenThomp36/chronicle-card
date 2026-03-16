@@ -1,3 +1,13 @@
+# Chronicle Card v1.9.1 — Bug Fixes
+
+## Bug Fixes
+
+- Fixed severity dropdown in source editor not saving selections — switched from `ha-select` to native `ha-selector` component (#5)
+- Fixed REST API double-slash when URL includes `/api/` prefix — `hass.callApi` already prepends `/api/`, now strips redundant prefix (#7)
+- Fixed Frigate WebSocket events failing with `instance_id` error — auto-defaults `instance_id: "frigate"` for `frigate/*` WS types (#6)
+
+---
+
 # Chronicle Card v1.9.0 — Changes from v1.8.1
 
 ## Jinja2 Template Support

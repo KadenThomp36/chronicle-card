@@ -66,11 +66,18 @@ export class RestAdapter implements ISourceAdapter {
       if (wsParams) {
         // Fetch via WebSocket (e.g. frigate/events/get)
         // Spread into new object — HA's callWS mutates the msg to add an "id" field
-        const result = await hass.callWS<unknown>({ ...wsParams });
+        const params = { ...wsParams };
+        // Auto-default instance_id for Frigate WS calls — Frigate integration requires it
+        if (typeof params.type === 'string' && params.type.startsWith('frigate/') && !params.instance_id) {
+          params.instance_id = 'frigate';
+        }
+        const result = await hass.callWS<unknown>(params);
         // Some WS commands return pre-serialized JSON strings — parse if needed
         rawData = typeof result === 'string' ? JSON.parse(result) : result;
       } else if (isInternalPath(url!)) {
-        rawData = await hass.callApi<unknown>('GET', url!);
+        // Strip leading /api/ prefix and leading slashes — callApi prepends /api/ internally
+        const cleanPath = url!.replace(/^\/api\//, '').replace(/^\/+/, '');
+        rawData = await hass.callApi<unknown>('GET', cleanPath);
       } else {
         const response = await fetch(url!);
         if (!response.ok) {
