@@ -660,7 +660,9 @@ automation:
           end_date_time: "{{ (now() + timedelta(minutes=1)).isoformat() }}"
 ```
 
-A ready-to-use blueprint is included in this repository. See [blueprints/chronicle_log_event.yaml](blueprints/chronicle_log_event.yaml).
+A ready-to-use blueprint is included in this repository.
+
+[![Open your Home Assistant instance and show the blueprint import dialog with a specific blueprint pre-filled.](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FKadenThomp36%2Fchronicle-card%2Fblob%2Fmain%2Fblueprints%2Fchronicle_log_event.yaml)
 
 ---
 
@@ -668,7 +670,7 @@ A ready-to-use blueprint is included in this repository. See [blueprints/chronic
 
 For cameras that expose AI detections as binary sensors (Reolink, Amcrest, ONVIF, etc.), the **Chronicle Camera Snapshots** blueprint captures a snapshot on each detection and saves it with a timestamp-based filename. Chronicle Card's `image_template` then matches each timeline event to its snapshot automatically.
 
-See [blueprints/chronicle_camera_snapshots.yaml](blueprints/chronicle_camera_snapshots.yaml) for the full blueprint.
+[![Open your Home Assistant instance and show the blueprint import dialog with a specific blueprint pre-filled.](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FKadenThomp36%2Fchronicle-card%2Fblob%2Fmain%2Fblueprints%2Fchronicle_camera_snapshots.yaml)
 
 ### Prerequisites
 
