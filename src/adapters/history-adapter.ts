@@ -149,6 +149,12 @@ export class HistoryAdapter implements ISourceAdapter {
     return null;
   }
 
+  /** True if any per-entity config has an image_template. */
+  private hasEntityImageTemplates(): boolean {
+    if (!this.config.entity_config) return false;
+    return Object.values(this.config.entity_config).some(c => !!c.image_template);
+  }
+
   async fetchEvents(hass: HomeAssistant, range: TimeRange): Promise<ChronicleEvent[]> {
     const entities = this.getEntities();
     if (entities.length === 0) {
@@ -159,7 +165,9 @@ export class HistoryAdapter implements ISourceAdapter {
     try {
       const startISO = range.start.toISOString();
       const endISO = range.end.toISOString();
-      const path = `history/period/${startISO}?filter_entity_id=${entities.join(',')}&end_time=${endISO}&minimal_response`;
+      // Skip minimal_response when image_template is configured — we need full attributes for template context
+      const needsAttributes = !!(this.config.image_template || this.hasEntityImageTemplates());
+      const path = `history/period/${startISO}?filter_entity_id=${entities.join(',')}&end_time=${endISO}${needsAttributes ? '' : '&minimal_response'}`;
 
       const response = await hass.callApi<HistoryState[][]>('GET', path);
 

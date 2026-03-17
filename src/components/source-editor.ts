@@ -698,7 +698,7 @@ export class SourceEditor extends LitElement {
             .selector=${{ template: {} }}
             .value=${conf.image_template ?? ''}
             .label=${"Image template override"}
-            .helper=${"Overrides the source-level image template for this entity"}
+            .helper=${"Overrides source-level template. Preview will show errors — variables are injected at render time."}
             @value-changed=${(e: any) => this._updateEntityConfig(entityId, 'image_template', e.detail.value || undefined)}
           ></ha-selector>
 
@@ -727,7 +727,7 @@ export class SourceEditor extends LitElement {
           .selector=${{ template: {} }}
           .value=${this.source.image_template ?? ''}
           .label=${"Image template (Jinja2)"}
-          .helper=${"Dynamic thumbnail per event. Variables: entity_id, state, old_state, timestamp, attributes, source_name"}
+          .helper=${"Variables: entity_id, state, old_state, timestamp, attributes, source_name. Preview will show errors — variables are injected at render time."}
           @value-changed=${(e: any) => this._update('image_template', e.detail.value || undefined)}
         ></ha-selector>
       </div>
