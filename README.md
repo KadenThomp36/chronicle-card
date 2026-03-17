@@ -664,6 +664,63 @@ A ready-to-use blueprint is included in this repository. See [blueprints/chronic
 
 ---
 
+## Camera Detection Snapshots (Blueprint)
+
+For cameras that expose AI detections as binary sensors (Reolink, Amcrest, ONVIF, etc.), the **Chronicle Camera Snapshots** blueprint captures a snapshot on each detection and saves it with a timestamp-based filename. Chronicle Card's `image_template` then matches each timeline event to its snapshot automatically.
+
+See [blueprints/chronicle_camera_snapshots.yaml](blueprints/chronicle_camera_snapshots.yaml) for the full blueprint.
+
+### Prerequisites
+
+1. **Input Number Helper** — Create via **Settings → Devices & Services → Helpers → Add Helper → Number**. Name it `chronicle_snapshot_retention`, min 1, max 30, step 1, initial 7, unit "days". Or add to `configuration.yaml`:
+
+```yaml
+input_number:
+  chronicle_snapshot_retention:
+    name: Chronicle Snapshot Retention
+    icon: mdi:calendar-clock
+    min: 1
+    max: 30
+    step: 1
+    initial: 7
+    unit_of_measurement: days
+```
+
+2. **Shell Command** — Add to `configuration.yaml`:
+
+```yaml
+shell_command:
+  clean_chronicle_snapshots: "find /config/www/snapshots -type f -name '*_????????_??????.jpg' -mtime +{{ states('input_number.chronicle_snapshot_retention') | int(7) }} -delete"
+```
+
+3. **Snapshot directory** — Create `/config/www/snapshots/` if it doesn't exist.
+
+### Card Configuration
+
+Add `image_template` to your history sources to match events to their snapshots:
+
+```yaml
+sources:
+  - type: history
+    name: Person
+    entity: binary_sensor.doorbell_person
+    state_filter: ["on"]
+    default_severity: warning
+    default_icon: mdi:human
+    image_template: >-
+      /local/snapshots/{{ entity_id.split('.')[1] }}_{{ (timestamp | as_datetime).strftime('%Y%m%d_%H%M%S') }}.jpg
+```
+
+The blueprint and `image_template` both derive the filename from the same `last_changed` timestamp, so they match exactly.
+
+### Supported Cameras
+
+Works with any camera integration that creates binary_sensor detection entities: Reolink (person, vehicle, pet, visitor), Amcrest/Dahua, generic ONVIF, and more. Does **not** replace Frigate — Frigate has its own event system with built-in thumbnails (use the REST adapter with `media_url_template` for Frigate).
+
+> **Tip:** Set `days_back` on your Chronicle Card to match the blueprint's retention days so snapshots exist for all visible events.
+
+---
+
 ## Supported Languages
 
 | Code | Language |

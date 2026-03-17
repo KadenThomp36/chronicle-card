@@ -1,0 +1,120 @@
+blueprint:
+  name: Chronicle Card - Camera Detection Snapshots
+  description: >-
+    Captures camera snapshots when AI detection events fire and saves them with
+    timestamp-based filenames for Chronicle Card's image_template feature. Includes
+    automatic daily cleanup of old snapshots.
+
+
+    **Prerequisites:** Add these to your configuration.yaml before using this blueprint:
+
+    1. `input_number:` helper named `chronicle_snapshot_retention` (min: 1, max: 30, step: 1, initial: 7, unit: days)
+
+    2. `shell_command:` named `clean_chronicle_snapshots`: `find /config/www/snapshots -type f -name '*_????????_??????.jpg' -mtime +{{ states('input_number.chronicle_snapshot_retention') | int(7) }} -delete`
+
+    3. Ensure `/config/www/snapshots/` directory exists
+  domain: automation
+  author: KadenThomp36
+  homeassistant:
+    min_version: "2024.6.0"
+  input:
+    camera_section:
+      name: Camera & Detection
+      icon: mdi:camera
+      input:
+        camera_entity:
+          name: Camera Entity
+          description: >-
+            Camera to capture snapshots from when detection occurs. Use a low-res
+            stream (e.g. "Fluent") for faster capture and smaller file sizes.
+          selector:
+            entity:
+              filter:
+                - domain: camera
+        detection_sensors:
+          name: Detection Sensors
+          description: >-
+            Binary sensors that trigger snapshot capture. Select the AI detection
+            sensors for your camera (e.g. person, vehicle, pet, visitor/doorbell).
+            Only "on" states trigger a snapshot.
+          selector:
+            entity:
+              multiple: true
+              filter:
+                - domain: binary_sensor
+    storage_section:
+      name: Storage & Cleanup
+      icon: mdi:folder-clock
+      collapsed: true
+      input:
+        retention_days:
+          name: Snapshot Retention (Days)
+          description: >-
+            How long to keep snapshots before auto-deleting. Should match your
+            Chronicle Card "days_back" setting so snapshots exist for all visible
+            events.
+          default: 7
+          selector:
+            number:
+              min: 1
+              max: 30
+              step: 1
+              unit_of_measurement: days
+        snapshot_dir:
+          name: Snapshot Directory
+          description: >-
+            Directory to save snapshots. Must be under /config/www/ so images are
+            accessible via /local/ URLs. Do not change unless you know what you're doing.
+          default: "/config/www/snapshots"
+          selector:
+            text: {}
+        cleanup_time:
+          name: Daily Cleanup Time
+          description: Time to automatically delete old snapshots each day.
+          default: "03:00:00"
+          selector:
+            time: {}
+
+variables:
+  camera_entity: !input camera_entity
+  snapshot_dir: !input snapshot_dir
+  retention_days: !input retention_days
+
+triggers:
+  - entity_id: !input detection_sensors
+    trigger: state
+    to: "on"
+    id: detection
+  - trigger: time
+    at: !input cleanup_time
+    id: cleanup
+
+conditions: []
+
+actions:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: detection
+        sequence:
+          - delay:
+              seconds: 1
+          - action: camera.snapshot
+            target:
+              entity_id: "{{ camera_entity }}"
+            data:
+              filename: >-
+                {{ snapshot_dir }}/{{ trigger.entity_id.split('.')[1] }}_{{ trigger.to_state.last_changed.strftime('%Y%m%d_%H%M%S') }}.jpg
+      - conditions:
+          - condition: trigger
+            id: cleanup
+        sequence:
+          - action: input_number.set_value
+            target:
+              entity_id: input_number.chronicle_snapshot_retention
+            data:
+              value: "{{ retention_days }}"
+          - action: shell_command.clean_chronicle_snapshots
+
+mode: parallel
+max: 5

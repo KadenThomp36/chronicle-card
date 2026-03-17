@@ -699,6 +699,7 @@
         </button>
         <div class="sidebar-group-items">
           <a href="#blueprint" class="sidebar-link">Log Event Blueprint</a>
+          <a href="#blueprint-snapshots" class="sidebar-link">Camera Snapshots Blueprint</a>
         </div>
       </div>
 
@@ -1401,6 +1402,70 @@
           <span class="hl-key">end_date_time</span>: <span class="hl-str">"{{ (now() + timedelta(minutes=1)).isoformat() }}"</span></div>
         </div>
         <p>Import the blueprint directly: <a href="https://github.com/KadenThomp36/chronicle-card/blob/main/blueprints/chronicle_log_event.yaml" target="_blank">Import Blueprint</a></p>
+      </div>
+
+      <!-- Camera Snapshots Blueprint -->
+      <div class="doc-section" id="blueprint-snapshots">
+        <h2>Camera Detection Snapshots Blueprint</h2>
+        <p>For cameras that expose AI detections as binary sensors (Reolink, Amcrest, ONVIF, etc.), this blueprint captures a snapshot on each detection and saves it with a timestamp-based filename. Chronicle Card's <code>image_template</code> then matches each timeline event to its snapshot automatically.</p>
+
+        <h3>Prerequisites</h3>
+        <ol>
+          <li><strong>Input Number Helper</strong> — Create via Settings &rarr; Devices &amp; Services &rarr; Helpers &rarr; Add Helper &rarr; Number. Name it <code>chronicle_snapshot_retention</code>, min 1, max 30, step 1, initial 7, unit "days". Alternatively, add to <code>configuration.yaml</code>:
+            <div class="code-block" style="margin-top:8px;">
+              <div class="code-body"><span class="hl-key">input_number</span>:
+  <span class="hl-key">chronicle_snapshot_retention</span>:
+    <span class="hl-key">name</span>: <span class="hl-str">Chronicle Snapshot Retention</span>
+    <span class="hl-key">icon</span>: <span class="hl-str">mdi:calendar-clock</span>
+    <span class="hl-key">min</span>: <span class="hl-str">1</span>
+    <span class="hl-key">max</span>: <span class="hl-str">30</span>
+    <span class="hl-key">step</span>: <span class="hl-str">1</span>
+    <span class="hl-key">initial</span>: <span class="hl-str">7</span>
+    <span class="hl-key">unit_of_measurement</span>: <span class="hl-str">days</span></div>
+            </div>
+          </li>
+          <li><strong>Shell Command</strong> — Add to <code>configuration.yaml</code>:
+            <div class="code-block" style="margin-top:8px;">
+              <div class="code-body"><span class="hl-key">shell_command</span>:
+  <span class="hl-key">clean_chronicle_snapshots</span>: <span class="hl-str">"find /config/www/snapshots -type f -name '*_????????_??????.jpg' -mtime +{{ states('input_number.chronicle_snapshot_retention') | int(7) }} -delete"</span></div>
+            </div>
+          </li>
+          <li><strong>Snapshot directory</strong> — Create <code>/config/www/snapshots/</code> if it doesn't exist.</li>
+        </ol>
+
+        <h3>Card Configuration</h3>
+        <p>Add <code>image_template</code> to your history sources to match events to their snapshots:</p>
+        <div class="code-block">
+          <div class="code-header">
+            <span>yaml</span>
+            <button class="code-copy" onclick="copyCode(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy</button>
+          </div>
+          <div class="code-body"><span class="hl-key">sources</span>:
+  - <span class="hl-key">type</span>: <span class="hl-str">history</span>
+    <span class="hl-key">name</span>: <span class="hl-str">Person</span>
+    <span class="hl-key">entity</span>: <span class="hl-str">binary_sensor.doorbell_person</span>
+    <span class="hl-key">state_filter</span>: [<span class="hl-str">"on"</span>]
+    <span class="hl-key">default_severity</span>: <span class="hl-str">warning</span>
+    <span class="hl-key">default_icon</span>: <span class="hl-str">mdi:human</span>
+    <span class="hl-key">image_template</span>: &gt;-
+      /local/snapshots/{{ entity_id.split('.')[1] }}_{{ (timestamp | as_datetime).strftime('%Y%m%d_%H%M%S') }}.jpg</div>
+        </div>
+        <p>The blueprint and <code>image_template</code> both derive the filename from the same <code>last_changed</code> timestamp, so they match exactly.</p>
+
+        <h3>Supported Cameras</h3>
+        <ul>
+          <li><strong>Reolink</strong> — person, vehicle, pet, face, package, visitor (doorbell)</li>
+          <li><strong>Amcrest / Dahua</strong> — motion, person, vehicle</li>
+          <li><strong>Generic ONVIF</strong> — motion, person (if supported by firmware)</li>
+          <li>Any camera with binary_sensor detection entities + a camera entity for snapshots</li>
+        </ul>
+        <p>Does <strong>not</strong> replace Frigate — Frigate has its own event system with built-in thumbnails. Use the REST adapter with <code>media_url_template</code> for Frigate instead.</p>
+
+        <div class="callout-info" style="margin-top:16px;">
+          <strong>Tip:</strong> Set <code>days_back</code> on your Chronicle Card to match the blueprint's retention days so snapshots exist for all visible events.
+        </div>
+
+        <p style="margin-top:16px;">Import the blueprint directly: <a href="https://github.com/KadenThomp36/chronicle-card/blob/main/blueprints/chronicle_camera_snapshots.yaml" target="_blank">Import Blueprint</a></p>
       </div>
 
       <!-- ===== EXAMPLES ===== -->
