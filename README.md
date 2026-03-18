@@ -710,10 +710,10 @@ sources:
     default_severity: warning
     default_icon: mdi:human
     image_template: >-
-      /local/snapshots/{{ entity_id.split('.')[1] }}_{{ (timestamp | as_datetime).strftime('%Y%m%d_%H%M%S') }}.jpg
+      /local/snapshots/{{ entity_id.split('.')[1] }}_{{ as_timestamp(timestamp) | timestamp_custom('%Y%m%d_%H%M%S', true) }}.jpg
 ```
 
-The blueprint and `image_template` both derive the filename from the same `last_changed` timestamp, so they match exactly.
+Both the blueprint and `image_template` normalize through `as_timestamp` (epoch seconds) then `timestamp_custom` (HA's local timezone), ensuring filenames match regardless of timezone configuration.
 
 ### Supported Cameras
 

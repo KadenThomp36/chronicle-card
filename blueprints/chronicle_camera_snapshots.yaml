@@ -104,7 +104,7 @@ actions:
               entity_id: "{{ camera_entity }}"
             data:
               filename: >-
-                {{ snapshot_dir }}/{{ trigger.entity_id.split('.')[1] }}_{{ trigger.to_state.last_changed.strftime('%Y%m%d_%H%M%S') }}.jpg
+                {{ snapshot_dir }}/{{ trigger.entity_id.split('.')[1] }}_{{ as_timestamp(trigger.to_state.last_changed) | timestamp_custom('%Y%m%d_%H%M%S', true) }}.jpg
       - conditions:
           - condition: trigger
             id: cleanup

@@ -1448,9 +1448,9 @@
     <span class="hl-key">default_severity</span>: <span class="hl-str">warning</span>
     <span class="hl-key">default_icon</span>: <span class="hl-str">mdi:human</span>
     <span class="hl-key">image_template</span>: &gt;-
-      /local/snapshots/{{ entity_id.split('.')[1] }}_{{ (timestamp | as_datetime).strftime('%Y%m%d_%H%M%S') }}.jpg</div>
+      /local/snapshots/{{ entity_id.split('.')[1] }}_{{ as_timestamp(timestamp) | timestamp_custom('%Y%m%d_%H%M%S', true) }}.jpg</div>
         </div>
-        <p>The blueprint and <code>image_template</code> both derive the filename from the same <code>last_changed</code> timestamp, so they match exactly.</p>
+        <p>Both the blueprint and <code>image_template</code> normalize through <code>as_timestamp</code> (epoch seconds) then <code>timestamp_custom</code> (HA's local timezone), ensuring filenames match regardless of timezone configuration.</p>
 
         <h3>Supported Cameras</h3>
         <ul>
