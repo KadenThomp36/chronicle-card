@@ -84,7 +84,18 @@ export class RestAdapter implements ISourceAdapter {
           console.warn(`[chronicle-card] RestAdapter: HTTP ${response.status} from ${url}`);
           return [];
         }
-        rawData = await response.json();
+        const text = await response.text();
+        try {
+          rawData = JSON.parse(text);
+        } catch {
+          // Try NDJSON (newline-delimited JSON, e.g. ntfy API)
+          const lines = text.split('\n').filter((l) => l.trim());
+          if (lines.length > 0) {
+            rawData = lines.map((line) => JSON.parse(line));
+          } else {
+            throw new Error('Response is not valid JSON or NDJSON');
+          }
+        }
       }
 
       let items: unknown[];
@@ -140,8 +151,10 @@ export class RestAdapter implements ISourceAdapter {
 
     const getField = (chronicleField: string, fallback: unknown = ''): unknown => {
       const sourceField = fieldMap[chronicleField];
-      if (sourceField && item[sourceField] !== undefined) {
-        return item[sourceField];
+      if (sourceField) {
+        // Support nested paths (e.g. "start.dateTime") via dot traversal
+        const val = sourceField.includes('.') ? traversePath(item, sourceField) : item[sourceField];
+        if (val !== undefined) return val;
       }
       if (item[chronicleField] !== undefined) {
         return item[chronicleField];
