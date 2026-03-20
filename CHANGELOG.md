@@ -1,3 +1,20 @@
+# Chronicle Card v1.9.2 — Bug Fixes & NDJSON Support
+
+## Bug Fixes
+
+- Fixed `image_template` variables (`entity_id`, `state`, `timestamp`, etc.) not injected into Jinja2 scope — now passed directly via HA's `render_template` variables parameter (#8)
+- Fixed `image_template` missing custom entity attributes (e.g. `snapshot_url`) — history API no longer uses `minimal_response` when templates are configured (#8)
+- Fixed blueprint/card timestamp timezone mismatch — both sides now normalize through `as_timestamp` → `timestamp_custom` for consistent filenames (#8)
+- Fixed REST `field_map` not supporting nested dot-notation paths (e.g. `start.dateTime`) — now traverses nested objects (#9)
+
+## New Features
+
+- **NDJSON support** — REST adapter now handles newline-delimited JSON (one JSON object per line), enabling ntfy and similar APIs (#4)
+- **Camera Detection Snapshots blueprint** — captures snapshots on AI detection events with timestamp-based filenames for `image_template` matching
+- **HA blueprint import buttons** — official `my.home-assistant.io` import buttons in docs and README
+
+---
+
 # Chronicle Card v1.9.1 — Bug Fixes
 
 ## Bug Fixes
