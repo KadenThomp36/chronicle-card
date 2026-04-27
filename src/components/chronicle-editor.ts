@@ -315,6 +315,74 @@ export class ChronicleEditor extends LitElement {
                 @value-changed=${(e: any) => this._setNested('filters', 'entities', e.detail.value ?? [])}
               ></ha-selector>
             </div>
+
+            <details class="nested-details">
+              <summary>Exclusions</summary>
+              <div class="section-body">
+                <div class="field">
+                  <label>Exclude Search</label>
+                  <ha-textfield
+                    .value=${c.filters?.exclude_search ?? ''}
+                    .label=${"Hide events matching keyword..."}
+                    @input=${(e: any) => this._setNested('filters', 'exclude_search', e.target.value)}
+                  ></ha-textfield>
+                </div>
+                <div class="field">
+                  <ha-selector
+                    .hass=${this.hass}
+                    .selector=${{ select: {
+                      options: this._getCategoryOptions(),
+                      multiple: true,
+                      custom_value: true,
+                      mode: 'list',
+                    } }}
+                    .value=${c.filters?.exclude_categories ?? []}
+                    .label=${"Exclude Categories"}
+                    .helper=${"Hide events in these categories"}
+                    @value-changed=${(e: any) => this._setNested('filters', 'exclude_categories', e.detail.value)}
+                  ></ha-selector>
+                </div>
+                <div class="field">
+                  <ha-selector
+                    .hass=${this.hass}
+                    .selector=${{ select: {
+                      options: [
+                        { value: 'critical', label: 'Critical' },
+                        { value: 'warning', label: 'Warning' },
+                        { value: 'info', label: 'Info' },
+                        { value: 'debug', label: 'Debug' },
+                      ],
+                      multiple: true,
+                    } }}
+                    .value=${c.filters?.exclude_severities ?? []}
+                    .label=${"Exclude Severities"}
+                    @value-changed=${(e: any) => this._setNested('filters', 'exclude_severities', e.detail.value)}
+                  ></ha-selector>
+                </div>
+                <div class="field">
+                  <ha-selector
+                    .hass=${this.hass}
+                    .selector=${{ select: {
+                      options: this._getSourceNameOptions(),
+                      multiple: true,
+                      custom_value: true,
+                    } }}
+                    .value=${c.filters?.exclude_sources ?? []}
+                    .label=${"Exclude Sources"}
+                    @value-changed=${(e: any) => this._setNested('filters', 'exclude_sources', e.detail.value)}
+                  ></ha-selector>
+                </div>
+                <div class="field">
+                  <ha-selector
+                    .hass=${this.hass}
+                    .selector=${{ entity: { multiple: true } }}
+                    .value=${c.filters?.exclude_entities ?? []}
+                    .label=${"Exclude Entities"}
+                    @value-changed=${(e: any) => this._setNested('filters', 'exclude_entities', e.detail.value ?? [])}
+                  ></ha-selector>
+                </div>
+              </div>
+            </details>
           </div>
         </details>
 
@@ -389,6 +457,10 @@ export class ChronicleEditor extends LitElement {
             <div class="toggle-row">
               <span class="toggle-label">Show Severity Badge</span>
               ${this._renderToggle(a.show_severity_badge !== false, (v) => this._setNested('appearance', 'show_severity_badge', v))}
+            </div>
+            <div class="toggle-row">
+              <span class="toggle-label">Show Category Tags</span>
+              ${this._renderToggle(a.show_category !== false, (v) => this._setNested('appearance', 'show_category', v))}
             </div>
             <div class="toggle-row">
               <span class="toggle-label">Animate New Events</span>

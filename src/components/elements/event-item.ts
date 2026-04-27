@@ -5,6 +5,7 @@ import { AppearanceConfig, ActionConfig } from '../../models/config';
 import { HomeAssistant } from '../../types';
 import { CATEGORY_ICONS } from '../../constants';
 import { formatTime } from '../../utils/date-utils';
+import { safeColor } from '../../utils/color-utils';
 import './severity-badge';
 import './action-button';
 
@@ -210,13 +211,14 @@ export class EventItem extends LitElement {
     const showImages = this.appearance?.show_images !== false;
     const showIcons = this.appearance?.show_icons !== false;
     const showBadge = this.appearance?.show_severity_badge !== false;
+    const showCategory = this.appearance?.show_category !== false;
     const time = formatTime(e.start, this.timeFormat);
 
     return html`
       <div class="event-row">
         ${showIcons ? html`
-          <div class="icon-wrap" style="background-color: ${e.color}">
-            <ha-icon .icon=${validIcon(e.icon)} style="color: ${tintColor(e.color)}"></ha-icon>
+          <div class="icon-wrap" style="background-color: ${safeColor(e.color)}">
+            <ha-icon .icon=${validIcon(e.icon)} style="color: ${tintColor(safeColor(e.color))}"></ha-icon>
           </div>
         ` : ''}
 
@@ -239,9 +241,9 @@ export class EventItem extends LitElement {
             </div>
             ${e.description ? html`<div class="description">${e.description}</div>` : ''}
             <div class="meta-row">
-              ${e.category ? html`<span class="category-tag">${e.category}</span>` : ''}
-              ${e.label ? html`<span class="category-tag">${e.label}</span>` : ''}
-              ${e.entityName ? html`<span class="category-tag">${e.entityName}</span>` : ''}
+              ${showCategory && e.category ? html`<span class="category-tag">${e.category}</span>` : ''}
+              ${showCategory && e.label ? html`<span class="category-tag">${e.label}</span>` : ''}
+              ${showCategory && e.entityName ? html`<span class="category-tag">${e.entityName}</span>` : ''}
             </div>
             ${e.actions && e.actions.length > 0 ? html`
               <div class="actions-row">

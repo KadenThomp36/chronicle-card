@@ -2,6 +2,7 @@ import { LitElement, html, css, nothing } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { ChronicleEvent } from '../../models/event';
 import { CATEGORY_ICONS } from '../../constants';
+import { safeColor } from '../../utils/color-utils';
 
 function validIcon(icon: string): string {
   return icon && icon.startsWith('mdi:') ? icon : CATEGORY_ICONS.default;
@@ -317,7 +318,7 @@ export class DetailDialog extends LitElement {
 
           <div class="body ${e.mediaUrl ? 'body-with-media' : ''}">
             <div class="header">
-              <div class="header-icon" style="background-color: ${e.color}">
+              <div class="header-icon" style="background-color: ${safeColor(e.color)}">
                 <ha-icon icon="${validIcon(e.icon)}"></ha-icon>
               </div>
               <div class="header-text">
@@ -327,7 +328,7 @@ export class DetailDialog extends LitElement {
             </div>
 
             <div class="tags">
-              <span class="severity-tag" style="background-color: ${this._severityColor(e.severity)}">${e.severity}</span>
+              <span class="severity-tag" style="background-color: ${safeColor(this._severityColor(e.severity))}">${e.severity}</span>
               ${e.category ? `<span class="tag">${this._escHtml(e.category)}</span>` : ''}
               ${e.label ? `<span class="tag">${this._escHtml(e.label)}</span>` : ''}
               ${e.sourceType ? `<span class="tag">${this._escHtml(e.sourceType)}</span>` : ''}

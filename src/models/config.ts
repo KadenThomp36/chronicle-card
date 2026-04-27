@@ -73,6 +73,11 @@ export interface FilterConfig {
   sources?: string[];
   entities?: string[];
   search?: string;
+  exclude_categories?: string[];
+  exclude_severities?: SeverityLevel[];
+  exclude_sources?: string[];
+  exclude_entities?: string[];
+  exclude_search?: string;
 }
 
 export interface GroupingConfig {
@@ -89,6 +94,7 @@ export interface AppearanceConfig {
   show_icons?: boolean;
   show_severity_badge?: boolean;
   show_source_badge?: boolean;
+  show_category?: boolean;
   animate_new_events?: boolean;
   severity_colors?: Partial<Record<SeverityLevel, string>>;
 }
@@ -122,6 +128,11 @@ export const DEFAULT_CONFIG: Partial<ChronicleCardConfig> = {
     sources: [],
     entities: [],
     search: '',
+    exclude_categories: [],
+    exclude_severities: [],
+    exclude_sources: [],
+    exclude_entities: [],
+    exclude_search: '',
   },
   grouping: {
     enabled: true,
@@ -136,6 +147,7 @@ export const DEFAULT_CONFIG: Partial<ChronicleCardConfig> = {
     show_icons: true,
     show_severity_badge: true,
     show_source_badge: false,
+    show_category: true,
     animate_new_events: true,
     severity_colors: {
       critical: '#D32F2F',

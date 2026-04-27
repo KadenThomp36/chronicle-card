@@ -167,6 +167,34 @@ export class EventStore {
       );
     }
 
+    // Exclusion filters — applied after inclusion filters
+    if (filters.exclude_categories && filters.exclude_categories.length > 0) {
+      const cats = new Set(filters.exclude_categories);
+      events = events.filter((e) => !cats.has(e.category));
+    }
+    if (filters.exclude_severities && filters.exclude_severities.length > 0) {
+      const sevs = new Set(filters.exclude_severities);
+      events = events.filter((e) => !sevs.has(e.severity));
+    }
+    if (filters.exclude_sources && filters.exclude_sources.length > 0) {
+      const srcs = new Set(filters.exclude_sources);
+      events = events.filter((e) => !srcs.has(e.sourceId) && !srcs.has(e.sourceType));
+    }
+    if (filters.exclude_entities && filters.exclude_entities.length > 0) {
+      const ents = new Set(filters.exclude_entities);
+      events = events.filter((e) => !e.entityId || !ents.has(e.entityId));
+    }
+    if (filters.exclude_search && filters.exclude_search.trim().length > 0) {
+      const q = filters.exclude_search.toLowerCase().trim();
+      events = events.filter(
+        (e) =>
+          !e.title.toLowerCase().includes(q) &&
+          !e.description.toLowerCase().includes(q) &&
+          !e.category.toLowerCase().includes(q) &&
+          !(e.label && e.label.toLowerCase().includes(q)),
+      );
+    }
+
     // Limit
     const max = this.config.max_events ?? DEFAULT_CONFIG.max_events ?? 50;
     if (events.length > max) {

@@ -4,6 +4,7 @@ import { ChronicleEvent, EventGroup, isEventGroup } from '../../models/event';
 import { AppearanceConfig } from '../../models/config';
 import { CATEGORY_ICONS } from '../../constants';
 import { relativeTime } from '../../utils/date-utils';
+import { safeColor } from '../../utils/color-utils';
 import '../elements/empty-state';
 
 function validIcon(icon: string): string {
@@ -261,13 +262,16 @@ export class HorizontalTimeline extends LitElement {
       return html`<chronicle-empty-state></chronicle-empty-state>`;
     }
 
+    const height = this.appearance?.card_height;
+    const containerStyle = height && height !== 'auto' ? `height: ${height}; align-items: center;` : '';
+
     return html`
       <div class="wrapper">
         <button class="scroll-btn left" @click=${() => this._scroll(-200)}>
           <ha-icon icon="mdi:chevron-left"></ha-icon>
         </button>
 
-        <div class="scroll-container">
+        <div class="scroll-container" style=${containerStyle}>
           ${this.items.map((item) =>
             isEventGroup(item)
               ? (item.expanded ? this._renderExpandedGroup(item) : this._renderGroupCard(item))
@@ -284,21 +288,21 @@ export class HorizontalTimeline extends LitElement {
 
   private _renderEventCard(event: ChronicleEvent) {
     const showImages = this.appearance?.show_images !== false;
-    const severityColor = event.color;
+    const color = safeColor(event.color);
 
     return html`
       <div class="event-card" @click=${() => this._showDetail(event)}>
         ${showImages && event.mediaUrl
           ? html`<img class="card-media" src=${event.mediaUrl} alt="" loading="lazy" />`
           : html`
-            <div class="card-placeholder" style="background-color: ${event.color}">
+            <div class="card-placeholder" style="background-color: ${color}">
               <ha-icon .icon=${validIcon(event.icon)}></ha-icon>
             </div>
           `
         }
         <div class="card-body">
           <div class="card-title">
-            <span class="card-severity" style="background-color: ${severityColor}"></span>
+            <span class="card-severity" style="background-color: ${color}"></span>
             ${event.title}
           </div>
           <div class="card-time">${relativeTime(event.start)}</div>
@@ -321,7 +325,7 @@ export class HorizontalTimeline extends LitElement {
             </div>
           `
           : html`
-            <div class="group-media" style="background-color: ${rep.color}">
+            <div class="group-media" style="background-color: ${safeColor(rep.color)}">
               <ha-icon .icon=${validIcon(rep.icon)}></ha-icon>
               <span class="group-badge">${group.events.length}</span>
             </div>
@@ -345,14 +349,14 @@ export class HorizontalTimeline extends LitElement {
             ${showImages && event.mediaUrl
               ? html`<img class="card-media" src=${event.mediaUrl} alt="" loading="lazy" />`
               : html`
-                <div class="card-placeholder" style="background-color: ${event.color}">
+                <div class="card-placeholder" style="background-color: ${safeColor(event.color)}">
                   <ha-icon .icon=${validIcon(event.icon)}></ha-icon>
                 </div>
               `
             }
             <div class="card-body">
               <div class="card-title">
-                <span class="card-severity" style="background-color: ${event.color}"></span>
+                <span class="card-severity" style="background-color: ${safeColor(event.color)}"></span>
                 ${event.title}
               </div>
               <div class="card-time">${relativeTime(event.start)}</div>

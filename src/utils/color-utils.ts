@@ -1,6 +1,26 @@
 import { SeverityLevel } from '../models/event';
 import { SEVERITY_COLORS } from '../constants';
 
+const HEX_COLOR_RE = /^#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
+const FUNC_COLOR_RE = /^(?:rgb|rgba|hsl|hsla)\(\s*[0-9.,%\s/-]+\s*\)$/i;
+const NAMED_COLOR_RE = /^[a-zA-Z]{3,20}$/;
+const COLOR_FALLBACK = '#78909C';
+
+/**
+ * Validate a CSS color string for safe interpolation into a style attribute.
+ * Returns the input if it matches a hex / rgb()/rgba() / hsl()/hsla() / named-color
+ * shape, otherwise returns the fallback. Prevents attribute-escape XSS when the
+ * color is rendered via innerHTML.
+ */
+export function safeColor(value: unknown, fallback: string = COLOR_FALLBACK): string {
+  if (typeof value !== 'string') return fallback;
+  const trimmed = value.trim();
+  if (HEX_COLOR_RE.test(trimmed)) return trimmed;
+  if (FUNC_COLOR_RE.test(trimmed)) return trimmed;
+  if (NAMED_COLOR_RE.test(trimmed)) return trimmed;
+  return fallback;
+}
+
 /**
  * Parse a hex color string (with or without #, 3 or 6 digits) into RGB components.
  * Returns { r: 0, g: 0, b: 0 } for invalid input.

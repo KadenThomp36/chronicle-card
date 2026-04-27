@@ -2,6 +2,7 @@ import { LitElement, html, css } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { SeverityLevel } from '../../models/event';
 import { SEVERITY_COLORS } from '../../constants';
+import { safeColor } from '../../utils/color-utils';
 
 @customElement('chronicle-severity-badge')
 export class SeverityBadge extends LitElement {
@@ -31,7 +32,7 @@ export class SeverityBadge extends LitElement {
   `;
 
   protected render() {
-    const color = this.customColors?.[this.severity] ?? SEVERITY_COLORS[this.severity] ?? SEVERITY_COLORS.info;
+    const color = safeColor(this.customColors?.[this.severity] ?? SEVERITY_COLORS[this.severity] ?? SEVERITY_COLORS.info);
     return html`
       <span class="badge" style="background-color: ${color}">
         ${this.severity}

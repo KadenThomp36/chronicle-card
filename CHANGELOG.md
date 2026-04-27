@@ -1,3 +1,21 @@
+# Chronicle Card v1.10.0 — Security Fix, Exclude Filters & Layout Improvements
+
+## Security
+
+- **Fixed stored XSS via unescaped `e.color`** — color values are now validated against a hex / `rgb()` / `rgba()` / `hsl()` / `hsla()` / named-color allowlist before interpolation into `style` attributes. The detail dialog (which builds HTML via `innerHTML`) was vulnerable to attribute-escape injection through a malicious `color` field; all render sites now route through a `safeColor()` helper that returns a fallback for any non-conforming value (#14)
+
+## New Features
+
+- **Exclude filters** — `filters` now supports `exclude_categories`, `exclude_severities`, `exclude_sources`, `exclude_entities`, and `exclude_search`. Lets you hide specific items (e.g. `proxmox`) while keeping everything else visible. Editor exposes them under a new "Exclusions" section (#10)
+- **Hide category tags** — new `appearance.show_category` toggle (default: true). Hides the category/label/entity name pill row beneath each event title — useful when compact mode is too aggressive (#13)
+- **`card_height` honored in horizontal layout** — previously only applied to the vertical scroller. Setting `card_height` on a horizontal layout now constrains the scroll-strip height and vertically centers the cards within it (#12)
+
+## Documentation
+
+- Added LLM Vision integration example showing how to pair `llmvision.image_analyzer` with `image_template` (#11)
+
+---
+
 # Chronicle Card v1.9.2 — Bug Fixes & NDJSON Support
 
 ## Bug Fixes

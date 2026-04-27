@@ -723,6 +723,59 @@ Works with any camera integration that creates binary_sensor detection entities:
 
 ---
 
+## LLM Vision Integration
+
+If you use the [LLM Vision](https://github.com/valentinfrlch/ha-llmvision) integration to analyze camera frames, save the analysis result alongside a snapshot and surface both in Chronicle.
+
+**1. Save the snapshot in your automation** — call `llmvision.image_analyzer` and write the snapshot to a predictable filename:
+
+```yaml
+automation:
+  - alias: Analyze Doorbell Frame
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.doorbell_person
+        to: "on"
+    variables:
+      ts: "{{ as_timestamp(now()) | timestamp_custom('%Y%m%d_%H%M%S', true) }}"
+      snapshot: "/config/www/snapshots/doorbell_{{ ts }}.jpg"
+    action:
+      - service: camera.snapshot
+        target:
+          entity_id: camera.doorbell
+        data:
+          filename: "{{ snapshot }}"
+      - service: llmvision.image_analyzer
+        data:
+          provider: openai
+          image_file: "{{ snapshot }}"
+          message: "Describe what you see in one short sentence."
+        response_variable: vision
+      - service: input_text.set_value
+        target:
+          entity_id: input_text.doorbell_last_caption
+        data:
+          value: "{{ vision.response_text }}"
+```
+
+**2. Match the snapshot in Chronicle** with `image_template` (same timestamp format as the automation):
+
+```yaml
+type: custom:chronicle-card
+title: Doorbell
+sources:
+  - type: history
+    name: Doorbell
+    entity: binary_sensor.doorbell_person
+    state_filter: ["on"]
+    image_template: >-
+      /local/snapshots/doorbell_{{ as_timestamp(timestamp) | timestamp_custom('%Y%m%d_%H%M%S', true) }}.jpg
+```
+
+The LLM caption ends up in `input_text.doorbell_last_caption` and can be surfaced via a separate static or REST source if you want it on the timeline. The Camera Snapshots blueprint above can replace step 1 if you only need the snapshot without analysis.
+
+---
+
 ## Supported Languages
 
 | Code | Language |

@@ -4,6 +4,7 @@ import { EventGroup } from '../../models/event';
 import { AppearanceConfig } from '../../models/config';
 import { CATEGORY_ICONS } from '../../constants';
 import { formatTime } from '../../utils/date-utils';
+import { safeColor } from '../../utils/color-utils';
 import './event-item';
 
 function validIcon(icon: string): string {
@@ -251,8 +252,8 @@ export class EventGroupElement extends LitElement {
     return html`
       <div>
         <div class="group-row">
-          <div class="icon-wrap" style="background-color: ${rep.color}">
-            <ha-icon .icon=${validIcon(rep.icon)} style="color: ${tintColor(rep.color)}"></ha-icon>
+          <div class="icon-wrap" style="background-color: ${safeColor(rep.color)}">
+            <ha-icon .icon=${validIcon(rep.icon)} style="color: ${tintColor(safeColor(rep.color))}"></ha-icon>
             <span class="count-badge">${g.events.length}</span>
           </div>
 
