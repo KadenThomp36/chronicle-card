@@ -366,9 +366,13 @@ export class HistoryAdapter implements ISourceAdapter {
     const tapAction = entityConf?.tap_action || this.config.tap_action;
     const holdAction = entityConf?.hold_action || this.config.hold_action;
 
-    // Collect entity attributes for template context
+    // Collect entity attributes for template context.
+    // Prefer per-state historical attributes (populated when image_template
+    // is configured, since we omit minimal_response in that case) so each
+    // event renders with the attributes recorded at that state change.
+    // Fall back to live attributes when history is minimal_response-stripped.
     const liveEntity = hass.states[entityId];
-    const attributes = liveEntity?.attributes ?? currState.attributes ?? {};
+    const attributes = currState.attributes ?? liveEntity?.attributes ?? {};
 
     return {
       id: `history:${entityId}:${currState.last_changed}`,

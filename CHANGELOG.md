@@ -1,3 +1,12 @@
+# Chronicle Card v1.11.0 — Per-Event Attributes in `image_template`
+
+## Bug Fixes
+
+- **`image_template` now uses per-state-change attributes** — previously, the history adapter prioritized `hass.states[entityId].attributes` (live, current) over the per-entry attributes returned by HA's history API. Since live state is virtually always populated, every historical event ended up rendering its template with the *current* attribute values rather than the snapshot recorded at that state change. This made `{{ attributes.foo }}` resolve identically across all events. The adapter already omits `minimal_response` from the history API request when `image_template` is configured, so per-entry attributes are available — they just weren't being used. Order is now `currState.attributes ?? liveEntity?.attributes ?? {}`, so each event renders with its own attribute snapshot.
+  - **Behavior change:** if you were relying on `image_template` rendering with the most recent live attribute values rather than the per-event snapshot, you'll see different output now. The new behavior matches what the documentation has always promised.
+
+---
+
 # Chronicle Card v1.10.0 — Security Fix, Exclude Filters & Layout Improvements
 
 ## Security
