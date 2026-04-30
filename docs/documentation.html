@@ -622,7 +622,7 @@
       </ul>
     </nav>
     <div class="nav-right">
-      <span class="version-badge">v1.9.2</span>
+      <span class="version-badge">v1.11.1</span>
       <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
       </button>
@@ -709,6 +709,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
         <div class="sidebar-group-items">
+          <a href="#example-llm-vision" class="sidebar-link">LLM Vision Integration</a>
           <a href="#example-frigate" class="sidebar-link">Frigate Camera Events</a>
           <a href="#example-multi" class="sidebar-link">Multi-Source Timeline</a>
           <a href="#example-security" class="sidebar-link">Security Log</a>
@@ -1122,7 +1123,7 @@
       <!-- ===== FILTERS ===== -->
       <div class="doc-section" id="filters">
         <h2>Filters</h2>
-        <p>Filter events by category, severity, source, entity, or free-text search. The visual editor exposes these as a dedicated Filters section with a search field, comma-separated categories input, severity checkboxes (critical, warning, info, debug), and source/entity dropdowns.</p>
+        <p>Filter events by category, severity, source, entity, or free-text search. Inclusion filters narrow the timeline to only matching events; exclusion filters hide specific items while keeping everything else visible. The visual editor exposes these as a dedicated Filters section with a search field, comma-separated categories input, severity checkboxes (critical, warning, info, debug), source/entity dropdowns, and a nested Exclusions section mirroring the same options.</p>
         <div class="code-block">
           <div class="code-header">
             <span>yaml</span>
@@ -1139,7 +1140,10 @@
     - <span class="hl-str">Frigate Events</span>
   <span class="hl-key">entities</span>:
     - <span class="hl-str">binary_sensor.front_door</span>
-  <span class="hl-key">search</span>: <span class="hl-str">"front door"</span></div>
+  <span class="hl-key">search</span>: <span class="hl-str">"front door"</span>
+  <span class="hl-key">exclude_categories</span>:
+    - <span class="hl-str">debug</span>
+  <span class="hl-key">exclude_search</span>: <span class="hl-str">"proxmox"</span></div>
         </div>
         <table class="doc-table">
           <thead>
@@ -1151,6 +1155,11 @@
             <tr><td><code>sources</code></td><td>list</td><td>Only show events from these source names</td></tr>
             <tr><td><code>entities</code></td><td>list</td><td>Only show events from these entity IDs</td></tr>
             <tr><td><code>search</code></td><td>string</td><td>Free-text search across event titles and descriptions</td></tr>
+            <tr><td><code>exclude_categories</code></td><td>list</td><td>Hide events matching any of these categories</td></tr>
+            <tr><td><code>exclude_severities</code></td><td>list</td><td>Hide events at any of these severity levels</td></tr>
+            <tr><td><code>exclude_sources</code></td><td>list</td><td>Hide events from these source names</td></tr>
+            <tr><td><code>exclude_entities</code></td><td>list</td><td>Hide events from these entity IDs</td></tr>
+            <tr><td><code>exclude_search</code></td><td>string</td><td>Hide events whose title, description, category, or label contain this string (case-insensitive)</td></tr>
           </tbody>
         </table>
       </div>
@@ -1199,6 +1208,7 @@
   <span class="hl-key">show_icons</span>: <span class="hl-num">true</span>
   <span class="hl-key">show_severity_badge</span>: <span class="hl-num">true</span>
   <span class="hl-key">show_source_badge</span>: <span class="hl-num">false</span>
+  <span class="hl-key">show_category</span>: <span class="hl-num">true</span>
   <span class="hl-key">animate_new_events</span>: <span class="hl-num">true</span>
   <span class="hl-key">severity_colors</span>:
     <span class="hl-key">critical</span>: <span class="hl-str">"#D32F2F"</span>
@@ -1211,12 +1221,13 @@
             <tr><th>Option</th><th>Type</th><th>Default</th><th>Description</th></tr>
           </thead>
           <tbody>
-            <tr><td><code>card_height</code></td><td>string</td><td><code>400px</code></td><td>Fixed height of the card body</td></tr>
+            <tr><td><code>card_height</code></td><td>string</td><td><code>400px</code></td><td>Card body height. In vertical mode this caps the inner scroll area; in horizontal mode it sets the height of the card strip and centers the cards within it. Set to <code>auto</code> to disable.</td></tr>
             <tr><td><code>compact</code></td><td>boolean</td><td><code>false</code></td><td>Use compact event rows</td></tr>
             <tr><td><code>show_images</code></td><td>boolean</td><td><code>true</code></td><td>Show event thumbnails</td></tr>
             <tr><td><code>show_icons</code></td><td>boolean</td><td><code>true</code></td><td>Show event icons</td></tr>
             <tr><td><code>show_severity_badge</code></td><td>boolean</td><td><code>true</code></td><td>Show severity labels on events</td></tr>
             <tr><td><code>show_source_badge</code></td><td>boolean</td><td><code>false</code></td><td>Show source name badge on events</td></tr>
+            <tr><td><code>show_category</code></td><td>boolean</td><td><code>true</code></td><td>Show the category / label / entity-name pill row beneath each event title. Disable for a denser layout that keeps icons and descriptions but drops the metadata pills.</td></tr>
             <tr><td><code>animate_new_events</code></td><td>boolean</td><td><code>true</code></td><td>Animate new events as they arrive</td></tr>
             <tr><td><code>severity_colors</code></td><td>object</td><td>(built-in)</td><td>Override severity level colors</td></tr>
           </tbody>
@@ -1469,6 +1480,66 @@
       </div>
 
       <!-- ===== EXAMPLES ===== -->
+      <!-- LLM Vision Integration -->
+      <div class="doc-section" id="example-llm-vision">
+        <h2>Example: LLM Vision Integration</h2>
+        <p>Pair the <a href="https://github.com/valentinfrlch/ha-llmvision" target="_blank" rel="noopener">LLM Vision</a> integration with <code>image_template</code> so each timeline event can show its analyzed snapshot. The automation saves the frame to a predictable path (timestamp-based) and the card's template matches each event to its snapshot.</p>
+
+        <h3>1. Save the snapshot in your automation</h3>
+        <div class="code-block">
+          <div class="code-header">
+            <span>yaml</span>
+            <button class="code-copy" onclick="copyCode(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy</button>
+          </div>
+          <div class="code-body"><span class="hl-key">automation</span>:
+  - <span class="hl-key">alias</span>: <span class="hl-str">Analyze Doorbell Frame</span>
+    <span class="hl-key">trigger</span>:
+      - <span class="hl-key">platform</span>: <span class="hl-str">state</span>
+        <span class="hl-key">entity_id</span>: <span class="hl-str">binary_sensor.doorbell_person</span>
+        <span class="hl-key">to</span>: <span class="hl-str">"on"</span>
+    <span class="hl-key">variables</span>:
+      <span class="hl-key">ts</span>: <span class="hl-str">"{{ as_timestamp(now()) | timestamp_custom('%Y%m%d_%H%M%S', true) }}"</span>
+      <span class="hl-key">snapshot</span>: <span class="hl-str">"/config/www/snapshots/doorbell_{{ ts }}.jpg"</span>
+    <span class="hl-key">action</span>:
+      - <span class="hl-key">service</span>: <span class="hl-str">camera.snapshot</span>
+        <span class="hl-key">target</span>:
+          <span class="hl-key">entity_id</span>: <span class="hl-str">camera.doorbell</span>
+        <span class="hl-key">data</span>:
+          <span class="hl-key">filename</span>: <span class="hl-str">"{{ snapshot }}"</span>
+      - <span class="hl-key">service</span>: <span class="hl-str">llmvision.image_analyzer</span>
+        <span class="hl-key">data</span>:
+          <span class="hl-key">provider</span>: <span class="hl-str">openai</span>
+          <span class="hl-key">image_file</span>: <span class="hl-str">"{{ snapshot }}"</span>
+          <span class="hl-key">message</span>: <span class="hl-str">"Describe what you see in one short sentence."</span>
+        <span class="hl-key">response_variable</span>: <span class="hl-str">vision</span>
+      - <span class="hl-key">service</span>: <span class="hl-str">input_text.set_value</span>
+        <span class="hl-key">target</span>:
+          <span class="hl-key">entity_id</span>: <span class="hl-str">input_text.doorbell_last_caption</span>
+        <span class="hl-key">data</span>:
+          <span class="hl-key">value</span>: <span class="hl-str">"{{ vision.response_text }}"</span></div>
+        </div>
+
+        <h3>2. Match the snapshot in Chronicle</h3>
+        <p>Use the same timestamp format in <code>image_template</code> so each event resolves to its own saved frame:</p>
+        <div class="code-block">
+          <div class="code-header">
+            <span>yaml</span>
+            <button class="code-copy" onclick="copyCode(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy</button>
+          </div>
+          <div class="code-body"><span class="hl-key">type</span>: <span class="hl-str">custom:chronicle-card</span>
+<span class="hl-key">title</span>: <span class="hl-str">Doorbell</span>
+<span class="hl-key">sources</span>:
+  - <span class="hl-key">type</span>: <span class="hl-str">history</span>
+    <span class="hl-key">name</span>: <span class="hl-str">Doorbell</span>
+    <span class="hl-key">entity</span>: <span class="hl-str">binary_sensor.doorbell_person</span>
+    <span class="hl-key">state_filter</span>: [<span class="hl-str">"on"</span>]
+    <span class="hl-key">image_template</span>: &gt;-
+      /local/snapshots/doorbell_{{ as_timestamp(timestamp) | timestamp_custom('%Y%m%d_%H%M%S', true) }}.jpg</div>
+        </div>
+
+        <p>The LLM caption ends up in <code>input_text.doorbell_last_caption</code> and can be surfaced via a separate static or REST source if you want it on the timeline alongside the snapshot. The Camera Snapshots blueprint above can replace step 1 entirely if you only need the snapshot without analysis.</p>
+      </div>
+
       <!-- Frigate Camera Events -->
       <div class="doc-section" id="example-frigate">
         <h2>Example: Frigate Camera Events</h2>
