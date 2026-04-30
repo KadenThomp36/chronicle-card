@@ -1,3 +1,13 @@
+# Chronicle Card v1.11.1 — Merge Live and Historical Attributes for `image_template`
+
+## Bug Fix
+
+- **`image_template` now backfills newly-added attribute keys from the live entity.** v1.11.0 made the history adapter prefer per-state historical attributes, which fixed templates for keys that existed at every snapshot but broke them for keys added *after* older history entries were recorded (e.g. an `aircraft_photo` attribute added recently — older entries have a populated `attributes` dict that simply doesn't contain that key, so `??` would never fall through). The adapter now shallow-merges live attributes under historical ones: per-state values still win where they exist, and keys that only appear on the current entity fall back to the live value instead of rendering empty.
+
+  Concrete effect: `{{ attributes.aircraft_photo }}` resolves to the per-event photo for entries recorded after the attribute was introduced, and to the current entity's photo for older entries (instead of nothing).
+
+---
+
 # Chronicle Card v1.11.0 — Per-Event Attributes in `image_template`
 
 ## Bug Fixes
