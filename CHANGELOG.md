@@ -1,3 +1,11 @@
+# Chronicle Card v1.11.2 — Null-Safe `image_template` Batch Rendering
+
+## Bug Fix
+
+- **Fixed `image_template` batch crashing when any event's template resolved to None.** HA's `render_template` WebSocket API resolves with `null` when a template evaluates to `None` (e.g. `{{ attributes.aircraft_photo }}` where the attribute is missing or empty). The batch resolver called `.trim()` directly on each fulfilled result, so a single `null` value threw `TypeError: can't access property "trim", e.value is null` and bubbled into the chunk's `Promise.allSettled` failure path — preventing **every** event in that batch from getting its `mediaUrl`, even ones whose templates resolved to valid URLs. The check is now `r.status === 'fulfilled' && r.value ? r.value.trim() : ''`, so null results are treated as empty (no image) and the batch continues.
+
+---
+
 # Chronicle Card v1.11.1 — Merge Live and Historical Attributes for `image_template`
 
 ## Bug Fix

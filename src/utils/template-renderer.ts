@@ -88,7 +88,11 @@ export async function renderTemplateBatch(
       chunk.map((ctx) => renderTemplate(hass, userTemplate, { ...ctx })),
     );
     for (const r of results) {
-      allResults.push(r.status === 'fulfilled' ? r.value.trim() : '');
+      // HA's render_template can resolve with null when the user template
+      // evaluates to None (e.g. {{ attributes.foo }} where foo is missing).
+      // Guard against null/undefined so one such result doesn't blow up the
+      // whole batch via `.trim()` on null.
+      allResults.push(r.status === 'fulfilled' && r.value ? r.value.trim() : '');
     }
   }
 
