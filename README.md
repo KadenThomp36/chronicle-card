@@ -1,9 +1,11 @@
 # Chronicle Card
 
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-support-yellow?style=flat&logo=buy-me-a-coffee)](https://buymeacoffee.com/kadenthomp36)
-[![HACS][hacs-badge]][hacs-url]
+[![HACS Default][hacs-badge]][hacs-url]
 [![GitHub Release][release-badge]][release-url]
 [![License][license-badge]][license-url]
+
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=KadenThomp36&repository=chronicle-card&category=plugin)
 
 A universal, extensible timeline card for [Home Assistant](https://www.home-assistant.io/). Display events from **any source** — calendar entities, REST APIs, Frigate, entity state history, or manually defined events — in a single, interactive timeline.
 
@@ -31,14 +33,14 @@ A universal, extensible timeline card for [Home Assistant](https://www.home-assi
 
 ### HACS (Recommended)
 
-> **Note:** HACS Default store listing is pending approval. For now, add as a custom repository. Once approved, a one-click install button will be available.
+Chronicle Card is in the **HACS default store**. Click the badge below to open the repository inside your HACS instance, or follow the manual steps:
+
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=KadenThomp36&repository=chronicle-card&category=plugin)
 
 1. Open HACS in your Home Assistant instance
-2. Go to the **three-dot menu** (top right) > **Custom repositories**
-3. Enter `https://github.com/KadenThomp36/chronicle-card` and select **Dashboard** as the category
-4. Click **Add**, then find **Chronicle Card** in the list and click **Download**
-5. Go to **Settings → Dashboards → Resources**, click **Add**, and enter `/hacsfiles/chronicle-card/chronicle-card.js` as **JavaScript Module**
-6. Restart Home Assistant
+2. Search for **Chronicle Card** and click **Download**
+3. Go to **Settings → Dashboards → Resources**, click **Add**, and enter `/hacsfiles/chronicle-card/chronicle-card.js` as **JavaScript Module**
+4. Restart Home Assistant
 
 ### Manual
 
