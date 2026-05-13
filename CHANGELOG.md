@@ -1,3 +1,52 @@
+# Chronicle Card v1.12.0-rc.1 — Per-Source Grouping & Custom Group Names
+
+> **Pre-release.** Enable "Show beta versions" in HACS to install. See test notes below.
+
+## New Features
+
+- **Per-source grouping config.** Each `source` entry can now declare its own `grouping` block that overrides the card-level `grouping` settings for events from that source. When any source opts in, that source's events are grouped in isolation (events from other sources won't mix into the same group), then merged into the global timeline by timestamp. Sources without an override fall through to a single shared pass using the card-level config, preserving today's behavior for un-overridden setups.
+- **Custom group summary names.** `grouping.group_name` (works at card-level or per-source) sets a custom label for groups, replacing the auto-generated "N X events" text. Supports `{count}`, `{label}`, `{source}`, and `{entity}` placeholders. Example: `group_name: "{count} camera detections"`.
+
+## Bug Fix
+
+- **`group_by: entity` now actually names groups by entity.** Previously `buildSummary` checked label-agreement first, so a bucket of entity-grouped events that happened to share a category (e.g. all `default`) would render as `"5 default events"` instead of the entity name. The summary now respects the chosen grouping dimension before falling through to label-agreement (#15).
+
+## Editor
+
+The visual editor doesn't yet surface per-source grouping or `group_name` — both are YAML-only for this RC. Editor UI will follow in the stable 1.12.0 release.
+
+## Example
+
+```yaml
+type: custom:chronicle-card
+sources:
+  - type: rest
+    name: Frigate
+    ws_params:
+      type: frigate/events/get
+      limit: 30
+    grouping:
+      window_seconds: 60
+      min_group_size: 2
+      group_by: category
+      group_name: "{count} {label} detections"
+
+  - type: history
+    name: Doors
+    entities: [binary_sensor.front_door, binary_sensor.back_door]
+    grouping:
+      group_by: entity
+      group_name: "{entity} — {count} events"
+
+# Card-level grouping still applies to any source that doesn't have its own.
+grouping:
+  window_seconds: 120
+  min_group_size: 3
+  group_by: category
+```
+
+---
+
 # Chronicle Card v1.11.2 — Null-Safe `image_template` Batch Rendering
 
 ## Bug Fix

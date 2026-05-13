@@ -1,12 +1,33 @@
 import { HomeAssistant, TimeRange } from '../types';
-import { ChronicleEvent, EventGroup } from '../models/event';
-import { ChronicleCardConfig, DEFAULT_CONFIG } from '../models/config';
+import { ChronicleEvent, EventGroup, isEventGroup } from '../models/event';
+import { ChronicleCardConfig, DEFAULT_CONFIG, GroupingConfig, SourceConfig } from '../models/config';
 import { ISourceAdapter } from '../adapters/adapter';
 import { adapterRegistry } from '../adapters/adapter-registry';
 import { groupEvents } from './event-grouper';
 import { resolveMediaUrl } from '../utils/media-resolver';
 import { isJinjaTemplate, renderTemplateBatch, TemplateContext } from '../utils/template-renderer';
 import { DEFAULT_POLL_INTERVAL } from '../constants';
+
+/**
+ * Compute the sourceId an adapter will stamp on its events for a given config.
+ * Mirrors the `config.name || <fallback>` rule each adapter uses internally so
+ * we can route events back to their source-level config without having to
+ * thread the SourceConfig object through every event.
+ */
+function effectiveSourceId(s: SourceConfig): string {
+  if (s.name) return s.name;
+  switch (s.type) {
+    case 'calendar': return s.entity || 'calendar';
+    case 'rest':     return s.url || 'rest';
+    case 'history':  return 'history';
+    case 'static':   return 'static';
+    default:         return s.type;
+  }
+}
+
+function timestampOf(item: ChronicleEvent | EventGroup): number {
+  return new Date(isEventGroup(item) ? item.representative.start : item.start).getTime();
+}
 
 type ChangeCallback = () => void;
 
@@ -201,16 +222,55 @@ export class EventStore {
       events = events.slice(0, max);
     }
 
-    // Group
-    const groupingConfig = {
+    // Card-level grouping defaults (used as fallback when a source doesn't
+    // declare its own grouping config).
+    const cardGrouping: GroupingConfig = {
       enabled: true,
       window_seconds: 120,
       min_group_size: 3,
-      group_by: 'category' as const,
+      group_by: 'category',
       ...this.config.grouping,
     };
 
-    this.filteredItems = groupEvents(events, groupingConfig);
+    // Detect per-source grouping overrides. When at least one source declares
+    // its own `grouping`, we switch to a bucketed pass: each overriding source
+    // is grouped in isolation with its merged config, everything else goes
+    // through a single global pass with the card-level config. The two
+    // result streams are then merged by timestamp (newest first) so the
+    // timeline stays time-ordered overall.
+    const perSourceConfigs = new Map<string, GroupingConfig>();
+    for (const s of this.config.sources ?? []) {
+      if (s.grouping) {
+        perSourceConfigs.set(effectiveSourceId(s), { ...cardGrouping, ...s.grouping });
+      }
+    }
+
+    if (perSourceConfigs.size === 0) {
+      this.filteredItems = groupEvents(events, cardGrouping);
+      this.notify();
+      return;
+    }
+
+    const sourceBuckets = new Map<string, ChronicleEvent[]>();
+    const globalBucket: ChronicleEvent[] = [];
+    for (const e of events) {
+      if (perSourceConfigs.has(e.sourceId)) {
+        const list = sourceBuckets.get(e.sourceId) ?? [];
+        list.push(e);
+        sourceBuckets.set(e.sourceId, list);
+      } else {
+        globalBucket.push(e);
+      }
+    }
+
+    const allItems: Array<ChronicleEvent | EventGroup> = [];
+    for (const [sourceId, bucket] of sourceBuckets) {
+      allItems.push(...groupEvents(bucket, perSourceConfigs.get(sourceId)!));
+    }
+    allItems.push(...groupEvents(globalBucket, cardGrouping));
+    allItems.sort((a, b) => timestampOf(b) - timestampOf(a));
+
+    this.filteredItems = allItems;
     this.notify();
   }
 

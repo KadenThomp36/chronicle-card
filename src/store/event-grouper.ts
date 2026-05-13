@@ -31,22 +31,34 @@ export function groupEvents(
     const count = bucket.length;
     const rep = bucket[0];
 
-    // Check if all events share the same label/category
-    const uniqueLabels = new Set(bucket.map(e => e.label || e.category).filter(Boolean));
-
-    if (uniqueLabels.size === 1) {
-      return `${count} ${[...uniqueLabels][0]} events`;
+    // Custom group_name template wins outright. Supports {count} / {label} /
+    // {source} / {entity} placeholders so users can write e.g. "{count} camera
+    // detections" without losing the dynamic count.
+    if (config.group_name) {
+      return config.group_name
+        .replace(/\{count\}/g, String(count))
+        .replace(/\{label\}/g, rep.label || rep.category || '')
+        .replace(/\{source\}/g, rep.sourceId || '')
+        .replace(/\{entity\}/g, rep.entityName || rep.entityId || '');
     }
 
-    // Mixed labels — use the grouping dimension
+    // When the user explicitly groups by entity or source, that dimension is
+    // what they want to see in the summary — regardless of whether all events
+    // happen to share a label. (Previously, all-default-category events would
+    // render as "5 default events" even with `group_by: entity`.)
     switch (groupBy) {
       case 'source':
         return `${count} ${rep.sourceId} events`;
       case 'entity':
         return `${count} ${rep.entityName || rep.entityId || 'entity'} events`;
-      default:
-        return `${count} ${rep.category} events`;
     }
+
+    // Category grouping (or fallback): prefer a shared label when present.
+    const uniqueLabels = new Set(bucket.map(e => e.label || e.category).filter(Boolean));
+    if (uniqueLabels.size === 1) {
+      return `${count} ${[...uniqueLabels][0]} events`;
+    }
+    return `${count} ${rep.category} events`;
   };
 
   const flushBucket = () => {

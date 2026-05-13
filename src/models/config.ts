@@ -55,6 +55,12 @@ export interface SourceConfig {
   image_template?: string;
   tap_action?: ActionConfig;
   hold_action?: ActionConfig;
+  /**
+   * Optional per-source grouping override. Merged on top of the card-level
+   * `grouping` config. When set, events from this source are grouped in
+   * isolation rather than mixing with events from other sources.
+   */
+  grouping?: GroupingConfig;
   events?: Array<{
     title: string;
     description?: string;
@@ -85,6 +91,11 @@ export interface GroupingConfig {
   window_seconds?: number;
   min_group_size?: number;
   group_by?: 'category' | 'source' | 'entity' | 'none';
+  /**
+   * Custom summary label for groups (overrides the auto-generated "N X events").
+   * Supports placeholders: {count}, {label}, {source}, {entity}.
+   */
+  group_name?: string;
 }
 
 export interface AppearanceConfig {
