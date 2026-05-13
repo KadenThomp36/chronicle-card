@@ -1,3 +1,11 @@
+# Chronicle Card v1.12.0-rc.3 — Native HA Form for Grouping Override
+
+> **Pre-release.** Enable "Show beta versions" in HACS to install.
+
+## On top of rc.2
+
+- **Rewrote the per-source "Grouping Override" section to use `ha-expansion-panel` + `ha-selector` exclusively** — matching the same HA-native primitives the existing Entity Overrides section uses, instead of the custom `<details>` / `<label>` markup rc.2 shipped with. rc.2's rendering was visually broken in HA's editor theme (labels showed but the input controls were missing). Each field is now an `ha-selector` with its native helper text, and the inherit-on-blank semantics are handled at the change-handler level (empty values delete the key). Same schema, same merge semantics; only the editor markup changed.
+
 # Chronicle Card v1.12.0-rc.2 — Editor UI for Grouping
 
 > **Pre-release.** Enable "Show beta versions" in HACS to install.

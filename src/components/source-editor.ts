@@ -248,65 +248,8 @@ export class SourceEditor extends LitElement {
       line-height: 1.4;
     }
 
-    /* Per-source grouping override section */
-    .grouping-details {
-      margin-top: 8px;
-      border-top: 1px solid var(--divider-color, rgba(127,127,127,0.12));
-      padding-top: 8px;
-    }
-    .grouping-details > summary {
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--secondary-text-color, #777);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      cursor: pointer;
-      list-style: none;
-      padding: 4px 0;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .grouping-details > summary::-webkit-details-marker { display: none; }
-    .grouping-details > summary::before {
-      content: '▸';
-      font-size: 10px;
-      transition: transform 0.15s ease;
-      color: var(--secondary-text-color, #999);
-    }
-    .grouping-details[open] > summary::before { transform: rotate(90deg); }
-    .grouping-details .section-body {
-      padding: 8px 0 4px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    .active-pill {
-      display: inline-block;
-      padding: 1px 6px;
-      border-radius: 8px;
-      background: rgba(33,150,243,0.15);
-      color: #1976d2;
-      font-size: 9px;
-      font-weight: 700;
-      letter-spacing: 0.4px;
-    }
-    .hint-text {
-      font-size: 11px;
-      color: var(--secondary-text-color, #888);
-      margin: 0 0 4px;
-      line-height: 1.4;
-    }
-    .toggle-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-    }
-    .toggle-label {
-      font-size: 12px;
-      color: var(--primary-text-color, #333);
-    }
+    /* Per-source grouping override section uses ha-expansion-panel +
+       ha-selector — no custom styles needed, all HA-native. */
 
     /* Per-entity expansion panels */
     ha-expansion-panel {
@@ -516,93 +459,90 @@ export class SourceEditor extends LitElement {
   }
 
   /**
-   * Per-source grouping override. Mirrors the card-level Grouping section but
-   * scoped to this source's events. When any source has its own grouping
-   * config, EventStore.applyFiltersAndGroup buckets events by source and runs
-   * grouping in isolation for the overriding sources.
+   * Per-source grouping override. Renders inside an ha-expansion-panel using
+   * ha-selector fields — the same primitives HA's own config editors use, and
+   * what the per-entity overrides above already use. Each field falls back to
+   * the card-level grouping config when left blank (`value || undefined` in
+   * the change handler clears the key).
    */
   private _renderGroupingSection() {
     const g = this.source.grouping ?? {};
     const hasOverride = !!this.source.grouping;
+    const overrideKeys = Object.keys(g).filter((k) => (g as Record<string, unknown>)[k] !== undefined);
+    const secondary = hasOverride
+      ? `Customized · ${overrideKeys.length} override${overrideKeys.length === 1 ? '' : 's'}`
+      : 'Inherits the card-level Grouping config';
+
     return html`
-      <details class="grouping-details">
-        <summary>
-          Grouping Override
-          ${hasOverride ? html`<span class="active-pill">active</span>` : nothing}
-        </summary>
-        <div class="section-body">
-          <p class="hint-text">
-            Settings here override the card-level Grouping for this source's events.
-            When set, this source's events group in isolation rather than mixing
-            with events from other sources. Leave blank to inherit the card-level config.
-          </p>
-          <div class="toggle-row">
-            <span class="toggle-label">Enable Grouping</span>
-            <ha-switch
-              .checked=${g.enabled !== false}
-              @change=${(e: any) => this._updateGrouping('enabled', e.target.checked)}
-            ></ha-switch>
-          </div>
-          <div class="row">
-            <div class="field">
-              <label>Window (seconds)</label>
-              <ha-textfield
-                type="number"
-                .value=${g.window_seconds != null ? String(g.window_seconds) : ''}
-                .label=${"Inherit from card if blank"}
-                @input=${(e: any) => this._updateGrouping('window_seconds', e.target.value === '' ? undefined : Number(e.target.value))}
-              ></ha-textfield>
-            </div>
-            <div class="field">
-              <label>Min Group Size</label>
-              <ha-textfield
-                type="number"
-                .value=${g.min_group_size != null ? String(g.min_group_size) : ''}
-                .label=${"Inherit from card if blank"}
-                @input=${(e: any) => this._updateGrouping('min_group_size', e.target.value === '' ? undefined : Number(e.target.value))}
-              ></ha-textfield>
-            </div>
-          </div>
-          <div class="field">
-            <label>Group By</label>
-            <ha-select
-              .value=${g.group_by ?? ''}
-              @change=${(e: any) => this._updateGrouping('group_by', e.target.value || undefined)}
-              @closed=${(e: any) => e.stopPropagation()}
-            >
-              <mwc-list-item value="">(inherit)</mwc-list-item>
-              <mwc-list-item value="category">Category</mwc-list-item>
-              <mwc-list-item value="source">Source</mwc-list-item>
-              <mwc-list-item value="entity">Entity</mwc-list-item>
-              <mwc-list-item value="none">None</mwc-list-item>
-            </ha-select>
-          </div>
-          <div class="field">
-            <label>Group Name</label>
-            <ha-textfield
-              .value=${g.group_name ?? ''}
-              .label=${"e.g. {count} {label} detections"}
-              .helper=${"Custom summary label. Placeholders: {count}, {label}, {source}, {entity}."}
-              helperPersistent
-              @input=${(e: any) => this._updateGrouping('group_name', e.target.value || undefined)}
-            ></ha-textfield>
-          </div>
+      <ha-expansion-panel
+        .outlined=${true}
+        .header=${'Grouping Override'}
+        .secondary=${secondary}
+      >
+        <div class="entity-panel-content">
+          <ha-selector
+            .hass=${this.hass}
+            .selector=${{ number: { min: 0, max: 3600, mode: 'box', unit_of_measurement: 'seconds' } }}
+            .value=${g.window_seconds ?? ''}
+            .label=${'Window (seconds)'}
+            .helper=${'Grouping window. Leave blank to inherit the card-level value.'}
+            @value-changed=${(e: any) => this._updateGrouping('window_seconds', e.detail.value)}
+          ></ha-selector>
+
+          <ha-selector
+            .hass=${this.hass}
+            .selector=${{ number: { min: 1, max: 100, mode: 'box' } }}
+            .value=${g.min_group_size ?? ''}
+            .label=${'Minimum group size'}
+            .helper=${'Smallest bucket that forms a group. Leave blank to inherit.'}
+            @value-changed=${(e: any) => this._updateGrouping('min_group_size', e.detail.value)}
+          ></ha-selector>
+
+          <ha-selector
+            .hass=${this.hass}
+            .selector=${{ select: {
+              options: [
+                { value: 'category', label: 'Category' },
+                { value: 'source',   label: 'Source'   },
+                { value: 'entity',   label: 'Entity'   },
+                { value: 'none',     label: 'None'     },
+              ],
+              mode: 'dropdown',
+            } }}
+            .value=${g.group_by ?? ''}
+            .label=${'Group by'}
+            .helper=${'Leave unset to inherit the card-level grouping dimension.'}
+            @value-changed=${(e: any) => this._updateGrouping('group_by', e.detail.value || undefined)}
+          ></ha-selector>
+
+          <ha-selector
+            .hass=${this.hass}
+            .selector=${{ text: {} }}
+            .value=${g.group_name ?? ''}
+            .label=${'Group name'}
+            .helper=${'Custom summary label. Placeholders: {count}, {label}, {source}, {entity}.'}
+            @value-changed=${(e: any) => this._updateGrouping('group_name', e.detail.value)}
+          ></ha-selector>
+
           ${hasOverride ? html`
-            <div class="row" style="margin-top:8px;">
-              <button class="remove-btn" @click=${this._clearGrouping}>Clear override</button>
-            </div>
+            <button class="add-label-btn" @click=${this._clearGrouping}>Clear override</button>
           ` : nothing}
         </div>
-      </details>
+      </ha-expansion-panel>
     `;
   }
 
   private _updateGrouping(key: string, value: unknown) {
-    const next = { ...(this.source.grouping ?? {}) };
-    if (value === undefined || value === '' || (typeof value === 'number' && Number.isNaN(value))) {
-      delete (next as Record<string, unknown>)[key];
+    const next = { ...(this.source.grouping ?? {}) } as Record<string, unknown>;
+    const isEmpty =
+      value === undefined ||
+      value === null ||
+      value === '' ||
+      (typeof value === 'number' && Number.isNaN(value));
+    if (isEmpty) {
+      delete next[key];
     } else {
-      (next as Record<string, unknown>)[key] = value;
+      next[key] = value;
     }
     this._update('grouping', Object.keys(next).length > 0 ? next : undefined);
   }
