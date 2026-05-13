@@ -622,7 +622,7 @@
       </ul>
     </nav>
     <div class="nav-right">
-      <span class="version-badge">v1.11.1</span>
+      <span class="version-badge">v1.12.0</span>
       <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
       </button>
@@ -1176,7 +1176,8 @@
   <span class="hl-key">enabled</span>: <span class="hl-num">true</span>
   <span class="hl-key">window_seconds</span>: <span class="hl-num">120</span>
   <span class="hl-key">min_group_size</span>: <span class="hl-num">3</span>
-  <span class="hl-key">group_by</span>: <span class="hl-str">category</span></div>
+  <span class="hl-key">group_by</span>: <span class="hl-str">category</span>
+  <span class="hl-key">group_name</span>: <span class="hl-str">"{count} {label} events"</span></div>
         </div>
         <table class="doc-table">
           <thead>
@@ -1187,8 +1188,41 @@
             <tr><td><code>window_seconds</code></td><td>number</td><td><code>120</code></td><td>Sliding time window (in seconds) &mdash; each event is compared to the previous event in the group</td></tr>
             <tr><td><code>min_group_size</code></td><td>number</td><td><code>3</code></td><td>Minimum number of events to form a group</td></tr>
             <tr><td><code>group_by</code></td><td>string</td><td><code>category</code></td><td><code>category</code>, <code>source</code>, <code>entity</code>, or <code>none</code></td></tr>
+            <tr><td><code>group_name</code></td><td>string</td><td><em>auto</em></td><td>Custom summary label. Supports <code>{count}</code>, <code>{label}</code>, <code>{source}</code>, <code>{entity}</code> placeholders. Falls back to the auto-generated &ldquo;N X events&rdquo; summary when unset.</td></tr>
           </tbody>
         </table>
+
+        <h3>Per-source grouping override</h3>
+        <p>Each <code>source</code> entry can declare its own <code>grouping</code> block. When set, that source's events are grouped in isolation (events from other sources won't mix into the same group), then merged back into the global timeline by timestamp. Sources without an override fall through to the card-level grouping config above, so existing setups are unchanged.</p>
+        <div class="code-block">
+          <div class="code-header">
+            <span>yaml</span>
+            <button class="code-copy" onclick="copyCode(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy</button>
+          </div>
+          <div class="code-body"><span class="hl-key">sources</span>:
+  - <span class="hl-key">type</span>: <span class="hl-str">rest</span>
+    <span class="hl-key">name</span>: <span class="hl-str">Frigate</span>
+    <span class="hl-key">ws_params</span>:
+      <span class="hl-key">type</span>: <span class="hl-str">frigate/events/get</span>
+      <span class="hl-key">limit</span>: <span class="hl-num">30</span>
+    <span class="hl-key">grouping</span>:
+      <span class="hl-key">window_seconds</span>: <span class="hl-num">60</span>
+      <span class="hl-key">min_group_size</span>: <span class="hl-num">2</span>
+      <span class="hl-key">group_by</span>: <span class="hl-str">category</span>
+      <span class="hl-key">group_name</span>: <span class="hl-str">"{count} {label} detections"</span>
+
+  - <span class="hl-key">type</span>: <span class="hl-str">history</span>
+    <span class="hl-key">name</span>: <span class="hl-str">Doors</span>
+    <span class="hl-key">entities</span>: [<span class="hl-str">binary_sensor.front_door</span>, <span class="hl-str">binary_sensor.back_door</span>]
+    <span class="hl-key">grouping</span>:
+      <span class="hl-key">group_by</span>: <span class="hl-str">entity</span>
+      <span class="hl-key">group_name</span>: <span class="hl-str">"{entity} — {count} events"</span>
+
+<span class="hl-key">grouping</span>:
+  <span class="hl-key">window_seconds</span>: <span class="hl-num">120</span>
+  <span class="hl-key">group_by</span>: <span class="hl-str">category</span></div>
+        </div>
+        <p>The visual editor exposes this as a <strong>Grouping Override</strong> expansion panel inside each source row. Leave any field blank to inherit the card-level value; the <strong>Clear override</strong> button removes the entire override.</p>
       </div>
 
       <!-- ===== APPEARANCE ===== -->

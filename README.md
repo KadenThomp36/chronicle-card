@@ -375,6 +375,7 @@ grouping:
   window_seconds: 120
   min_group_size: 3
   group_by: category
+  group_name: "{count} {label} events"   # optional — see placeholders below
 ```
 
 | Option | Type | Default | Description |
@@ -383,6 +384,39 @@ grouping:
 | `window_seconds` | number | `120` | Time window in seconds. Events within this window may be grouped |
 | `min_group_size` | number | `3` | Minimum events to form a group |
 | `group_by` | string | `category` | `category`, `source`, `entity`, or `none` |
+| `group_name` | string | *auto* | Custom summary label. Supports `{count}`, `{label}`, `{source}`, `{entity}` placeholders. Falls back to the auto-generated "N X events" summary when unset. |
+
+#### Per-source grouping override
+
+Each source can declare its own `grouping` block. When set, that source's events are grouped in isolation (events from other sources won't mix into the same group), then merged back into the global timeline by timestamp. Sources without an override fall through to the card-level grouping.
+
+```yaml
+sources:
+  - type: rest
+    name: Frigate
+    ws_params:
+      type: frigate/events/get
+      limit: 30
+    grouping:
+      window_seconds: 60
+      min_group_size: 2
+      group_by: category
+      group_name: "{count} {label} detections"
+
+  - type: history
+    name: Doors
+    entities: [binary_sensor.front_door, binary_sensor.back_door]
+    grouping:
+      group_by: entity
+      group_name: "{entity} — {count} events"
+
+grouping:
+  # still applies to any source that doesn't have its own grouping block
+  window_seconds: 120
+  group_by: category
+```
+
+The visual editor exposes this as a **Grouping Override** section inside each source row. Blank fields inherit the card-level config; a **Clear override** button drops back to inheritance.
 
 ### Appearance
 

@@ -1,44 +1,15 @@
-# Chronicle Card v1.12.0-rc.4 — Fix Invisible Source Name + Type Fields
-
-> **Pre-release.** Enable "Show beta versions" in HACS to install.
-
-## On top of rc.3
-
-- **Source-row top fields (Source type + Name) are now visible.** Previously they used raw `<label>` + `ha-textfield` / `ha-select` markup; in recent HA frontend builds the textfield rendered with no visible chrome (the user could see the NAME label but no input field underneath). Both now use `ha-selector` (the same pattern the Grouping Override and Entity Overrides sections already use) so they pick up HA's standard editor styling reliably.
-
-# Chronicle Card v1.12.0-rc.3 — Native HA Form for Grouping Override
-
-> **Pre-release.** Enable "Show beta versions" in HACS to install.
-
-## On top of rc.2
-
-- **Rewrote the per-source "Grouping Override" section to use `ha-expansion-panel` + `ha-selector` exclusively** — matching the same HA-native primitives the existing Entity Overrides section uses, instead of the custom `<details>` / `<label>` markup rc.2 shipped with. rc.2's rendering was visually broken in HA's editor theme (labels showed but the input controls were missing). Each field is now an `ha-selector` with its native helper text, and the inherit-on-blank semantics are handled at the change-handler level (empty values delete the key). Same schema, same merge semantics; only the editor markup changed.
-
-# Chronicle Card v1.12.0-rc.2 — Editor UI for Grouping
-
-> **Pre-release.** Enable "Show beta versions" in HACS to install.
-
-## On top of rc.1
-
-- **Card-level `group_name` field** in the visual editor's Grouping section. Live `helperPersistent` hint documents the placeholders.
-- **Per-source "Grouping Override" section** in each source row of the visual editor — collapsible `<details>` with toggle/window/min-size/group-by/group_name fields. An `active` pill appears in the summary when the source has an override set, and a **Clear override** button drops back to inheriting the card-level config. Blank fields mean "inherit from card." Matches the same nested-details pattern used by the existing Exclusions and Entity Overrides sections.
-
-# Chronicle Card v1.12.0-rc.1 — Per-Source Grouping & Custom Group Names
-
-> **Pre-release.** Enable "Show beta versions" in HACS to install.
+# Chronicle Card v1.12.0 — Per-Source Grouping & Custom Group Names
 
 ## New Features
 
-- **Per-source grouping config.** Each `source` entry can now declare its own `grouping` block that overrides the card-level `grouping` settings for events from that source. When any source opts in, that source's events are grouped in isolation (events from other sources won't mix into the same group), then merged into the global timeline by timestamp. Sources without an override fall through to a single shared pass using the card-level config, preserving today's behavior for un-overridden setups.
-- **Custom group summary names.** `grouping.group_name` (works at card-level or per-source) sets a custom label for groups, replacing the auto-generated "N X events" text. Supports `{count}`, `{label}`, `{source}`, and `{entity}` placeholders. Example: `group_name: "{count} camera detections"`.
+- **Per-source grouping config.** Each `source` entry can now declare its own `grouping` block that overrides the card-level grouping. Events from a source with its own override are grouped in isolation — they won't mix into buckets from other sources — and the per-source result is merged back into the global timeline by timestamp. Sources without an override fall through to the card-level config, so existing setups are unchanged. Closes #15.
+- **Custom group summary names.** `grouping.group_name` (card-level or per-source) replaces the auto-generated "N X events" text. Supports `{count}`, `{label}`, `{source}`, and `{entity}` placeholders. Example: `group_name: "{count} camera detections"`.
+- **Editor UI for both.** The Grouping section gains a Group Name input with persistent helper text listing the placeholders. Each source row also gets a **Grouping Override** expansion panel (built from `ha-expansion-panel` + `ha-selector`, matching the existing Entity Overrides pattern) with Window seconds, Min group size, Group by, and Group name fields. Blank fields inherit the card-level value; a **Clear override** button drops the entire override. The panel's secondary line auto-updates: `"Inherits the card-level Grouping config"` or `"Customized · N overrides"`.
 
-## Bug Fix
+## Bug Fixes
 
-- **`group_by: entity` now actually names groups by entity.** Previously `buildSummary` checked label-agreement first, so a bucket of entity-grouped events that happened to share a category (e.g. all `default`) would render as `"5 default events"` instead of the entity name. The summary now respects the chosen grouping dimension before falling through to label-agreement (#15).
-
-## Editor
-
-The visual editor doesn't yet surface per-source grouping or `group_name` — both are YAML-only for this RC. Editor UI will follow in the stable 1.12.0 release.
+- **`group_by: entity` now actually names groups by entity.** Previously `buildSummary` checked label-agreement first, so a bucket of entity-grouped events that happened to share a category (e.g. all `default`) rendered as `"5 default events"` instead of the entity name. The summary now respects the chosen grouping dimension before falling through to label-agreement.
+- **Source-row Source type + Name fields now render with visible chrome.** They previously used raw `<label>` + `ha-textfield` / `ha-select` markup with inline `flex:` sizing; in recent HA frontend builds the textfield rendered with no visible chrome (label showed, input field underneath was invisible in dark theme). Both now use `ha-selector` — the same primitive the rest of the editor uses.
 
 ## Example
 
