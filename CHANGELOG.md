@@ -1,6 +1,15 @@
+# Chronicle Card v1.12.0-rc.2 — Editor UI for Grouping
+
+> **Pre-release.** Enable "Show beta versions" in HACS to install.
+
+## On top of rc.1
+
+- **Card-level `group_name` field** in the visual editor's Grouping section. Live `helperPersistent` hint documents the placeholders.
+- **Per-source "Grouping Override" section** in each source row of the visual editor — collapsible `<details>` with toggle/window/min-size/group-by/group_name fields. An `active` pill appears in the summary when the source has an override set, and a **Clear override** button drops back to inheriting the card-level config. Blank fields mean "inherit from card." Matches the same nested-details pattern used by the existing Exclusions and Entity Overrides sections.
+
 # Chronicle Card v1.12.0-rc.1 — Per-Source Grouping & Custom Group Names
 
-> **Pre-release.** Enable "Show beta versions" in HACS to install. See test notes below.
+> **Pre-release.** Enable "Show beta versions" in HACS to install.
 
 ## New Features
 

@@ -427,6 +427,16 @@ export class ChronicleEditor extends LitElement {
                 <mwc-list-item value="none">None</mwc-list-item>
               </ha-select>
             </div>
+            <div class="field">
+              <label>Group Name</label>
+              <ha-textfield
+                .value=${g.group_name ?? ''}
+                .label=${"Optional — e.g. {count} {label} events"}
+                .helper=${"Custom summary label. Placeholders: {count}, {label}, {source}, {entity}. Leave empty for the default \"N X events\" summary."}
+                helperPersistent
+                @input=${(e: any) => this._setNested('grouping', 'group_name', e.target.value || undefined)}
+              ></ha-textfield>
+            </div>
           </div>
         </details>
 
