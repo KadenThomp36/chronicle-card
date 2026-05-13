@@ -1,3 +1,11 @@
+# Chronicle Card v1.12.0-rc.4 — Fix Invisible Source Name + Type Fields
+
+> **Pre-release.** Enable "Show beta versions" in HACS to install.
+
+## On top of rc.3
+
+- **Source-row top fields (Source type + Name) are now visible.** Previously they used raw `<label>` + `ha-textfield` / `ha-select` markup; in recent HA frontend builds the textfield rendered with no visible chrome (the user could see the NAME label but no input field underneath). Both now use `ha-selector` (the same pattern the Grouping Override and Entity Overrides sections already use) so they pick up HA's standard editor styling reliably.
+
 # Chronicle Card v1.12.0-rc.3 — Native HA Form for Grouping Override
 
 > **Pre-release.** Enable "Show beta versions" in HACS to install.

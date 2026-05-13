@@ -391,25 +391,31 @@ export class SourceEditor extends LitElement {
         <div class="source-body">
           <div class="row">
             <div class="field" style="flex:2;">
-              <label>Source Type</label>
-              <ha-select
+              <ha-selector
+                .hass=${this.hass}
+                .selector=${{ select: {
+                  options: [
+                    { value: 'calendar', label: 'Calendar Entity' },
+                    { value: 'rest',     label: 'REST API'        },
+                    { value: 'history',  label: 'Entity State'    },
+                    { value: 'static',   label: 'Template'        },
+                  ],
+                  mode: 'dropdown',
+                } }}
                 .value=${this.source.type}
-                @change=${this._onTypeChange}
-                @closed=${(e: any) => e.stopPropagation()}
-              >
-                <mwc-list-item value="calendar">Calendar Entity</mwc-list-item>
-                <mwc-list-item value="rest">REST API</mwc-list-item>
-                <mwc-list-item value="history">Entity State</mwc-list-item>
-                <mwc-list-item value="static">Template</mwc-list-item>
-              </ha-select>
+                .label=${'Source type'}
+                @value-changed=${(e: any) => this._onSourceTypeSelected(e.detail.value)}
+              ></ha-selector>
             </div>
             <div class="field" style="flex:3;">
-              <label>Name</label>
-              <ha-textfield
+              <ha-selector
+                .hass=${this.hass}
+                .selector=${{ text: {} }}
                 .value=${this.source.name ?? ''}
-                .label=${"Source display name"}
-                @input=${(e: any) => this._update('name', e.target.value)}
-              ></ha-textfield>
+                .label=${'Name'}
+                .helper=${'Display name for this source in the timeline and filters.'}
+                @value-changed=${(e: any) => this._update('name', e.detail.value)}
+              ></ha-selector>
             </div>
           </div>
 
@@ -1179,6 +1185,12 @@ export class SourceEditor extends LitElement {
 
   private _onTypeChange(e: any) {
     this._update('type', e.target.value);
+  }
+
+  /** ha-selector value-changed wrapper for the Source type field. */
+  private _onSourceTypeSelected(value: string) {
+    if (!value) return;
+    this._update('type', value);
   }
 
   private _update(key: string, value: unknown) {
