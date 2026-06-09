@@ -187,7 +187,12 @@ export class HistoryAdapter implements ISourceAdapter {
           const prev = entityHistory[i - 1];
           const curr = entityHistory[i];
           const entityId = curr.entity_id || entityHistory[0].entity_id;
-
+          
+          // HA `minimal_response` omits the `state` field on attribute-only
+          // updates (state unchanged). Guard null/undefined before any
+          // .toLowerCase()/.charAt() below, otherwise the whole fetch throws.
+          if (curr.state == null || prev.state == null) continue;
+          
           // Skip if state didn't actually change (attribute-only updates)
           if (prev.state === curr.state) continue;
 
@@ -229,6 +234,7 @@ export class HistoryAdapter implements ISourceAdapter {
 
       if (!data.entity_id || !entitySet.has(data.entity_id)) return;
       if (!data.old_state || !data.new_state) return;
+      if (data.old_state.state == null || data.new_state.state == null) return;
       if (data.old_state.state === data.new_state.state) return;
 
       // Skip unavailable/unknown
