@@ -384,6 +384,7 @@
     .hl-str { color: var(--green); }
     .hl-num { color: var(--orange); }
     .hl-comment { color: var(--text-faint); font-style: italic; }
+    .callout-info { background: var(--blue-glow); border-left: 3px solid var(--blue); border-radius: var(--radius-xs); padding: 12px 16px; font-size: 14px; color: var(--text); }
 
     /* Tables */
     .doc-table {
@@ -622,7 +623,7 @@
       </ul>
     </nav>
     <div class="nav-right">
-      <span class="version-badge">v1.13.0</span>
+      <span class="version-badge">v1.14.0</span>
       <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
       </button>
@@ -763,9 +764,9 @@
         <ol>
           <li>Open HACS in your Home Assistant instance</li>
           <li>Search for <strong>Chronicle Card</strong> and click <strong>Download</strong></li>
-          <li>Go to <strong>Settings &rarr; Dashboards &rarr; Resources</strong>, click <strong>Add</strong>, and enter <code>/hacsfiles/chronicle-card/chronicle-card.js</code> as <strong>JavaScript Module</strong></li>
-          <li>Restart Home Assistant</li>
+          <li>Refresh your browser. HACS registers the dashboard resource automatically; if your dashboards are in YAML mode, add <code>/hacsfiles/chronicle-card/chronicle-card.js</code> as a <strong>JavaScript Module</strong> resource yourself</li>
         </ol>
+        <p>Requires Home Assistant <strong>2024.8</strong> or newer.</p>
 
         <h3>Manual Installation</h3>
         <ol>
@@ -807,9 +808,10 @@
             <tr><td><code>layout</code></td><td>string</td><td><code>vertical</code></td><td><code>vertical</code> or <code>horizontal</code></td></tr>
             <tr><td><code>show_layout_toggle</code></td><td>boolean</td><td><code>true</code></td><td>Show button to switch layouts</td></tr>
             <tr><td><code>max_events</code></td><td>number</td><td><code>50</code></td><td>Maximum events to display</td></tr>
-            <tr><td><code>days_back</code></td><td>number</td><td><code>7</code></td><td>How many days of history to fetch</td></tr>
-            <tr><td><code>time_format</code></td><td>string</td><td><code>24h</code></td><td><code>12h</code> or <code>24h</code></td></tr>
-            <tr><td><code>language</code></td><td>string</td><td><code>auto</code></td><td>Override language (<code>en</code>, <code>de</code>, <code>fr</code>, <code>es</code>, <code>it</code>, <code>pt</code>, <code>nl</code>, <code>sv</code>, <code>pl</code>)</td></tr>
+            <tr><td><code>days_back</code></td><td>number</td><td><code>7</code></td><td>How far back to look. Whole numbers are calendar days: <code>0</code> = today since midnight, <code>1</code> = yesterday and today. Decimals are a rolling window (<code>0.5</code> = the last 12 hours)</td></tr>
+            <tr><td><code>days_forward</code></td><td>number</td><td><code>0</code></td><td>Look ahead for upcoming calendar/static events, with the same day semantics as <code>days_back</code></td></tr>
+            <tr><td><code>time_format</code></td><td>string</td><td><em>profile</em></td><td><code>12h</code> or <code>24h</code>. Unset follows your Home Assistant profile, as do the date format and time zone</td></tr>
+            <tr><td><code>language</code></td><td>string</td><td><code>auto</code></td><td>Override the card&rsquo;s language (<code>en</code>, <code>de</code>, <code>fr</code>, <code>es</code>, <code>it</code>, <code>pt</code>, <code>nl</code>, <code>sv</code>, <code>pl</code>)</td></tr>
             <tr><td><code>show_header</code></td><td>boolean</td><td><code>true</code></td><td>Show the card header</td></tr>
             <tr><td><code>sources</code></td><td>list</td><td>Required</td><td>Array of source configurations</td></tr>
             <tr><td><code>filters</code></td><td>object</td><td><code>{}</code></td><td>Filter configuration</td></tr>
@@ -850,6 +852,19 @@
             <tr><td><code>entity</code></td><td>string</td><td>Calendar entity ID</td></tr>
           </tbody>
         </table>
+        <h3>Upcoming Events</h3>
+        <p>Set the card option <code>days_forward</code> to include upcoming events. Combine it with <code>days_back: 0</code> for an agenda of today and the days ahead. All-day events are shown without a time, and the detail dialog shows the event&rsquo;s location.</p>
+        <div class="code-block">
+          <div class="code-header">
+            <span>yaml</span>
+            <button class="code-copy" onclick="copyCode(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy</button>
+          </div>
+          <div class="code-body"><span class="hl-key">days_back</span>: <span class="hl-num">0</span>
+<span class="hl-key">days_forward</span>: <span class="hl-num">7</span>
+<span class="hl-key">sources</span>:
+  - <span class="hl-key">type</span>: <span class="hl-str">calendar</span>
+    <span class="hl-key">entity</span>: <span class="hl-str">calendar.family</span></div>
+        </div>
       </div>
 
       <!-- ===== REST / WEBSOCKET SOURCE ===== -->
@@ -942,7 +957,7 @@
       <!-- ===== HISTORY SOURCE ===== -->
       <div class="doc-section" id="source-history">
         <h2>History Source</h2>
-        <p>Converts entity state changes into timeline events. A single history source can watch multiple entities via the <code>entities</code> list, with per-entity overrides via <code>entity_config</code>. Chronicle reads the <code>device_class</code> attribute for smart human-readable translations, and automatically deduplicates repeated words in titles and descriptions (e.g. &ldquo;Doorbell Motion Motion Cleared&rdquo; becomes &ldquo;Doorbell Motion Cleared&rdquo;). You can attach Jinja2 templates for dynamic thumbnails and HA-native tap/hold actions to each event.</p>
+        <p>Converts entity state changes into timeline events. A single history source can watch multiple entities via the <code>entities</code> list, with per-entity overrides via <code>entity_config</code>. State labels come from Home Assistant&rsquo;s own formatting &mdash; device-class aware and in your language &mdash; so a door sensor reads &ldquo;Front Door Open&rdquo; / &ldquo;Front Door Closed&rdquo; with no configuration. Repeated words between the name and the state are removed (&ldquo;Hallway Motion&rdquo; + &ldquo;Motion detected&rdquo; doesn&rsquo;t double up). New state changes appear live, using the state updates Home Assistant already sends the dashboard &mdash; no extra subscriptions. You can attach images, video clips and HA-native tap/hold actions to each event.</p>
 
         <div class="code-block">
           <div class="code-header">
@@ -965,7 +980,7 @@
         </div>
 
         <h3>Custom State Map</h3>
-        <p>Override the default state translations with a custom <code>state_map</code>:</p>
+        <p>Override Home Assistant&rsquo;s state labels with a custom <code>state_map</code>:</p>
         <div class="code-block">
           <div class="code-header">
             <span>yaml</span>
@@ -995,25 +1010,27 @@
       - <span class="hl-str">"on"</span></div>
         </div>
 
-        <h3>Device Class Translations</h3>
-        <p>The following device classes are automatically translated when no <code>state_map</code> is provided:</p>
-        <table class="doc-table">
-          <thead>
-            <tr><th>Device Class</th><th>On State</th><th>Off State</th></tr>
-          </thead>
-          <tbody>
-            <tr><td>door / opening / window</td><td>Opened</td><td>Closed</td></tr>
-            <tr><td>motion</td><td>Motion Detected</td><td>Motion Cleared</td></tr>
-            <tr><td>lock</td><td>Unlocked</td><td>Locked</td></tr>
-            <tr><td>smoke</td><td>Smoke Detected</td><td>Clear</td></tr>
-            <tr><td>moisture</td><td>Wet</td><td>Dry</td></tr>
-            <tr><td>occupancy</td><td>Occupied</td><td>Unoccupied</td></tr>
-            <tr><td>presence</td><td>Present</td><td>Away</td></tr>
-            <tr><td>vibration</td><td>Vibration</td><td>Still</td></tr>
-            <tr><td>connectivity</td><td>Connected</td><td>Disconnected</td></tr>
-            <tr><td>battery</td><td>Low</td><td>Normal</td></tr>
-          </tbody>
-        </table>
+        <h3>Images &amp; Clips</h3>
+        <p><code>image_template</code> sets each event&rsquo;s thumbnail. It can be a plain URL or path, or a Jinja2 template rendered per event with the variables <code>entity_id</code>, <code>state</code>, <code>old_state</code>, <code>timestamp</code>, <code>attributes</code> and <code>source_name</code>. <code>clip_template</code> works the same way and plays a video in the detail dialog while the thumbnail stays a still image. If a clip can&rsquo;t play inline (for example on some iOS setups), the dialog falls back to the image and shows an <strong>Open clip</strong> link. Rendered templates are cached, so polling doesn&rsquo;t re-render them.</p>
+        <div class="code-block">
+          <div class="code-header">
+            <span>yaml</span>
+            <button class="code-copy" onclick="copyCode(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy</button>
+          </div>
+          <div class="code-body"><span class="hl-key">sources</span>:
+  - <span class="hl-key">type</span>: <span class="hl-str">history</span>
+    <span class="hl-key">entities</span>:
+      - <span class="hl-str">binary_sensor.front_door</span>
+    <span class="hl-key">image_template</span>: &gt;-
+      {% if state == 'on' %} /local/door_open.png {% else %} /local/door_closed.png {% endif %}
+  - <span class="hl-key">type</span>: <span class="hl-str">history</span>
+    <span class="hl-key">entities</span>:
+      - <span class="hl-str">sensor.pet_feeder</span>
+    <span class="hl-key">image_template</span>: <span class="hl-str">/local/pets/yoshi.jpg</span>   <span class="hl-comment"># a plain path works too</span></div>
+        </div>
+        <div class="callout-info" style="margin-top:12px;">
+          Use <code>/local/</code> URLs (files in <code>/config/www/</code>) or integration proxy URLs such as Frigate snapshots. Home Assistant&rsquo;s <code>/api/camera_proxy/</code> URLs need an auth header that images can&rsquo;t send.
+        </div>
 
         <h3>History Source Options</h3>
         <table class="doc-table">
@@ -1027,16 +1044,15 @@
             <tr><td><code>state_map</code></td><td>object</td><td>Source-level default: map of state values to custom display strings</td></tr>
             <tr><td><code>state_color</code></td><td>object</td><td>Source-level default: per-state color overrides keyed by raw state value (e.g. <code>armed_away: "#80ff87"</code>)</td></tr>
             <tr><td><code>state_icon</code></td><td>object</td><td>Source-level default: per-state MDI icon overrides keyed by raw state value</td></tr>
-            <tr><td><code>show_attributes</code></td><td>string[]</td><td>Source-level default: attribute names whose values are appended to the event description (e.g. &ldquo;Idle &rarr; Heating &middot; temperature: 72&rdquo;)</td></tr>
+            <tr><td><code>show_attributes</code></td><td>string[]</td><td>Source-level default: attributes shown on a line under each event, formatted by Home Assistant (e.g. &ldquo;Temperature: 21.5 &deg;C&rdquo;). Also shown in compact mode</td></tr>
             <tr><td><code>entity_config</code></td><td>object</td><td>Per-entity overrides, keyed by entity ID (see table below)</td></tr>
-            <tr><td><code>image_template</code></td><td>string</td><td>Jinja2 template rendered per event to produce a thumbnail URL. Variables: <code>entity_id</code>, <code>state</code>, <code>old_state</code>, <code>timestamp</code>, <code>attributes</code>, <code>source_name</code></td></tr>
-            <tr><td><code>tap_action</code></td><td>object</td><td>Action on tap: <code>more-info</code>, <code>navigate</code>, <code>call-service</code>, or <code>none</code></td></tr>
-            <tr><td><code>hold_action</code></td><td>object</td><td>Action on hold (500ms): same format as <code>tap_action</code></td></tr>
+            <tr><td><code>image_template</code></td><td>string</td><td>Thumbnail: a URL/path or a Jinja2 template (see <a href="#source-history">Images &amp; Clips</a>)</td></tr>
+            <tr><td><code>clip_template</code></td><td>string</td><td>Video clip for the detail dialog: a URL/path or a Jinja2 template with the same variables</td></tr>
           </tbody>
         </table>
 
         <h3>Per-Entity Config (<code>entity_config.&lt;entity_id&gt;</code>)</h3>
-        <p>Customize filtering, naming, and appearance for individual entities within a history source. Per-entity settings override source-level defaults, which override auto-detected device class defaults.</p>
+        <p>Customize filtering, naming, and appearance for individual entities within a history source. Per-entity settings override source-level defaults, which override Home Assistant&rsquo;s defaults.</p>
         <table class="doc-table">
           <thead>
             <tr><th>Option</th><th>Type</th><th>Description</th></tr>
@@ -1047,11 +1063,12 @@
             <tr><td><code>state_map</code></td><td>object</td><td>Override state labels for this entity (overrides source-level map)</td></tr>
             <tr><td><code>state_color</code></td><td>object</td><td>Per-state color overrides for this entity, keyed by raw state value (overrides source-level map)</td></tr>
             <tr><td><code>state_icon</code></td><td>object</td><td>Per-state MDI icon overrides for this entity, keyed by raw state value (overrides source-level map)</td></tr>
-            <tr><td><code>show_attributes</code></td><td>string[]</td><td>Attribute names whose values are appended to this entity&rsquo;s event descriptions (overrides source-level list)</td></tr>
+            <tr><td><code>show_attributes</code></td><td>string[]</td><td>Attributes shown under this entity&rsquo;s events (overrides the source-level list)</td></tr>
             <tr><td><code>icon</code></td><td>string</td><td>MDI icon override (e.g. <code>mdi:lock-alert</code>)</td></tr>
             <tr><td><code>color</code></td><td>string</td><td>Hex color override (e.g. <code>#FF9800</code>)</td></tr>
             <tr><td><code>severity</code></td><td>string</td><td>Severity override: <code>critical</code>, <code>warning</code>, <code>info</code>, or <code>debug</code></td></tr>
             <tr><td><code>image_template</code></td><td>string</td><td>Per-entity image template override (overrides source-level)</td></tr>
+            <tr><td><code>clip_template</code></td><td>string</td><td>Per-entity clip template override</td></tr>
             <tr><td><code>tap_action</code></td><td>object</td><td>Per-entity tap action override</td></tr>
             <tr><td><code>hold_action</code></td><td>object</td><td>Per-entity hold action override</td></tr>
           </tbody>
@@ -1085,7 +1102,7 @@
         </div>
 
         <h3>State Colors, Icons &amp; Attributes</h3>
-        <p>Use <code>state_color</code> and <code>state_icon</code> to override the event color or icon per raw state value &mdash; both work per-entity in <code>entity_config</code> and at the source level. Resolution precedence: <code>state_color[state]</code> (entity-level, then source-level) &rarr; <code>color</code> &rarr; fuzzy keyword inference &rarr; defaults. <code>show_attributes</code> lists attribute names whose values are appended to the event description (e.g. &ldquo;Idle &rarr; Heating &middot; temperature: 72&rdquo;).</p>
+        <p>Use <code>state_color</code> and <code>state_icon</code> to override the event color or icon per raw state value &mdash; both work per-entity in <code>entity_config</code> and at the source level. Resolution precedence: <code>state_color[state]</code> (entity-level, then source-level) &rarr; <code>color</code> &rarr; fuzzy keyword inference &rarr; defaults. <code>show_attributes</code> lists attributes to show on a line under each event; Home Assistant formats the names and values, including units (e.g. &ldquo;Temperature: 21.5 &deg;C&rdquo;).</p>
         <div class="code-block">
           <div class="code-header">
             <span>yaml</span>
@@ -1163,12 +1180,14 @@
           <tbody>
             <tr><td><code>type</code></td><td>string</td><td>Source type: <code>calendar</code>, <code>rest</code>, <code>history</code>, <code>static</code>, or <code>logbook</code></td></tr>
             <tr><td><code>name</code></td><td>string</td><td>Display name for the source</td></tr>
-            <tr><td><code>default_icon</code></td><td>string</td><td>Fallback MDI icon for events from this source</td></tr>
+            <tr><td><code>default_icon</code></td><td>string</td><td>Fallback icon for events from this source (<code>mdi:</code> or any icon set Home Assistant knows)</td></tr>
             <tr><td><code>default_color</code></td><td>string</td><td>Fallback color for events from this source</td></tr>
             <tr><td><code>default_severity</code></td><td>string</td><td>Fallback severity level (<code>critical</code>, <code>warning</code>, <code>info</code>, <code>debug</code>)</td></tr>
             <tr><td><code>icon_map</code></td><td>object</td><td>Map of category/keyword to MDI icon</td></tr>
             <tr><td><code>color_map</code></td><td>object</td><td>Map of category/keyword to color</td></tr>
-            <tr><td><code>actions</code></td><td>list</td><td>Action buttons for events from this source</td></tr>
+            <tr><td><code>actions</code></td><td>list</td><td>Action buttons for events from this source (see <a href="#actions">Actions</a>)</td></tr>
+            <tr><td><code>tap_action</code></td><td>object</td><td>Home Assistant action on tap. Unset opens the Chronicle detail dialog</td></tr>
+            <tr><td><code>hold_action</code></td><td>object</td><td>Home Assistant action on hold (500&nbsp;ms)</td></tr>
           </tbody>
         </table>
       </div>
@@ -1176,7 +1195,7 @@
       <!-- ===== FILTERS ===== -->
       <div class="doc-section" id="filters">
         <h2>Filters</h2>
-        <p>Filter events by category, severity, source, entity, or free-text search. Inclusion filters narrow the timeline to only matching events; exclusion filters hide specific items while keeping everything else visible. The visual editor exposes these as a dedicated Filters section with a search field, comma-separated categories input, severity checkboxes (critical, warning, info, debug), source/entity dropdowns, and a nested Exclusions section mirroring the same options.</p>
+        <p>Filter events by category, severity, source, entity, or free-text search. Inclusion filters narrow the timeline to only matching events; exclusion filters hide specific items while keeping everything else visible. The visual editor has a <strong>Filters</strong> section with the same options, plus a nested <strong>Exclusions</strong> section.</p>
         <div class="code-block">
           <div class="code-header">
             <span>yaml</span>
@@ -1276,7 +1295,7 @@
   <span class="hl-key">window_seconds</span>: <span class="hl-num">120</span>
   <span class="hl-key">group_by</span>: <span class="hl-str">category</span></div>
         </div>
-        <p>The visual editor exposes this as a <strong>Grouping Override</strong> expansion panel inside each source row. Leave any field blank to inherit the card-level value; the <strong>Clear override</strong> button removes the entire override.</p>
+        <p>The visual editor exposes this as a <strong>Grouping override</strong> section inside each source. Leave a field blank to inherit the card-level value; clearing all of them removes the override.</p>
       </div>
 
       <!-- ===== APPEARANCE ===== -->
@@ -1291,10 +1310,10 @@
           <div class="code-body"><span class="hl-key">appearance</span>:
   <span class="hl-key">card_height</span>: <span class="hl-str">400px</span>
   <span class="hl-key">compact</span>: <span class="hl-num">false</span>
+  <span class="hl-key">show_description</span>: <span class="hl-num">true</span>
   <span class="hl-key">show_images</span>: <span class="hl-num">true</span>
   <span class="hl-key">show_icons</span>: <span class="hl-num">true</span>
   <span class="hl-key">show_severity_badge</span>: <span class="hl-num">true</span>
-  <span class="hl-key">show_source_badge</span>: <span class="hl-num">false</span>
   <span class="hl-key">show_category</span>: <span class="hl-num">true</span>
   <span class="hl-key">animate_new_events</span>: <span class="hl-num">true</span>
   <span class="hl-key">severity_colors</span>:
@@ -1308,12 +1327,12 @@
             <tr><th>Option</th><th>Type</th><th>Default</th><th>Description</th></tr>
           </thead>
           <tbody>
-            <tr><td><code>card_height</code></td><td>string</td><td><code>400px</code></td><td>Card body height. A fixed value (e.g. <code>400px</code>) caps the inner scroll area; <code>fill</code> (or <code>100%</code>) stretches the card to the full height the dashboard provides — ideal for <strong>Panel layout</strong>; <code>auto</code> grows with content with no limit. In horizontal mode a fixed value sets the card-strip height and centers the cards within it.</td></tr>
-            <tr><td><code>compact</code></td><td>boolean</td><td><code>false</code></td><td>Use compact event rows</td></tr>
+            <tr><td><code>card_height</code></td><td>string</td><td><code>400px</code></td><td>Card body height. A fixed value (e.g. <code>400px</code>) caps the inner scroll area; <code>fill</code> (or <code>100%</code>) stretches the card to the full height the dashboard provides — ideal for <strong>Panel layout</strong>; <code>auto</code> grows with content with no limit. In a sections view, giving the card a height in the layout editor also makes it fill. In horizontal mode a fixed value sets the card-strip height and centers the cards within it.</td></tr>
+            <tr><td><code>compact</code></td><td>boolean</td><td><code>false</code></td><td>Single-line events; hides descriptions and tags (attribute lines stay)</td></tr>
+            <tr><td><code>show_description</code></td><td>boolean</td><td><em>auto</em></td><td>Show the secondary line (e.g. &ldquo;Off &rarr; On&rdquo;). Defaults to on, or off in compact mode</td></tr>
             <tr><td><code>show_images</code></td><td>boolean</td><td><code>true</code></td><td>Show event thumbnails</td></tr>
             <tr><td><code>show_icons</code></td><td>boolean</td><td><code>true</code></td><td>Show event icons</td></tr>
             <tr><td><code>show_severity_badge</code></td><td>boolean</td><td><code>true</code></td><td>Show severity labels on events</td></tr>
-            <tr><td><code>show_source_badge</code></td><td>boolean</td><td><code>false</code></td><td>Show source name badge on events</td></tr>
             <tr><td><code>show_category</code></td><td>boolean</td><td><code>true</code></td><td>Show the category / label / entity-name pill row beneath each event title. Disable for a denser layout that keeps icons and descriptions but drops the metadata pills.</td></tr>
             <tr><td><code>animate_new_events</code></td><td>boolean</td><td><code>true</code></td><td>Animate new events as they arrive</td></tr>
             <tr><td><code>severity_colors</code></td><td>object</td><td>(built-in)</td><td>Override severity level colors</td></tr>
@@ -1324,7 +1343,25 @@
       <!-- ===== ACTIONS ===== -->
       <div class="doc-section" id="actions">
         <h2>Actions</h2>
-        <p>Add action buttons to events. Actions can navigate, call services, or fire custom events.</p>
+        <h3>Tap &amp; Hold</h3>
+        <p>Every source supports <code>tap_action</code> and <code>hold_action</code> (per entity too, via <code>entity_config</code>). They take any <a href="https://www.home-assistant.io/dashboards/actions/" target="_blank" rel="noopener">Home Assistant action</a> &mdash; <code>more-info</code>, <code>toggle</code>, <code>navigate</code>, <code>url</code>, <code>perform-action</code> (with optional <code>confirmation</code>), <code>assist</code>, <code>fire-dom-event</code>, <code>none</code> &mdash; because Chronicle hands them to Home Assistant&rsquo;s own action handler. With no tap action configured, tapping opens the Chronicle detail dialog.</p>
+        <div class="code-block">
+          <div class="code-header">
+            <span>yaml</span>
+            <button class="code-copy" onclick="copyCode(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy</button>
+          </div>
+          <div class="code-body"><span class="hl-key">sources</span>:
+  - <span class="hl-key">type</span>: <span class="hl-str">history</span>
+    <span class="hl-key">entities</span>: [<span class="hl-str">binary_sensor.front_door</span>]
+    <span class="hl-key">tap_action</span>:
+      <span class="hl-key">action</span>: <span class="hl-str">more-info</span>
+    <span class="hl-key">hold_action</span>:
+      <span class="hl-key">action</span>: <span class="hl-str">navigate</span>
+      <span class="hl-key">navigation_path</span>: <span class="hl-str">/history?entity_id={entity_id}</span></div>
+        </div>
+
+        <h3>Action Buttons</h3>
+        <p>Add buttons under each event with <code>actions</code>. A button takes the same keys as <code>tap_action</code>, plus a <code>label</code> and optional <code>icon</code>.</p>
         <div class="code-block">
           <div class="code-header">
             <span>yaml</span>
@@ -1336,20 +1373,16 @@
     <span class="hl-key">actions</span>:
       - <span class="hl-key">label</span>: <span class="hl-str">View Camera</span>
         <span class="hl-key">icon</span>: <span class="hl-str">mdi:cctv</span>
-        <span class="hl-key">type</span>: <span class="hl-str">navigate</span>
-        <span class="hl-key">url</span>: <span class="hl-str">/lovelace/cameras</span>
+        <span class="hl-key">action</span>: <span class="hl-str">navigate</span>
+        <span class="hl-key">navigation_path</span>: <span class="hl-str">/lovelace/cameras</span>
       - <span class="hl-key">label</span>: <span class="hl-str">Dismiss</span>
         <span class="hl-key">icon</span>: <span class="hl-str">mdi:close</span>
-        <span class="hl-key">type</span>: <span class="hl-str">service</span>
-        <span class="hl-key">service</span>: <span class="hl-str">input_boolean.turn_off</span>
+        <span class="hl-key">action</span>: <span class="hl-str">perform-action</span>
+        <span class="hl-key">perform_action</span>: <span class="hl-str">input_boolean.turn_off</span>
         <span class="hl-key">target</span>:
           <span class="hl-key">entity_id</span>: <span class="hl-str">input_boolean.alert_active</span>
-      - <span class="hl-key">label</span>: <span class="hl-str">Trigger Alarm</span>
-        <span class="hl-key">icon</span>: <span class="hl-str">mdi:alarm-light</span>
-        <span class="hl-key">type</span>: <span class="hl-str">fire-event</span>
-        <span class="hl-key">eventType</span>: <span class="hl-str">custom_alarm</span>
-        <span class="hl-key">eventData</span>:
-          <span class="hl-key">zone</span>: <span class="hl-str">front_yard</span></div>
+        <span class="hl-key">confirmation</span>:
+          <span class="hl-key">text</span>: <span class="hl-str">Dismiss this alert?</span></div>
         </div>
         <table class="doc-table">
           <thead>
@@ -1357,30 +1390,26 @@
           </thead>
           <tbody>
             <tr><td><code>label</code></td><td>string</td><td>Button label text</td></tr>
-            <tr><td><code>icon</code></td><td>string</td><td>MDI icon for the button</td></tr>
-            <tr><td><code>type</code></td><td>string</td><td>Action type: <code>service</code>, <code>navigate</code>, or <code>fire-event</code></td></tr>
-            <tr><td><code>service</code></td><td>string</td><td>Service to call (for <code>service</code> type)</td></tr>
-            <tr><td><code>serviceData</code></td><td>object</td><td>Additional data for the service call</td></tr>
-            <tr><td><code>target</code></td><td>object</td><td>Target entity/device/area for the service call</td></tr>
-            <tr><td><code>url</code></td><td>string</td><td>URL to navigate to (for <code>navigate</code> type)</td></tr>
-            <tr><td><code>eventType</code></td><td>string</td><td>Custom event type (for <code>fire-event</code> type)</td></tr>
-            <tr><td><code>eventData</code></td><td>object</td><td>Data payload for the custom event</td></tr>
+            <tr><td><code>icon</code></td><td>string</td><td>Icon for the button</td></tr>
+            <tr><td><code>action</code> + action keys</td><td></td><td>Any HA action: <code>perform-action</code> (<code>perform_action</code>, <code>data</code>, <code>target</code>), <code>navigate</code> (<code>navigation_path</code>), <code>url</code> (<code>url_path</code>), <code>more-info</code>, <code>toggle</code>, <code>assist</code>&hellip; plus optional <code>confirmation</code></td></tr>
           </tbody>
         </table>
+        <p>The older button format still works: <code>type: service</code> (<code>service</code>, <code>serviceData</code>, <code>target</code>), <code>type: navigate</code> (<code>url</code>), and <code>type: fire-event</code> (<code>eventType</code>, <code>eventData</code>, which fires a DOM event for other cards to catch).</p>
 
         <h3>Placeholders</h3>
-        <p>Action strings &mdash; <code>url</code>, <code>navigation_path</code>, <code>serviceData</code> / <code>service_data</code> values, and <code>eventData</code> values &mdash; expand <code>{field}</code> placeholders against the event before the action runs. Unknown placeholders are left as-is.</p>
+        <p>Every string in an action &mdash; tap/hold actions and buttons, including nested <code>data</code> &mdash; expands <code>{field}</code> placeholders against the event before the action runs. Unknown placeholders are left as-is.</p>
         <table class="doc-table">
           <thead>
             <tr><th>Placeholder</th><th>Value</th></tr>
           </thead>
           <tbody>
             <tr><td><code>{id}</code></td><td>Raw upstream ID for REST sources (e.g. the Frigate event ID)</td></tr>
-            <tr><td><code>{entity}</code></td><td>Associated entity ID</td></tr>
+            <tr><td><code>{entity}</code> / <code>{entity_id}</code></td><td>Associated entity ID</td></tr>
             <tr><td><code>{title}</code></td><td>Event title</td></tr>
             <tr><td><code>{source}</code></td><td>Source name</td></tr>
             <tr><td><code>{start}</code> / <code>{end}</code></td><td>Event start / end time</td></tr>
             <tr><td><code>{media_url}</code></td><td>Resolved media URL</td></tr>
+            <tr><td><code>{clip_url}</code></td><td>Resolved clip URL</td></tr>
             <tr><td><code>{category}</code></td><td>Event category</td></tr>
             <tr><td><code>{severity}</code></td><td>Severity level</td></tr>
             <tr><td><code>{&lt;metadata&gt;}</code></td><td>Any scalar metadata key on the event (e.g. <code>{new_state}</code>)</td></tr>
@@ -1834,7 +1863,7 @@
       <!-- ===== LOCALIZATION ===== -->
       <div class="doc-section" id="localization">
         <h2>Localization</h2>
-        <p>Chronicle ships nine languages and auto-detects the language from your Home Assistant locale. Override it with the <code>language</code> card option. (Fixed in v1.13.0 &mdash; in earlier versions the <code>language</code> option was ignored because the translation table wasn't wired in.)</p>
+        <p>The card&rsquo;s own text ships in nine languages, auto-detected from your Home Assistant profile; override it with the <code>language</code> card option. State labels, attribute names and values, dates (&ldquo;Today&rdquo;, &ldquo;5 minutes ago&rdquo;) and times are formatted by Home Assistant and your browser. They follow your profile&rsquo;s language, 12/24h setting and time zone, so they&rsquo;re translated in every language Home Assistant supports.</p>
         <table class="doc-table">
           <thead>
             <tr><th>Code</th><th>Language</th></tr>
