@@ -1,340 +1,69 @@
-# Chronicle Card v1.13.0 — Logbook Source, Localization Fix, Per-State Colors, Clip Playback
+# Chronicle Card v1.14.0 — Native Home Assistant Integration, Look-Ahead, Lighter Live Updates
+
+This release re-audits the whole card against current Home Assistant frontend APIs and moves everything possible onto HA's own building blocks: its state formatting, action handler, form editor and locale settings.
+
+## ⚠️ Behavior changes
+
+- **Requires Home Assistant 2024.8 or newer** (declared in `hacs.json`).
+- **History state labels now come from Home Assistant** (`formatEntityState`). They are translated into your language and device-class aware, but some English wording changes: e.g. a door is "Front Door **Open**" instead of "Opened". `state_map` still overrides anything.
+- **`time_format` now follows your HA profile by default** (12/24h, plus the profile's time zone setting). Set `time_format: 12h`/`24h` to force one.
+- **Whole-number `days_back` counts calendar days.** `days_back: 0` now means "today since midnight" (it used to show nothing), and `1` means yesterday + today, regardless of the time of day (thanks @varhub, #36). Decimals keep the old rolling window (`0.5` = the last 12 hours).
+- **Compact mode** keeps hiding descriptions, but `show_attributes` values now show in compact mode too.
 
 ## Bug Fixes
 
-- **The `language` option (and HA language auto-detect) now actually works (#25).** The 9-language translation table existed but was never wired into the UI — every string rendered in English regardless. `Today`/`Yesterday` day headers, relative times ("just now", "5 min ago"), the detail dialog labels (More Info, Entity, Source, Start, End), the empty state, and group summaries are now localized. Formatted dates (e.g. "Mon, Mar 10") also follow the active locale. `language:` in the card config overrides; otherwise the HA frontend language is used.
-- **`chronicle_log_event` blueprint validates again (#27).** `mode: queued` used the invalid key `max_queued` (HA only accepts `max`), and the optional-condition input expanded to an invalid `- []` list item when left at its default. The condition is now wrapped in `condition: and`, which is valid for zero, one, or many conditions.
-- **History adapter no longer throws on attribute-only updates from `minimal_response` (#19,** contributed by @sunlixWhyNotAvailable). Null/undefined states are guarded before string operations in both the fetch and live-subscription paths.
+- **History sources no longer subscribe to the entire `state_changed` firehose (#33).** Live updates now come from the state stream Home Assistant already sends the dashboard, so they add **zero** websocket traffic; previously a busy instance pushed hundreds of KB/s to every open dashboard. This also removes the double subscription race. Huge thanks to @dimatx for the measurements and the PRs (#34, #35) that pinned this down.
+- **Attributes now show in compact mode (#28).** They were appended to the description, which compact mode hides; they now have their own line.
+- **Group time ranges read oldest → newest (#30)** instead of "20:33 – 20:32".
+- **`image_template` accepts a plain URL or path (#31)**, e.g. `image_template: /local/pets/yoshi.jpg`. No Jinja wrapper needed.
+- **Cards kept running after HA moved them, but stopped updating.** After a view switch or edit mode, a card could keep its old events forever; config edits also didn't refetch until the next poll. Both are fixed.
+- REST, logbook and calendar sources now refresh on their `poll_interval` even when no entity state is changing.
+- All-day calendar events no longer shift to the previous day west of UTC and show without a misleading "00:00".
+- Expanded groups stay expanded across refreshes.
+- The "Animate new events" option actually animates new events now.
+- Severity override in the editor no longer offers "Detail Dialog" as a severity.
+- Custom icon sets (`hass:`, `phu:`, `si:` …) are no longer replaced with the default icon.
+- The card's documentation link in the card picker pointed to a nonexistent repository.
 
 ## New Features
 
-- **New `logbook` source type (#20).** Displays HA logbook entries — including automation/script triggers too fast for the history database to record (e.g. automations that fire and return to idle in milliseconds). Entries render as "\<name\> \<message\>" ("Noise above 30dB triggered by state of…"). Supports `entities`, `entity_config` overrides (name/icon/color/severity/actions), `icon_map`/`color_map`, and `poll_interval`. Poll-based (the logbook has no lightweight push channel). Available in the visual editor via **+ Logbook**.
+- **`days_forward` (#29)** — show upcoming calendar and static events alongside the past:
   ```yaml
+  days_back: 0
+  days_forward: 7
   sources:
-    - type: logbook
-      name: Noise above 30dB
-      entities:
-        - automation.bruit_entree_sup_30_db
+    - type: calendar
+      entity: calendar.family
   ```
-- **`show_attributes` for history sources (#24).** List attribute names — per-entity (in `entity_config`) or source-level — and their values are appended to the event description, e.g. "Idle → Heating · temperature: 72". Historical per-state values are used when available (falls back to the live entity value).
+- **`appearance.show_description` (#32)** — hide the "Breakfast → 2. Breakfast" second line for event-like sensors. Defaults to on (off in compact mode).
+- **`clip_template` for history sources (#21)** — a URL/path or Jinja2 template whose video plays in the detail dialog. If a clip can't play inline (reported on iOS), the dialog falls back to the still image and shows an **Open clip** link.
+- **Every Home Assistant action type** works for tap/hold and action buttons, because the card now hands them to HA's own handler: `perform-action` (with `confirmation`), `navigate`, `url`, `toggle`, `more-info`, `assist`, `fire-dom-event`. Tap/hold actions are now available on **all** source types, and buttons accept native action keys:
   ```yaml
-  entity_config:
-    climate.living_room:
-      show_attributes: [temperature]
-    light.kitchen:
-      show_attributes: [brightness]
+  actions:
+    - label: Dismiss
+      icon: mdi:close
+      action: perform-action
+      perform_action: input_boolean.turn_off
+      target: { entity_id: input_boolean.alert }
+      confirmation: { text: Dismiss this alert? }
   ```
-- **Per-state colors and icons for history sources (#22).** New `state_color` and `state_icon` maps — per-entity (inside `entity_config`) or source-level — keyed by raw state value. Precedence: `state_color[state]` (entity → source) → `color` → fuzzy inference → category default → global fallback. Example:
-  ```yaml
-  entity_config:
-    alarm_control_panel.home:
-      color: "#ff725d"
-      state_color:
-        arming: "#ff9800"
-        armed_away: "#80ff87"
-      state_icon:
-        armed_away: mdi:shield-lock
-  ```
-- **`{field}` placeholders in tap/hold actions and action buttons (#21).** `navigation_path`, action `url`, `service_data`, and `eventData` strings now expand placeholders against the tapped event: `{id}` (raw upstream id for REST sources, e.g. the Frigate event id), `{entity}`, `{title}`, `{source}`, `{start}`, `{end}`, `{media_url}`, `{category}`, `{severity}`, and any scalar metadata key (e.g. `{new_state}`). Unknown placeholders are left untouched.
-- **Video clip playback in the detail dialog (#21).** A new REST-source option `clip_url_template` (same `{field}` expansion as `media_url_template`) attaches a clip URL to each event; the detail dialog plays it in an inline `<video>` player (autoplay, muted, looped, with controls) instead of the still/gif. URLs with video extensions (`.mp4`, `.webm`, `.mov`, `.m3u8`, `.mkv`, `.ogv`) in `mediaUrl` are also detected automatically. The timeline keeps showing the lightweight thumbnail.
-- **Polish localization** (contributed by @nkkfs) — the card now ships 9 languages: en, de, fr, es, it, pt, nl, sv, pl.
-
----
-
-# Chronicle Card v1.12.1 — Editor Field Fixes & Panel Fill Height
-
-## Bug Fixes
-
-- **All config-editor text/number fields now render in Safari & Firefox (#16).** Title, Max Events, Days Back, the Grouping window/min-size/group-name fields, Card Height, REST URL / Response Path / Media URL Template / Poll Interval, action navigation/service paths, and per-entity state-label rows previously used raw `ha-textfield` / `ha-select`, which didn't render reliably across browsers (the label showed but the input was invisible — reported on Mac/iPhone Safari and macOS Firefox). Every one of these is now an `ha-selector`, the same primitive the rest of the editor already uses. The visual editor is now `ha-selector`-only for text, number, and select inputs.
-
-## New Features
-
-- **`card_height: fill` for Panel layout (#17).** A new `fill` value (also accepts `100%`) makes the card stretch to the full height the dashboard gives it — e.g. HA's Panel layout, where the card previously capped at ~460px and left the lower dashboard empty. The editor's Card Height field is now a dropdown with **400px (default)**, **Fill available space (Panel layout)**, and **Auto (grow with content)** presets, and still accepts a custom value. Fixed-height and `auto` behavior are unchanged.
-
----
-
-# Chronicle Card v1.12.0 — Per-Source Grouping & Custom Group Names
-
-## New Features
-
-- **Per-source grouping config.** Each `source` entry can now declare its own `grouping` block that overrides the card-level grouping. Events from a source with its own override are grouped in isolation — they won't mix into buckets from other sources — and the per-source result is merged back into the global timeline by timestamp. Sources without an override fall through to the card-level config, so existing setups are unchanged. Closes #15.
-- **Custom group summary names.** `grouping.group_name` (card-level or per-source) replaces the auto-generated "N X events" text. Supports `{count}`, `{label}`, `{source}`, and `{entity}` placeholders. Example: `group_name: "{count} camera detections"`.
-- **Editor UI for both.** The Grouping section gains a Group Name input with persistent helper text listing the placeholders. Each source row also gets a **Grouping Override** expansion panel (built from `ha-expansion-panel` + `ha-selector`, matching the existing Entity Overrides pattern) with Window seconds, Min group size, Group by, and Group name fields. Blank fields inherit the card-level value; a **Clear override** button drops the entire override. The panel's secondary line auto-updates: `"Inherits the card-level Grouping config"` or `"Customized · N overrides"`.
-
-## Bug Fixes
-
-- **`group_by: entity` now actually names groups by entity.** Previously `buildSummary` checked label-agreement first, so a bucket of entity-grouped events that happened to share a category (e.g. all `default`) rendered as `"5 default events"` instead of the entity name. The summary now respects the chosen grouping dimension before falling through to label-agreement.
-- **Source-row Source type + Name fields now render with visible chrome.** They previously used raw `<label>` + `ha-textfield` / `ha-select` markup with inline `flex:` sizing; in recent HA frontend builds the textfield rendered with no visible chrome (label showed, input field underneath was invisible in dark theme). Both now use `ha-selector` — the same primitive the rest of the editor uses.
-
-## Example
-
-```yaml
-type: custom:chronicle-card
-sources:
-  - type: rest
-    name: Frigate
-    ws_params:
-      type: frigate/events/get
-      limit: 30
-    grouping:
-      window_seconds: 60
-      min_group_size: 2
-      group_by: category
-      group_name: "{count} {label} detections"
-
-  - type: history
-    name: Doors
-    entities: [binary_sensor.front_door, binary_sensor.back_door]
-    grouping:
-      group_by: entity
-      group_name: "{entity} — {count} events"
-
-# Card-level grouping still applies to any source that doesn't have its own.
-grouping:
-  window_seconds: 120
-  min_group_size: 3
-  group_by: category
-```
-
----
-
-# Chronicle Card v1.11.2 — Null-Safe `image_template` Batch Rendering
-
-## Bug Fix
-
-- **Fixed `image_template` batch crashing when any event's template resolved to None.** HA's `render_template` WebSocket API resolves with `null` when a template evaluates to `None` (e.g. `{{ attributes.aircraft_photo }}` where the attribute is missing or empty). The batch resolver called `.trim()` directly on each fulfilled result, so a single `null` value threw `TypeError: can't access property "trim", e.value is null` and bubbled into the chunk's `Promise.allSettled` failure path — preventing **every** event in that batch from getting its `mediaUrl`, even ones whose templates resolved to valid URLs. The check is now `r.status === 'fulfilled' && r.value ? r.value.trim() : ''`, so null results are treated as empty (no image) and the batch continues.
-
----
-
-# Chronicle Card v1.11.1 — Merge Live and Historical Attributes for `image_template`
-
-## Bug Fix
-
-- **`image_template` now backfills newly-added attribute keys from the live entity.** v1.11.0 made the history adapter prefer per-state historical attributes, which fixed templates for keys that existed at every snapshot but broke them for keys added *after* older history entries were recorded (e.g. an `aircraft_photo` attribute added recently — older entries have a populated `attributes` dict that simply doesn't contain that key, so `??` would never fall through). The adapter now shallow-merges live attributes under historical ones: per-state values still win where they exist, and keys that only appear on the current entity fall back to the live value instead of rendering empty.
-
-  Concrete effect: `{{ attributes.aircraft_photo }}` resolves to the per-event photo for entries recorded after the attribute was introduced, and to the current entity's photo for older entries (instead of nothing).
-
----
-
-# Chronicle Card v1.11.0 — Per-Event Attributes in `image_template`
-
-## Bug Fixes
-
-- **`image_template` now uses per-state-change attributes** — previously, the history adapter prioritized `hass.states[entityId].attributes` (live, current) over the per-entry attributes returned by HA's history API. Since live state is virtually always populated, every historical event ended up rendering its template with the *current* attribute values rather than the snapshot recorded at that state change. This made `{{ attributes.foo }}` resolve identically across all events. The adapter already omits `minimal_response` from the history API request when `image_template` is configured, so per-entry attributes are available — they just weren't being used. Order is now `currState.attributes ?? liveEntity?.attributes ?? {}`, so each event renders with its own attribute snapshot.
-  - **Behavior change:** if you were relying on `image_template` rendering with the most recent live attribute values rather than the per-event snapshot, you'll see different output now. The new behavior matches what the documentation has always promised.
-
----
-
-# Chronicle Card v1.10.0 — Security Fix, Exclude Filters & Layout Improvements
-
-## Security
-
-- **Fixed stored XSS via unescaped `e.color`** — color values are now validated against a hex / `rgb()` / `rgba()` / `hsl()` / `hsla()` / named-color allowlist before interpolation into `style` attributes. The detail dialog (which builds HTML via `innerHTML`) was vulnerable to attribute-escape injection through a malicious `color` field; all render sites now route through a `safeColor()` helper that returns a fallback for any non-conforming value (#14)
-
-## New Features
-
-- **Exclude filters** — `filters` now supports `exclude_categories`, `exclude_severities`, `exclude_sources`, `exclude_entities`, and `exclude_search`. Lets you hide specific items (e.g. `proxmox`) while keeping everything else visible. Editor exposes them under a new "Exclusions" section (#10)
-- **Hide category tags** — new `appearance.show_category` toggle (default: true). Hides the category/label/entity name pill row beneath each event title — useful when compact mode is too aggressive (#13)
-- **`card_height` honored in horizontal layout** — previously only applied to the vertical scroller. Setting `card_height` on a horizontal layout now constrains the scroll-strip height and vertically centers the cards within it (#12)
-
-## Documentation
-
-- Added LLM Vision integration example showing how to pair `llmvision.image_analyzer` with `image_template` (#11)
-
----
-
-# Chronicle Card v1.9.2 — Bug Fixes & NDJSON Support
-
-## Bug Fixes
-
-- Fixed `image_template` variables (`entity_id`, `state`, `timestamp`, etc.) not injected into Jinja2 scope — now passed directly via HA's `render_template` variables parameter (#8)
-- Fixed `image_template` missing custom entity attributes (e.g. `snapshot_url`) — history API no longer uses `minimal_response` when templates are configured (#8)
-- Fixed blueprint/card timestamp timezone mismatch — both sides now normalize through `as_timestamp` → `timestamp_custom` for consistent filenames (#8)
-- Fixed REST `field_map` not supporting nested dot-notation paths (e.g. `start.dateTime`) — now traverses nested objects (#9)
-
-## New Features
-
-- **NDJSON support** — REST adapter now handles newline-delimited JSON (one JSON object per line), enabling ntfy and similar APIs (#4)
-- **Camera Detection Snapshots blueprint** — captures snapshots on AI detection events with timestamp-based filenames for `image_template` matching
-- **HA blueprint import buttons** — official `my.home-assistant.io` import buttons in docs and README
-
----
-
-# Chronicle Card v1.9.1 — Bug Fixes
-
-## Bug Fixes
-
-- Fixed severity dropdown in source editor not saving selections — switched from `ha-select` to native `ha-selector` component (#5)
-- Fixed REST API double-slash when URL includes `/api/` prefix — `hass.callApi` already prepends `/api/`, now strips redundant prefix (#7)
-- Fixed Frigate WebSocket events failing with `instance_id` error — auto-defaults `instance_id: "frigate"` for `frigate/*` WS types (#6)
-
----
-
-# Chronicle Card v1.9.0 — Changes from v1.8.1
-
-## Jinja2 Template Support
-
-### `image_template` — Dynamic Thumbnails
-- New `image_template` option on history sources renders a Jinja2 template per event to produce dynamic thumbnail URLs
-- Template context variables: `entity_id`, `state`, `old_state`, `timestamp`, `attributes`, `source_name`
-- Batch rendering: all events sharing the same template are rendered in a single WebSocket call (chunked at 50 events)
-- Works at source level and per-entity (per-entity overrides source-level)
-- Use `/local/` URLs or integration-specific proxies (HA's `/api/camera_proxy/` requires auth that `<img>` tags can't send)
-
-### Native `tap_action` / `hold_action`
-- Timeline events now support HA's standard action system
-- `tap_action` and `hold_action` support: `more-info`, `navigate`, `call-service`, `none`
-- Default tap behavior (open Chronicle detail dialog) is preserved when no action is configured
-- `more-info` fires `hass-more-info` from inside HA's DOM tree to open the entity's native dialog
-- `navigate` uses `history.pushState` for in-app navigation
-- `call-service` calls any HA service with data and target
-- Hold detection via pointer events with 500ms threshold, scroll-aware on touch devices
-- Editor shows "Detail Dialog (default)" as an explicit option — can always revert after changing
-
-### "More Info" Button in Detail Dialog
-- New pill button in the event detail dialog opens the entity's native HA more-info dialog
-- Only shown for history source events (calendar/REST/static events don't have meaningful HA entity dialogs)
-- Closes the detail dialog first, then opens more-info
-
-## Per-Entity Configuration
-- New `entity_config` option on history sources for per-entity overrides
-- Each entity can have its own `name`, `state_filter`, `state_map`, `icon`, `color`, `severity`, `image_template`, `tap_action`, and `hold_action`
-- Per-entity settings override source-level defaults, which override auto-detected device class defaults
-- Multi-entity sources now use each entity's friendly name by default (instead of the source name)
-
-## Native HA Editor Components
-- Entity list: Replaced manual add/remove buttons with native `ha-selector` multi-entity chip picker
-- Per-entity settings: Native `ha-expansion-panel` per entity with `ha-selector` components inside
-- State filter: Chip-based multi-select with domain-aware state suggestions and custom value support (case-insensitive matching)
-- Calendar entity: Replaced `ha-entity-picker` with `ha-selector` entity selector
-- Filters section: Categories, severities, sources, and filter entities all use native `ha-selector` components
-- Image template field uses `ha-selector` with `{ template: {} }` for Jinja2 syntax highlighting
-- Tap/hold action editors use `ha-selector` dropdowns with conditional sub-fields (navigation path, service name)
-- Icon and color override fields have × clear buttons to revert to source defaults
-- Removed legacy source-level `state_filter`/`state_map` from GUI (still supported via YAML)
-- Force-loads `hui-action-editor` component from HA
-
-## Bug Fixes
-- Fixed `ha-select` dropdowns not applying changes inside `ha-expansion-panel` — switched to `ha-selector`
-- Fixed `ha-entity-picker` not rendering (lazy-load timing issue)
-- Fixed per-entity state filter case sensitivity (`"Off"` now matches `"off"`)
-- Fixed `hass-more-info` event not reaching HA — was dispatched on `document.body` instead of from inside HA's DOM tree
-
----
-
-# Chronicle Card v1.8.0 — Changes from v1.7.1
-
-## History Adapter Overhaul
-
-### Single entity per source
-- History sources now use `entity` (singular) instead of `entities` (comma-separated array)
-- Users should add one history source per entity they want to track
-- Removed `entities?: string[]` from SourceConfig type
-
-### Same-state duplicate filtering (bug fix)
-- `fetchEvents()` now skips entries where `prev.state === curr.state`
-- Fixes climate/thermostat entities flooding the timeline with duplicate "Heat/Cool" events when only attributes (temperature) changed but state stayed the same
-- `subscribeLive()` already had this check; now both paths are consistent
-
-### State filter
-- Added `state_filter?: string[]` to SourceConfig
-- Only creates timeline events when the new state matches one of the listed values
-- e.g. `state_filter: ["on"]` on a motion sensor only logs "Motion Detected", ignores "Cleared"
-- Applied in both `fetchEvents()` and `subscribeLive()`
-- Empty/undefined = log all state changes (default behavior)
-
-### Smart title deduplication
-- Title no longer doubles words: "Doorbell Motion Motion Cleared" → "Doorbell Motion Cleared"
-- Strips leading words from state label that overlap with trailing words of the display name
-- Description also deduplicates: "Motion Detected → Motion Cleared" → "Detected → Cleared"
-
-### Source name flows through to events
-- Setting `name` on a history source now overrides the entity's friendly_name in event titles
-- e.g. name: "Doorbell" → title becomes "Doorbell Cleared" instead of "Doorbell Motion Cleared"
-- `entityName` field no longer set on history events (was redundant with title)
-
-## Editor: Collapsible Sources
-
-- Each source in the editor is now wrapped in a collapsible `<details>` element
-- Summary line shows: color-coded type badge + source name + entity/URL hint + remove button
-- All sources collapsed by default — much cleaner when 4+ sources are configured
-- Source type and name are in a row layout inside the expanded body
-
-## Editor: Filter UI (new section)
-
-- Added **Filters** section between Sources and Grouping in the visual editor
-- The event store already applied filters — this adds the missing UI:
-  - **Search** — text input for keyword filtering across event titles/descriptions
-  - **Categories** — comma-separated input (e.g. `motion, door, security, person`)
-  - **Severities** — 4 checkboxes (Critical, Warning, Info, Debug)
-  - **Sources** — comma-separated source name filter
-  - **Entities** — comma-separated entity ID filter
-
-## Color & Icon Resolution Priority Fix
-
-- `default_color` and `default_icon` now take priority over automatic keyword inference
-- Previous order: color_map → keyword inference → default_color → category color
-- New order: color_map → default_color → keyword inference → category color
-- Explicit user choices now always win over auto-detection
-
-## Tinted Icon Colors
-
-- Timeline icons are no longer pure white on colored backgrounds
-- Icons now use a subtle light tint of the event color (82% toward white)
-- Creates a more refined, cohesive look — icons feel part of the color circle, not floating on top
-- Applied to both individual events and group icons
-
-## Event Group Redesign
-
-### Visual consistency with individual events
-- Group header now uses identical layout to event-item: same icon size (34px), same padding, same title/time positioning
-- Time range appears in same position as individual event time (right-aligned in top row)
-- Removed visual jarring between grouped and ungrouped cards
-
-### Performant expand/collapse
-- Replaced `max-height: 4000px` transition hack with CSS `grid-template-rows: 0fr → 1fr`
-- Eliminates lag/delay when expanding and collapsing groups
-- Smooth, consistent animation regardless of content height
-
-### Fixed thumbnail strip
-- Rewrote the blur/count overlay to use proper container sizing
-- The "+N" count and blur are now correctly centered on the thumbnail
-- Last thumbnail uses explicit `<div>` wrapper instead of pseudo-element sizing tricks
-
-### Removed background band on expanded children
-- Children now render with clean left-border indent, no colored background band
-- Cleaner visual treatment that doesn't compete with individual event cards
-
-## Grouping Logic Fixes
-
-### Sliding window (bug fix)
-- Window comparison now uses **previous event** timestamp, not the first event in the group
-- Previously: events at 9:43, 9:41, 9:39 with 120s window — 9:39 was compared to 9:43 (4min gap, outside window)
-- Now: 9:39 compared to 9:41 (2min gap, inside window) — correct chaining behavior
-- Groups form naturally when events are consecutive within the window
-
-### Accurate group summaries
-- Fixed "7 cat events" when group contains cat, person, speech events
-- When all events share the same label: "7 cat events" (correct)
-- When labels are mixed and group_by is source: "7 Frigate events" (uses source name)
-- When labels are mixed and group_by is entity: "7 Front Door events" (uses entity name)
-
-## Detail Dialog Fixes
-
-- Close (x) button: added `line-height: 0` and explicit SVG sizing for pixel-perfect centering
-- Severity tag: replaced fixed `height: 22px` with `padding: 4px 10px` for natural text centering
-
-## Severity Badge Fix
-
-- Replaced fixed height with symmetric padding for reliable vertical text centering
-- Added `flex-shrink: 0` to prevent badge from collapsing in tight layouts
-
-## Config Model Cleanup
-
-- Removed `entities?: string[]` from `SourceConfig` (dead field, was only used by old multi-entity history)
-- `entity` (singular) is the canonical field for calendar and history source types
-
-## Version & Build
-
-- Bumped `CARD_VERSION` to `1.8.0` in `src/constants.ts`
-- Updated lovelace_resources cache bust to `?v=1.8.0`
+  The older `type: service | navigate | fire-event` buttons keep working.
+- **Localized everywhere:** attribute names and values (with units), "Today"/"Tomorrow", and relative times come from Home Assistant and your browser, so they're translated in every language HA supports.
+- **Sections view support:** sensible default width, and resizing the card's height in the layout editor makes the timeline fill it. The card picker preview uses a calendar or a few entities from your system. On HA 2026.6+ the card is suggested when adding a card for a calendar, door, lock, person, etc.
+- Detail dialog shows calendar event **location**, uses your custom severity colors, and is keyboard accessible. Timeline entries can be focused and activated with the keyboard.
+
+## Visual editor
+
+- Rebuilt on Home Assistant's own form system with native pickers:
+  - HA's action editor for tap/hold
+  - a state picker for state filters
+  - attribute pickers
+  - icon and color pickers
+  - YAML editors (instead of raw JSON boxes) for field maps, WebSocket commands, state labels and static events
+- Saving from the editor no longer writes every default (empty filter lists, default colors, …) into your YAML. Existing configs are unaffected.
+
+## Under the hood
+
+- History is fetched with the WebSocket `history/history_during_period` command (compressed format, no URL length limits).
+- Jinja2 template results are cached, so polling doesn't re-render them.
+- Bundle size dropped from 180 KB to 133 KB after removing dead code (unused virtual-scroll and API helper modules, English state-label tables, unused strings).
