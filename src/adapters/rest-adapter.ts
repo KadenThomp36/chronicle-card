@@ -197,6 +197,8 @@ export class RestAdapter implements ISourceAdapter {
       entityId: getField('entityId', undefined) as string | undefined,
       entityName: getField('entityName', undefined) as string | undefined,
       actions: this.config.actions,
+      tapAction: this.config.tap_action,
+      holdAction: this.config.hold_action,
       metadata: {
         source_url: this.config.url,
         raw_index: index,

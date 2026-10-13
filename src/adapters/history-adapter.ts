@@ -1,5 +1,5 @@
 import { ISourceAdapter } from './adapter';
-import { HomeAssistant, TimeRange } from '../types';
+import { HomeAssistant, HassEntity, TimeRange } from '../types';
 import { ChronicleEvent, SeverityLevel } from '../models/event';
 import { SourceConfig } from '../models/config';
 import { resolveIcon, resolveColor } from '../utils/icon-resolver';
@@ -12,77 +12,22 @@ interface HistoryState {
   last_updated: string;
 }
 
-// ---------------------------------------------------------------------------
-// Device-class-aware state labels
-// ---------------------------------------------------------------------------
+/**
+ * Compressed state from `history/history_during_period`: `s` state, `a`
+ * attributes (first entry, or all entries without minimal_response), `lu`
+ * last_updated and `lc` last_changed as epoch seconds (`lc` omitted when equal
+ * to `lu`; minimal-response entries carry last_changed in `lu`).
+ */
+interface CompressedHistoryState {
+  s: string;
+  a?: Record<string, unknown>;
+  lu: number;
+  lc?: number;
+}
 
-/** Maps device_class → { state → human label } for binary sensors. */
-const BINARY_SENSOR_LABELS: Record<string, Record<string, string>> = {
-  door:          { on: 'Opened',           off: 'Closed' },
-  opening:       { on: 'Opened',           off: 'Closed' },
-  garage_door:   { on: 'Opened',           off: 'Closed' },
-  window:        { on: 'Opened',           off: 'Closed' },
-  lock:          { on: 'Unlocked',         off: 'Locked' },
-  motion:        { on: 'Motion Detected',  off: 'Motion Cleared' },
-  occupancy:     { on: 'Occupied',         off: 'Unoccupied' },
-  presence:      { on: 'Present',          off: 'Away' },
-  smoke:         { on: 'Smoke Detected',   off: 'Clear' },
-  moisture:      { on: 'Wet',              off: 'Dry' },
-  gas:           { on: 'Gas Detected',     off: 'Clear' },
-  co:            { on: 'CO Detected',      off: 'Clear' },
-  vibration:     { on: 'Vibration',        off: 'Still' },
-  tamper:        { on: 'Tampered',         off: 'Secure' },
-  safety:        { on: 'Unsafe',           off: 'Safe' },
-  power:         { on: 'On',              off: 'Off' },
-  plug:          { on: 'Plugged In',       off: 'Unplugged' },
-  sound:         { on: 'Sound Detected',   off: 'Quiet' },
-  problem:       { on: 'Problem',          off: 'OK' },
-  connectivity:  { on: 'Connected',        off: 'Disconnected' },
-  battery:       { on: 'Low',              off: 'Normal' },
-  running:       { on: 'Running',          off: 'Stopped' },
-  heat:          { on: 'Hot',              off: 'Normal' },
-  cold:          { on: 'Cold',             off: 'Normal' },
-  light:         { on: 'Light Detected',   off: 'Dark' },
-};
+const epochToISO = (epoch: number) => new Date(epoch * 1000).toISOString();
 
-/** Domain-level state labels for non-binary-sensor entities. */
-const DOMAIN_STATE_LABELS: Record<string, Record<string, string>> = {
-  lock: {
-    locked: 'Locked', unlocked: 'Unlocked', jammed: 'Jammed',
-    locking: 'Locking', unlocking: 'Unlocking',
-  },
-  cover: {
-    open: 'Opened', closed: 'Closed', opening: 'Opening', closing: 'Closing',
-  },
-  alarm_control_panel: {
-    armed_away: 'Armed Away', armed_home: 'Armed Home',
-    armed_night: 'Armed Night', armed_vacation: 'Armed Vacation',
-    armed_custom_bypass: 'Armed Custom', disarmed: 'Disarmed',
-    triggered: 'Triggered', pending: 'Pending', arming: 'Arming',
-  },
-  person: {
-    home: 'Home', not_home: 'Away',
-  },
-  device_tracker: {
-    home: 'Home', not_home: 'Away',
-  },
-  light: { on: 'On', off: 'Off' },
-  switch: { on: 'On', off: 'Off' },
-  fan: { on: 'On', off: 'Off' },
-  input_boolean: { on: 'On', off: 'Off' },
-  climate: {
-    off: 'Off', heat: 'Heating', cool: 'Cooling', auto: 'Auto',
-    heat_cool: 'Heat/Cool', fan_only: 'Fan Only', dry: 'Dry',
-  },
-  vacuum: {
-    cleaning: 'Cleaning', docked: 'Docked', returning: 'Returning',
-    idle: 'Idle', paused: 'Paused', error: 'Error',
-  },
-  media_player: {
-    playing: 'Playing', paused: 'Paused', idle: 'Idle',
-    standby: 'Standby', off: 'Off', on: 'On', buffering: 'Buffering',
-  },
-};
+const UNTRACKED_STATES = new Set(['unavailable', 'unknown']);
 
 // ---------------------------------------------------------------------------
 // Device-class → category mapping for binary sensors
@@ -149,10 +94,25 @@ export class HistoryAdapter implements ISourceAdapter {
     return null;
   }
 
-  /** True if any per-entity config has an image_template. */
-  private hasEntityImageTemplates(): boolean {
-    if (!this.config.entity_config) return false;
-    return Object.values(this.config.entity_config).some(c => !!c.image_template);
+  /** Per-state attributes are needed for templates and show_attributes. */
+  private needsAttributes(): boolean {
+    const entityConfs = Object.values(this.config.entity_config ?? {});
+    return !!(
+      this.config.image_template ||
+      this.config.clip_template ||
+      this.config.show_attributes?.length ||
+      entityConfs.some((c) => c.image_template || c.clip_template || c.show_attributes?.length)
+    );
+  }
+
+  /** True when prev → curr is a real, unfiltered state transition. */
+  private isTransition(entityId: string, prev: HistoryState, curr: HistoryState): boolean {
+    // Guard null/undefined before any string ops (attribute-only entries)
+    if (curr.state == null || prev.state == null) return false;
+    if (prev.state === curr.state) return false;
+    if (UNTRACKED_STATES.has(curr.state) || UNTRACKED_STATES.has(prev.state)) return false;
+    const stateFilter = this.getStateFilter(entityId);
+    return !stateFilter || stateFilter.has(curr.state.toLowerCase());
   }
 
   async fetchEvents(hass: HomeAssistant, range: TimeRange): Promise<ChronicleEvent[]> {
@@ -163,55 +123,41 @@ export class HistoryAdapter implements ISourceAdapter {
     }
 
     try {
-      const startISO = range.start.toISOString();
-      const endISO = range.end.toISOString();
-      // Skip minimal_response when image_template or show_attributes is
-      // configured — both need per-state historical attributes
-      const needsAttributes = !!(
-        this.config.image_template ||
-        this.hasEntityImageTemplates() ||
-        this.config.show_attributes?.length ||
-        Object.values(this.config.entity_config ?? {}).some((c) => c.show_attributes?.length)
-      );
-      const path = `history/period/${startISO}?filter_entity_id=${entities.join(',')}&end_time=${endISO}${needsAttributes ? '' : '&minimal_response'}`;
+      const withAttributes = this.needsAttributes();
+      const end = Math.min(range.end.getTime(), Date.now());
+      const response = await hass.callWS<Record<string, CompressedHistoryState[]>>({
+        type: 'history/history_during_period',
+        start_time: range.start.toISOString(),
+        end_time: new Date(end).toISOString(),
+        entity_ids: entities,
+        minimal_response: !withAttributes,
+        no_attributes: !withAttributes,
+        significant_changes_only: true,
+      });
 
-      const response = await hass.callApi<HistoryState[][]>('GET', path);
-
-      if (!Array.isArray(response)) {
+      if (!response || typeof response !== 'object') {
         console.warn('[chronicle-card] HistoryAdapter: unexpected response format');
         return [];
       }
 
       const events: ChronicleEvent[] = [];
-
-      for (const entityHistory of response) {
-        if (!Array.isArray(entityHistory) || entityHistory.length === 0) {
-          continue;
-        }
-
-        for (let i = 1; i < entityHistory.length; i++) {
-          const prev = entityHistory[i - 1];
-          const curr = entityHistory[i];
-          const entityId = curr.entity_id || entityHistory[0].entity_id;
-          
-          // HA `minimal_response` omits the `state` field on attribute-only
-          // updates (state unchanged). Guard null/undefined before any
-          // .toLowerCase()/.charAt() below, otherwise the whole fetch throws.
-          if (curr.state == null || prev.state == null) continue;
-          
-          // Skip if state didn't actually change (attribute-only updates)
-          if (prev.state === curr.state) continue;
-
-          // Skip unavailable/unknown transitions
-          if (curr.state === 'unavailable' || curr.state === 'unknown') continue;
-          if (prev.state === 'unavailable' || prev.state === 'unknown') continue;
-
-          // Apply per-entity or source-level state filter
-          const stateFilter = this.getStateFilter(entityId);
-          if (stateFilter && !stateFilter.has(curr.state.toLowerCase())) continue;
-
-          const event = this.stateChangeToEvent(hass, entityId, prev, curr);
-          events.push(event);
+      for (const [entityId, compressed] of Object.entries(response)) {
+        if (!Array.isArray(compressed)) continue;
+        let prev: HistoryState | undefined;
+        for (const c of compressed) {
+          const lastChanged = epochToISO(c.lc ?? c.lu);
+          const curr: HistoryState = {
+            entity_id: entityId,
+            state: c.s,
+            // Without minimal_response every entry carries its attributes
+            attributes: c.a ?? prev?.attributes,
+            last_changed: lastChanged,
+            last_updated: epochToISO(c.lu),
+          };
+          if (prev && this.isTransition(entityId, prev, curr)) {
+            events.push(this.stateChangeToEvent(hass, entityId, prev, curr));
+          }
+          prev = curr;
         }
       }
 
@@ -222,40 +168,17 @@ export class HistoryAdapter implements ISourceAdapter {
     }
   }
 
-  async subscribeLive(
-    hass: HomeAssistant,
-    onEvent: (e: ChronicleEvent) => void,
-  ): Promise<() => void> {
-    const entities = this.getEntities();
-    if (entities.length === 0) return () => {};
-
-    const entitySet = new Set(entities);
-
-    const unsubscribe = await hass.connection.subscribeEvents((hassEvent) => {
-      const data = hassEvent.data as {
-        entity_id?: string;
-        old_state?: HistoryState;
-        new_state?: HistoryState;
-      };
-
-      if (!data.entity_id || !entitySet.has(data.entity_id)) return;
-      if (!data.old_state || !data.new_state) return;
-      if (data.old_state.state == null || data.new_state.state == null) return;
-      if (data.old_state.state === data.new_state.state) return;
-
-      // Skip unavailable/unknown
-      if (data.new_state.state === 'unavailable' || data.new_state.state === 'unknown') return;
-      if (data.old_state.state === 'unavailable' || data.old_state.state === 'unknown') return;
-
-      // Apply per-entity or source-level state filter
-      const stateFilter = this.getStateFilter(data.entity_id);
-      if (stateFilter && !stateFilter.has(data.new_state.state.toLowerCase())) return;
-
-      const event = this.stateChangeToEvent(hass, data.entity_id, data.old_state, data.new_state);
-      onEvent(event);
-    }, 'state_changed');
-
-    return unsubscribe;
+  processStateChanges(hass: HomeAssistant, oldHass: HomeAssistant): ChronicleEvent[] {
+    const events: ChronicleEvent[] = [];
+    for (const entityId of this.getEntities()) {
+      const curr = hass.states[entityId];
+      const prev = oldHass.states[entityId];
+      if (!curr || !prev || curr === prev) continue;
+      if (this.isTransition(entityId, prev, curr)) {
+        events.push(this.stateChangeToEvent(hass, entityId, prev, curr));
+      }
+    }
+    return events;
   }
 
   /** Get the device_class from the current HA state, or from attributes snapshot. */
@@ -265,44 +188,28 @@ export class HistoryAdapter implements ISourceAdapter {
     if (liveEntity?.attributes?.device_class) {
       return String(liveEntity.attributes.device_class);
     }
-    // Fall back to history snapshot attributes
     if (state.attributes?.device_class) {
       return String(state.attributes.device_class);
     }
     return '';
   }
 
-  /** Translate a raw state value into a human label. */
-  private humanizeState(
-    entityId: string,
-    state: string,
-    deviceClass: string,
-  ): string {
-    // 1. Per-entity state_map takes highest priority
-    const entityLabel = this.config.entity_config?.[entityId]?.state_map?.[state];
-    if (entityLabel) return entityLabel;
-
-    // 2. Source-level state_map
-    const userLabel = this.config.state_map?.[state];
+  /**
+   * Translate a raw state into a label: user state_map (entity → source),
+   * then HA's own localized, device-class-aware formatting.
+   */
+  private humanizeState(hass: HomeAssistant, stateObj: HassEntity, state: string): string {
+    const entityId = stateObj.entity_id;
+    const userLabel = this.config.entity_config?.[entityId]?.state_map?.[state] ?? this.config.state_map?.[state];
     if (userLabel) return userLabel;
 
-    const domain = entityId.split('.')[0];
-
-    // 2. Binary sensor — check device_class-specific labels
-    if (domain === 'binary_sensor' && deviceClass) {
-      const dcLabels = BINARY_SENSOR_LABELS[deviceClass];
-      if (dcLabels?.[state]) return dcLabels[state];
+    if (hass.formatEntityState) {
+      try {
+        return hass.formatEntityState(stateObj, state);
+      } catch {
+        /* fall through */
+      }
     }
-
-    // 3. Domain-level labels
-    const domainLabels = DOMAIN_STATE_LABELS[domain];
-    if (domainLabels?.[state]) return domainLabels[state];
-
-    // 4. Generic on/off
-    if (state === 'on') return 'On';
-    if (state === 'off') return 'Off';
-
-    // 5. Capitalize raw state
     return state.charAt(0).toUpperCase() + state.slice(1).replace(/_/g, ' ');
   }
 
@@ -339,6 +246,30 @@ export class HistoryAdapter implements ISourceAdapter {
     return label;
   }
 
+  /** "Temperature 21.5 °C · Mode Heat" via HA's attribute formatters. */
+  private formatAttributes(
+    hass: HomeAssistant,
+    stateObj: HassEntity,
+    names: string[],
+    attributes: Record<string, unknown>,
+  ): string {
+    return names
+      .map((name) => {
+        const v = attributes[name];
+        if (v == null || v === '' || typeof v === 'object') return null;
+        const label = hass.formatEntityAttributeName?.(stateObj, name) ?? name.replace(/_/g, ' ');
+        let value: string;
+        try {
+          value = hass.formatEntityAttributeValue?.(stateObj, name, v) ?? String(v);
+        } catch {
+          value = String(v);
+        }
+        return `${label}: ${value}`;
+      })
+      .filter(Boolean)
+      .join(' \u00b7 ');
+  }
+
   private stateChangeToEvent(
     hass: HomeAssistant,
     entityId: string,
@@ -347,7 +278,8 @@ export class HistoryAdapter implements ISourceAdapter {
   ): ChronicleEvent {
     const deviceClass = this.getDeviceClass(hass, entityId, currState);
     const category = this.detectCategory(entityId, deviceClass);
-    const friendlyName = hass.states[entityId]?.attributes?.friendly_name as string || entityId;
+    const liveEntity = hass.states[entityId];
+    const friendlyName = (liveEntity?.attributes?.friendly_name as string) || entityId;
     const entityConf = this.config.entity_config?.[entityId];
 
     // Per-entity name > friendly name for multi-entity; source name > friendly name for single-entity
@@ -355,39 +287,30 @@ export class HistoryAdapter implements ISourceAdapter {
     const displayName = entityConf?.name
       || (isMultiEntity ? friendlyName : (this.config.name || friendlyName));
 
-    const newLabel = this.humanizeState(entityId, currState.state, deviceClass);
-    const oldLabel = this.humanizeState(entityId, prevState.state, deviceClass);
+    // Shallow-merge live and historical attributes: per-state values win for
+    // keys present at that snapshot; keys that only exist on the current
+    // entity fall back to the live value rather than rendering empty.
+    const attributes = { ...(liveEntity?.attributes ?? {}), ...(currState.attributes ?? {}) };
+
+    // Formatting needs a state object (device_class, unit, translation key);
+    // the live one is authoritative, the historical snapshot is the fallback.
+    const stateObj: HassEntity = liveEntity ?? {
+      entity_id: entityId,
+      state: currState.state,
+      attributes,
+      last_changed: currState.last_changed,
+      last_updated: currState.last_updated,
+    };
+
+    const newLabel = this.humanizeState(hass, stateObj, currState.state);
+    const oldLabel = this.humanizeState(hass, stateObj, prevState.state);
 
     // Smart title: strip word overlap so "Doorbell Motion" + "Motion Cleared" → "Doorbell Motion Cleared"
     const title = `${displayName} ${this.stripOverlap(displayName, newLabel)}`;
+    const description = `${this.stripOverlap(displayName, oldLabel)} \u2192 ${this.stripOverlap(displayName, newLabel)}`;
 
-    // Collect entity attributes for template context.
-    // Shallow-merge live and historical: live attrs first, historical overrides
-    // on top. Per-state values win for keys present at that snapshot, while
-    // keys that only exist on the current entity (e.g. attributes added after
-    // the historical entry was recorded) fall back to the live value rather
-    // than rendering empty.
-    const liveEntity = hass.states[entityId];
-    const attributes = { ...(liveEntity?.attributes ?? {}), ...(currState.attributes ?? {}) };
-
-    // Short description: strip the same overlap from both labels
-    const shortOld = this.stripOverlap(displayName, oldLabel);
-    const shortNew = this.stripOverlap(displayName, newLabel);
-    let description = `${shortOld} \u2192 ${shortNew}`;
-
-    // Append configured attribute values, e.g. "Idle \u2192 Heating \u00b7 temperature: 72"
     const showAttrs = entityConf?.show_attributes ?? this.config.show_attributes;
-    if (showAttrs?.length) {
-      const parts = showAttrs
-        .map((name) => {
-          const v = attributes[name];
-          if (v == null || v === '' || typeof v === 'object') return null;
-          const val = typeof v === 'number' && !Number.isInteger(v) ? v.toFixed(1) : String(v);
-          return `${name.replace(/_/g, ' ')}: ${val}`;
-        })
-        .filter(Boolean);
-      if (parts.length) description += ` \u00b7 ${parts.join(' \u00b7 ')}`;
-    }
+    const details = showAttrs?.length ? this.formatAttributes(hass, stateObj, showAttrs, attributes) : '';
 
     // Per-state overrides win over per-entity, which win over the fuzzy chain:
     // state_icon/state_color[state] (entity > source) → icon/color → resolve*()
@@ -401,27 +324,25 @@ export class HistoryAdapter implements ISourceAdapter {
       || resolveColor(title, category, undefined, this.config.color_map, this.config.default_color);
     const effectiveSeverity = (entityConf?.severity || this.config.default_severity || 'info') as SeverityLevel;
 
-    // Resolve image_template and action overrides (per-entity > source-level)
-    const imageTemplate = entityConf?.image_template || this.config.image_template;
-    const tapAction = entityConf?.tap_action || this.config.tap_action;
-    const holdAction = entityConf?.hold_action || this.config.hold_action;
+    const start = new Date(currState.last_changed).toISOString();
 
     return {
-      id: `history:${entityId}:${currState.last_changed}`,
+      id: `history:${entityId}:${new Date(start).getTime()}`,
       sourceType: 'history',
       sourceId: this.config.name || 'history',
       title,
       description,
-      start: currState.last_changed,
-      end: currState.last_changed,
+      details: details || undefined,
+      start,
+      end: start,
       icon: effectiveIcon,
       color: effectiveColor,
       category,
       severity: effectiveSeverity,
       entityId,
       actions: this.config.actions,
-      tapAction,
-      holdAction,
+      tapAction: entityConf?.tap_action || this.config.tap_action,
+      holdAction: entityConf?.hold_action || this.config.hold_action,
       metadata: {
         old_state: prevState.state,
         new_state: currState.state,
@@ -431,7 +352,8 @@ export class HistoryAdapter implements ISourceAdapter {
         last_updated: currState.last_updated,
         attributes,
         source_name: this.config.name || 'history',
-        _image_template: imageTemplate,
+        _image_template: entityConf?.image_template || this.config.image_template,
+        _clip_template: entityConf?.clip_template || this.config.clip_template,
       },
     };
   }

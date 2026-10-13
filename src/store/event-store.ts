@@ -3,9 +3,10 @@ import { ChronicleEvent, EventGroup, isEventGroup } from '../models/event';
 import { ChronicleCardConfig, DEFAULT_CONFIG, GroupingConfig, SourceConfig } from '../models/config';
 import { ISourceAdapter } from '../adapters/adapter';
 import { adapterRegistry } from '../adapters/adapter-registry';
-import { groupEvents } from './event-grouper';
+import { groupEvents, groupKey } from './event-grouper';
 import { resolveMediaUrl } from '../utils/media-resolver';
-import { isJinjaTemplate, renderTemplateBatch, TemplateContext } from '../utils/template-renderer';
+import { isJinjaTemplate, renderTemplate, TemplateContext } from '../utils/template-renderer';
+import { startOfDay, timestampOf } from '../utils/date-utils';
 import { DEFAULT_POLL_INTERVAL } from '../constants';
 
 /**
@@ -19,14 +20,56 @@ function effectiveSourceId(s: SourceConfig): string {
   switch (s.type) {
     case 'calendar': return s.entity || 'calendar';
     case 'rest':     return s.url || 'rest';
-    case 'history':  return 'history';
-    case 'static':   return 'static';
     default:         return s.type;
   }
 }
 
-function timestampOf(item: ChronicleEvent | EventGroup): number {
-  return new Date(isEventGroup(item) ? item.representative.start : item.start).getTime();
+function itemTimestamp(item: ChronicleEvent | EventGroup): number {
+  return timestampOf(isEventGroup(item) ? item.representative.start : item.start);
+}
+
+/**
+ * Same real-world event from two paths (history fetch vs live `hass.states`),
+ * whose timestamps can differ by float rounding.
+ */
+function isSameEvent(a: ChronicleEvent, b: ChronicleEvent): boolean {
+  return a.id === b.id || (
+    a.sourceType === b.sourceType &&
+    a.entityId === b.entityId &&
+    a.title === b.title &&
+    Math.abs(timestampOf(a.start) - timestampOf(b.start)) < 1000
+  );
+}
+
+const newestFirst = (a: ChronicleEvent, b: ChronicleEvent) => timestampOf(b.start) - timestampOf(a.start);
+
+/**
+ * Template fields resolved per event: metadata key holding the template →
+ * where the rendered value goes.
+ */
+const TEMPLATE_FIELDS: Array<{ key: string; apply: (e: ChronicleEvent, v: string) => void; has: (e: ChronicleEvent) => boolean }> = [
+  { key: '_image_template', apply: (e, v) => { e.mediaUrl = v; }, has: (e) => !!e.mediaUrl },
+  { key: '_clip_template', apply: (e, v) => { e.metadata = { ...e.metadata, clip_url: v }; }, has: (e) => !!e.metadata?.clip_url },
+];
+
+/** Rendered template results keyed by template + variables, so polls don't re-render. */
+const TEMPLATE_CACHE_MAX = 1000;
+const templateCache = new Map<string, string>();
+
+/**
+ * Fetch window. Whole-number day counts snap to calendar days (days_back: 0 =
+ * today since midnight, 1 = yesterday + today), so the timeline shows complete
+ * days regardless of the time of day. Fractions keep a rolling window.
+ */
+function computeRange(config: ChronicleCardConfig): TimeRange {
+  const now = new Date();
+  const back = Math.max(0, config.days_back ?? DEFAULT_CONFIG.days_back ?? 7);
+  const forward = Math.max(0, config.days_forward ?? 0);
+  const start = Number.isInteger(back) ? startOfDay(-back) : new Date(now.getTime() - back * 86_400_000);
+  const end = forward === 0
+    ? now
+    : Number.isInteger(forward) ? startOfDay(forward + 1) : new Date(now.getTime() + forward * 86_400_000);
+  return { start, end };
 }
 
 type ChangeCallback = () => void;
@@ -37,10 +80,19 @@ export class EventStore {
   private filteredItems: Array<ChronicleEvent | EventGroup> = [];
   private lastFetch = 0;
   private lastHash = '';
-  private liveUnsubscribers: Array<() => void> = [];
   private listeners: Set<ChangeCallback> = new Set();
   private config!: ChronicleCardConfig;
   private fetchPromise: Promise<void> | null = null;
+  /** Bumped on configure() so a fetch started under an old config is discarded. */
+  private generation = 0;
+  /** Expanded groups survive re-grouping (keyed by their oldest event id). */
+  private expandedGroups = new Set<string>();
+  /**
+   * Live events by id → time received. The recorder commits with a short
+   * delay, so a poll right after a live event may not include it yet; these
+   * are carried over until a fetch returns them (or they age out).
+   */
+  private recentLive = new Map<string, { event: ChronicleEvent; at: number }>();
 
   get items(): Array<ChronicleEvent | EventGroup> {
     return this.filteredItems;
@@ -50,8 +102,21 @@ export class EventStore {
     return this.allEvents;
   }
 
+  /** Minimum poll interval across sources, in ms. */
+  get pollInterval(): number {
+    return (this.config?.sources ?? []).reduce(
+      (min, s) => Math.min(min, (s.poll_interval ?? DEFAULT_POLL_INTERVAL) * 1000),
+      DEFAULT_POLL_INTERVAL * 1000,
+    );
+  }
+
   configure(config: ChronicleCardConfig): void {
     this.config = config;
+    this.generation++;
+    this.lastFetch = 0;
+    this.lastHash = '';
+    this.fetchPromise = null;
+    this.recentLive.clear();
     this.adapters = [];
     for (const sourceConfig of config.sources ?? []) {
       try {
@@ -62,6 +127,8 @@ export class EventStore {
         console.warn('[chronicle-card] Skipping source:', err);
       }
     }
+    // Re-filter what we have so filter/appearance edits show immediately
+    if (this.allEvents.length) this.applyFiltersAndGroup();
   }
 
   subscribe(callback: ChangeCallback): () => void {
@@ -76,12 +143,8 @@ export class EventStore {
   }
 
   async fetch(hass: HomeAssistant, force = false): Promise<void> {
-    const staleness = (this.config?.sources ?? []).reduce(
-      (min, s) => Math.min(min, (s.poll_interval ?? DEFAULT_POLL_INTERVAL) * 1000),
-      DEFAULT_POLL_INTERVAL * 1000,
-    );
-
-    if (!force && Date.now() - this.lastFetch < staleness) {
+    if (!this.config) return;
+    if (!force && Date.now() - this.lastFetch < this.pollInterval) {
       return;
     }
 
@@ -89,19 +152,19 @@ export class EventStore {
       return this.fetchPromise;
     }
 
-    this.fetchPromise = this._doFetch(hass);
+    const promise = this._doFetch(hass, this.generation);
+    this.fetchPromise = promise;
     try {
-      await this.fetchPromise;
+      await promise;
     } finally {
-      this.fetchPromise = null;
+      if (this.fetchPromise === promise) this.fetchPromise = null;
     }
   }
 
-  private async _doFetch(hass: HomeAssistant): Promise<void> {
-    const daysBack = this.config.days_back ?? DEFAULT_CONFIG.days_back ?? 7;
-    const end = new Date();
-    const start = new Date(end.getTime() - daysBack * 24 * 60 * 60 * 1000);
-    const range: TimeRange = { start, end };
+  private async _doFetch(hass: HomeAssistant, generation: number): Promise<void> {
+    // Mark up front so concurrent hass updates don't queue another fetch
+    this.lastFetch = Date.now();
+    const range = computeRange(this.config);
 
     const results = await Promise.allSettled(
       this.adapters.map((a) => a.fetchEvents(hass, range)),
@@ -126,25 +189,56 @@ export class EventStore {
       }
     }
 
-    // Sort newest first
-    unique.sort((a, b) => new Date(b.start).getTime() - new Date(a.start).getTime());
+    const now = Date.now();
+    for (const [id, live] of this.recentLive) {
+      if (now - live.at > 120_000 || unique.some((e) => isSameEvent(e, live.event))) {
+        this.recentLive.delete(id);
+      } else {
+        seen.add(id);
+        unique.push(live.event);
+      }
+    }
 
-    // Resolve media content IDs to URLs
+    unique.sort(newestFirst);
+
     await this.resolveMedia(hass, unique);
-
-    // Resolve Jinja2 image templates to URLs
     await this.resolveTemplates(hass, unique);
 
-    // Check if data actually changed
+    if (generation !== this.generation) return;
+
     const hash = this.computeHash(unique);
-    if (hash === this.lastHash) {
-      this.lastFetch = Date.now();
-      return;
-    }
+    if (hash === this.lastHash) return;
 
     this.allEvents = unique;
     this.lastHash = hash;
-    this.lastFetch = Date.now();
+    this.applyFiltersAndGroup();
+  }
+
+  /**
+   * Live updates: let adapters diff the previous and current `hass.states`.
+   * HA already pushes every state change to the card via the `hass` setter,
+   * so this costs no extra websocket traffic.
+   */
+  async processStateChanges(hass: HomeAssistant, oldHass: HomeAssistant): Promise<void> {
+    if (hass.states === oldHass.states) return;
+    const generation = this.generation;
+    const fresh: ChronicleEvent[] = [];
+    for (const adapter of this.adapters) {
+      const events = adapter.processStateChanges?.(hass, oldHass);
+      if (events?.length) fresh.push(...events);
+    }
+    const added = fresh.filter((e) => !this.allEvents.some((x) => isSameEvent(x, e)));
+    if (added.length === 0) return;
+
+    await this.resolveMedia(hass, added);
+    await this.resolveTemplates(hass, added);
+    if (generation !== this.generation) return;
+
+    const stillNew = added.filter((e) => !this.allEvents.some((x) => isSameEvent(x, e)));
+    if (stillNew.length === 0) return;
+    for (const e of stillNew) this.recentLive.set(e.id, { event: e, at: Date.now() });
+    this.allEvents = [...stillNew, ...this.allEvents].sort(newestFirst);
+    this.lastHash = this.computeHash(this.allEvents);
     this.applyFiltersAndGroup();
   }
 
@@ -176,16 +270,16 @@ export class EventStore {
       events = events.filter((e) => e.entityId && ents.has(e.entityId));
     }
 
+    const matches = (e: ChronicleEvent, q: string) =>
+      e.title.toLowerCase().includes(q) ||
+      e.description.toLowerCase().includes(q) ||
+      e.category.toLowerCase().includes(q) ||
+      !!(e.label && e.label.toLowerCase().includes(q));
+
     // Search filter
     if (filters.search && filters.search.trim().length > 0) {
       const q = filters.search.toLowerCase().trim();
-      events = events.filter(
-        (e) =>
-          e.title.toLowerCase().includes(q) ||
-          e.description.toLowerCase().includes(q) ||
-          e.category.toLowerCase().includes(q) ||
-          (e.label && e.label.toLowerCase().includes(q)),
-      );
+      events = events.filter((e) => matches(e, q));
     }
 
     // Exclusion filters — applied after inclusion filters
@@ -207,13 +301,7 @@ export class EventStore {
     }
     if (filters.exclude_search && filters.exclude_search.trim().length > 0) {
       const q = filters.exclude_search.toLowerCase().trim();
-      events = events.filter(
-        (e) =>
-          !e.title.toLowerCase().includes(q) &&
-          !e.description.toLowerCase().includes(q) &&
-          !e.category.toLowerCase().includes(q) &&
-          !(e.label && e.label.toLowerCase().includes(q)),
-      );
+      events = events.filter((e) => !matches(e, q));
     }
 
     // Limit
@@ -225,19 +313,14 @@ export class EventStore {
     // Card-level grouping defaults (used as fallback when a source doesn't
     // declare its own grouping config).
     const cardGrouping: GroupingConfig = {
-      enabled: true,
-      window_seconds: 120,
-      min_group_size: 3,
-      group_by: 'category',
+      ...DEFAULT_CONFIG.grouping,
       ...this.config.grouping,
     };
 
-    // Detect per-source grouping overrides. When at least one source declares
-    // its own `grouping`, we switch to a bucketed pass: each overriding source
-    // is grouped in isolation with its merged config, everything else goes
-    // through a single global pass with the card-level config. The two
-    // result streams are then merged by timestamp (newest first) so the
-    // timeline stays time-ordered overall.
+    // Per-source grouping overrides: each overriding source is grouped in
+    // isolation with its merged config, everything else goes through a single
+    // global pass with the card-level config. The streams are then merged by
+    // timestamp (newest first) so the timeline stays time-ordered overall.
     const perSourceConfigs = new Map<string, GroupingConfig>();
     for (const s of this.config.sources ?? []) {
       if (s.grouping) {
@@ -245,76 +328,46 @@ export class EventStore {
       }
     }
 
+    let items: Array<ChronicleEvent | EventGroup>;
     if (perSourceConfigs.size === 0) {
-      this.filteredItems = groupEvents(events, cardGrouping);
-      this.notify();
-      return;
-    }
-
-    const sourceBuckets = new Map<string, ChronicleEvent[]>();
-    const globalBucket: ChronicleEvent[] = [];
-    for (const e of events) {
-      if (perSourceConfigs.has(e.sourceId)) {
-        const list = sourceBuckets.get(e.sourceId) ?? [];
-        list.push(e);
-        sourceBuckets.set(e.sourceId, list);
-      } else {
-        globalBucket.push(e);
+      items = groupEvents(events, cardGrouping);
+    } else {
+      const sourceBuckets = new Map<string, ChronicleEvent[]>();
+      const globalBucket: ChronicleEvent[] = [];
+      for (const e of events) {
+        if (perSourceConfigs.has(e.sourceId)) {
+          const list = sourceBuckets.get(e.sourceId) ?? [];
+          list.push(e);
+          sourceBuckets.set(e.sourceId, list);
+        } else {
+          globalBucket.push(e);
+        }
       }
+
+      items = [];
+      for (const [sourceId, bucket] of sourceBuckets) {
+        items.push(...groupEvents(bucket, perSourceConfigs.get(sourceId)!));
+      }
+      items.push(...groupEvents(globalBucket, cardGrouping));
+      items.sort((a, b) => itemTimestamp(b) - itemTimestamp(a));
     }
 
-    const allItems: Array<ChronicleEvent | EventGroup> = [];
-    for (const [sourceId, bucket] of sourceBuckets) {
-      allItems.push(...groupEvents(bucket, perSourceConfigs.get(sourceId)!));
+    for (const item of items) {
+      if (isEventGroup(item)) item.expanded = this.expandedGroups.has(groupKey(item));
     }
-    allItems.push(...groupEvents(globalBucket, cardGrouping));
-    allItems.sort((a, b) => timestampOf(b) - timestampOf(a));
 
-    this.filteredItems = allItems;
+    this.filteredItems = items;
     this.notify();
   }
 
-  async injectLiveEvent(event: ChronicleEvent, hass?: HomeAssistant): Promise<void> {
-    // Add to front if not duplicate
-    if (this.allEvents.some((e) => e.id === event.id)) return;
-
-    // Resolve template for this single live event
-    if (hass) {
-      await this.resolveTemplates(hass, [event]);
-    }
-
-    this.allEvents.unshift(event);
-    this.lastHash = this.computeHash(this.allEvents);
-    this.applyFiltersAndGroup();
-  }
-
-  async subscribeLive(hass: HomeAssistant): Promise<void> {
-    // Unsubscribe existing
-    this.unsubscribeLive();
-
-    for (const adapter of this.adapters) {
-      if (adapter.subscribeLive) {
-        try {
-          const unsub = await adapter.subscribeLive(hass, (event) => {
-            this.injectLiveEvent(event, hass);
-          });
-          this.liveUnsubscribers.push(unsub);
-        } catch (err) {
-          console.warn('[chronicle-card] Live subscription failed:', err);
-        }
-      }
-    }
-  }
-
-  unsubscribeLive(): void {
-    for (const unsub of this.liveUnsubscribers) {
-      try { unsub(); } catch { /* ignore */ }
-    }
-    this.liveUnsubscribers = [];
-  }
-
   toggleGroup(group: EventGroup): void {
-    group.expanded = !group.expanded;
+    const key = groupKey(group);
+    if (this.expandedGroups.has(key)) this.expandedGroups.delete(key);
+    else this.expandedGroups.add(key);
+    // New array identity so Lit re-renders the layouts
+    this.filteredItems = this.filteredItems.map((item) =>
+      isEventGroup(item) && groupKey(item) === key ? { ...item, expanded: !item.expanded } : item,
+    );
     this.notify();
   }
 
@@ -338,57 +391,64 @@ export class EventStore {
   }
 
   /**
-   * Resolve Jinja2 image_template → mediaUrl for events that have a template in metadata.
-   * Groups events by their template string and uses batch rendering (one WS call per unique template).
+   * Resolve `image_template` / `clip_template` (stored in metadata by the
+   * adapter). Plain strings without Jinja syntax are used as-is; templates are
+   * rendered via HA's `render_template` with the event's variables, chunked
+   * to bound concurrent subscriptions, and cached across polls.
    */
   private async resolveTemplates(hass: HomeAssistant, events: ChronicleEvent[]): Promise<void> {
-    // Group events by their _image_template (skip if no template or mediaUrl already set)
-    const groups = new Map<string, ChronicleEvent[]>();
+    const jobs: Array<{ event: ChronicleEvent; template: string; apply: (e: ChronicleEvent, v: string) => void }> = [];
+
     for (const e of events) {
-      const tpl = e.metadata?._image_template as string | undefined;
-      if (!tpl || !isJinjaTemplate(tpl) || e.mediaUrl) continue;
-      const list = groups.get(tpl) || [];
-      list.push(e);
-      groups.set(tpl, list);
+      for (const field of TEMPLATE_FIELDS) {
+        const tpl = e.metadata?.[field.key];
+        if (typeof tpl !== 'string' || !tpl.trim() || field.has(e)) continue;
+        if (!isJinjaTemplate(tpl)) {
+          field.apply(e, tpl.trim());
+          continue;
+        }
+        jobs.push({ event: e, template: tpl, apply: field.apply });
+      }
     }
+    if (jobs.length === 0) return;
 
-    if (groups.size === 0) return;
+    const contextOf = (e: ChronicleEvent): TemplateContext => ({
+      entity_id: e.entityId || '',
+      state: (e.metadata?.new_state as string) || '',
+      old_state: (e.metadata?.old_state as string) || '',
+      timestamp: e.start,
+      attributes: (e.metadata?.attributes as Record<string, unknown>) || {},
+      source_name: (e.metadata?.source_name as string) || '',
+    });
 
-    const promises: Promise<void>[] = [];
-
-    for (const [template, evts] of groups) {
-      promises.push(
-        (async () => {
-          const contexts: TemplateContext[] = evts.map((e) => ({
-            entity_id: e.entityId || '',
-            state: (e.metadata?.new_state as string) || '',
-            old_state: (e.metadata?.old_state as string) || '',
-            timestamp: e.start,
-            attributes: (e.metadata?.attributes as Record<string, unknown>) || {},
-            source_name: (e.metadata?.source_name as string) || '',
-          }));
-
-          try {
-            const results = await renderTemplateBatch(hass, template, contexts);
-            for (let i = 0; i < evts.length; i++) {
-              const url = results[i]?.trim();
-              if (url) {
-                evts[i].mediaUrl = url;
-              }
+    const CHUNK = 50;
+    for (let i = 0; i < jobs.length; i += CHUNK) {
+      await Promise.allSettled(
+        jobs.slice(i, i + CHUNK).map(async (job) => {
+          const vars = contextOf(job.event);
+          const cacheKey = `${job.template}\u0000${JSON.stringify(vars)}`;
+          let value = templateCache.get(cacheKey);
+          if (value === undefined) {
+            try {
+              value = ((await renderTemplate(hass, job.template, { ...vars })) ?? '').trim();
+            } catch (err) {
+              console.warn('[chronicle-card] Template resolution failed:', err);
+              return;
             }
-          } catch (err) {
-            console.warn('[chronicle-card] Template resolution failed:', err);
+            if (templateCache.size >= TEMPLATE_CACHE_MAX) {
+              templateCache.delete(templateCache.keys().next().value as string);
+            }
+            templateCache.set(cacheKey, value);
           }
-        })(),
+          if (value) job.apply(job.event, value);
+        }),
       );
     }
-
-    await Promise.allSettled(promises);
   }
 
   private computeHash(events: ChronicleEvent[]): string {
-    // Fast hash: join IDs + lengths
-    if (events.length === 0) return '0';
-    return `${events.length}:${events[0]?.id}:${events[events.length - 1]?.id}`;
+    return events
+      .map((e) => `${e.id}|${e.title}|${e.description}|${e.details ?? ''}|${e.mediaUrl ?? ''}|${e.metadata?.clip_url ?? ''}`)
+      .join('\n');
   }
 }

@@ -101,6 +101,8 @@ export class CalendarAdapter implements ISourceAdapter {
           entityId: entity,
           entityName: hass.states[entity]?.attributes?.friendly_name as string || entity,
           actions: this.config.actions,
+          tapAction: this.config.tap_action,
+          holdAction: this.config.hold_action,
           metadata: {
             location: event.location,
             recurrence_id: event.recurrence_id,

@@ -3,6 +3,7 @@ import { HomeAssistant, TimeRange } from '../types';
 import { ChronicleEvent, SeverityLevel } from '../models/event';
 import { SourceConfig } from '../models/config';
 import { CATEGORY_ICONS, CATEGORY_COLORS } from '../constants';
+import { toDate } from '../utils/date-utils';
 
 export class StaticAdapter implements ISourceAdapter {
   readonly type = 'static';
@@ -25,8 +26,8 @@ export class StaticAdapter implements ISourceAdapter {
       return configEvents
         .map((entry, index) => {
           const category = entry.category || 'default';
-          const startDate = new Date(entry.start);
-          const endDate = entry.end ? new Date(entry.end) : startDate;
+          const startDate = toDate(entry.start);
+          const endDate = entry.end ? toDate(entry.end) : startDate;
 
           // Filter events outside the requested range
           if (endDate < range.start || startDate > range.end) {
@@ -46,6 +47,8 @@ export class StaticAdapter implements ISourceAdapter {
             category,
             severity: (entry.severity || this.config.default_severity || 'info') as SeverityLevel,
             actions: this.config.actions,
+            tapAction: this.config.tap_action,
+            holdAction: this.config.hold_action,
             metadata: {
               static_index: index,
             },

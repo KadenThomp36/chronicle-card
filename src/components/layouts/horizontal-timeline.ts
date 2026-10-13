@@ -2,21 +2,23 @@ import { LitElement, html, css, nothing } from 'lit';
 import { customElement, property, query } from 'lit/decorators.js';
 import { ChronicleEvent, EventGroup, isEventGroup } from '../../models/event';
 import { AppearanceConfig } from '../../models/config';
-import { CATEGORY_ICONS } from '../../constants';
 import { relativeTime } from '../../utils/date-utils';
-import { safeColor } from '../../utils/color-utils';
+import { safeColor, validIcon } from '../../utils/color-utils';
+import { handleEventAction } from '../../utils/actions';
 import '../elements/empty-state';
 
-function validIcon(icon: string): string {
-  return icon && icon.startsWith('mdi:') ? icon : CATEGORY_ICONS.default;
-}
+/** Enter/Space activates a role="button" element. */
+const onActivate = (fn: () => void) => (e: KeyboardEvent) => {
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault();
+    fn();
+  }
+};
 
 @customElement('chronicle-horizontal-timeline')
 export class HorizontalTimeline extends LitElement {
   @property({ attribute: false }) items: Array<ChronicleEvent | EventGroup> = [];
   @property({ attribute: false }) appearance?: AppearanceConfig;
-  @property({ attribute: false }) hass?: any;
-  @property({ type: String }) timeFormat: '12h' | '24h' = '24h';
 
   @query('.scroll-container') private scrollEl?: HTMLElement;
 
@@ -81,6 +83,12 @@ export class HorizontalTimeline extends LitElement {
       border: 1px solid var(--divider-color, rgba(127,127,127,0.08));
       cursor: pointer;
       transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .event-card:focus-visible,
+    .group-card:focus-visible,
+    .group-collapse-btn:focus-visible {
+      outline: 2px solid var(--primary-color, #03a9f4);
+      outline-offset: 2px;
     }
     .event-card:hover {
       transform: translateY(-3px);
@@ -263,11 +271,14 @@ export class HorizontalTimeline extends LitElement {
     }
 
     const height = this.appearance?.card_height;
-    const containerStyle = height && height !== 'auto' ? `height: ${height}; align-items: center;` : '';
+    const fill = height === 'fill' || height === '100%';
+    const containerStyle = !height || height === 'auto'
+      ? ''
+      : `height: ${fill ? '100%' : height}; align-items: center;`;
 
     return html`
       <div class="wrapper">
-        <button class="scroll-btn left" @click=${() => this._scroll(-200)}>
+        <button class="scroll-btn left" aria-label="Scroll left" @click=${() => this._scroll(-200)}>
           <ha-icon icon="mdi:chevron-left"></ha-icon>
         </button>
 
@@ -279,7 +290,7 @@ export class HorizontalTimeline extends LitElement {
           )}
         </div>
 
-        <button class="scroll-btn right" @click=${() => this._scroll(200)}>
+        <button class="scroll-btn right" aria-label="Scroll right" @click=${() => this._scroll(200)}>
           <ha-icon icon="mdi:chevron-right"></ha-icon>
         </button>
       </div>
@@ -291,7 +302,10 @@ export class HorizontalTimeline extends LitElement {
     const color = safeColor(event.color);
 
     return html`
-      <div class="event-card" @click=${() => this._showDetail(event)}>
+      <div class="event-card" role="button" tabindex="0"
+        @click=${() => this._activate(event)}
+        @keydown=${onActivate(() => this._activate(event))}
+      >
         ${showImages && event.mediaUrl
           ? html`<img class="card-media" src=${event.mediaUrl} alt="" loading="lazy" />`
           : html`
@@ -316,7 +330,10 @@ export class HorizontalTimeline extends LitElement {
     const showImages = this.appearance?.show_images !== false;
 
     return html`
-      <div class="group-card" @click=${() => this._toggleGroup(group)}>
+      <div class="group-card" role="button" tabindex="0" aria-expanded="false"
+        @click=${() => this._toggleGroup(group)}
+        @keydown=${onActivate(() => this._toggleGroup(group))}
+      >
         ${showImages && rep.mediaUrl
           ? html`
             <div class="group-media" style="padding: 0;">
@@ -345,7 +362,10 @@ export class HorizontalTimeline extends LitElement {
     return html`
       <div class="group-expanded">
         ${group.events.map((event) => html`
-          <div class="event-card" @click=${() => this._showDetail(event)}>
+          <div class="event-card" role="button" tabindex="0"
+        @click=${() => this._activate(event)}
+        @keydown=${onActivate(() => this._activate(event))}
+      >
             ${showImages && event.mediaUrl
               ? html`<img class="card-media" src=${event.mediaUrl} alt="" loading="lazy" />`
               : html`
@@ -363,7 +383,10 @@ export class HorizontalTimeline extends LitElement {
             </div>
           </div>
         `)}
-        <div class="group-collapse-btn" @click=${() => this._toggleGroup(group)}>
+        <div class="group-collapse-btn" role="button" tabindex="0" aria-expanded="true"
+          @click=${() => this._toggleGroup(group)}
+          @keydown=${onActivate(() => this._toggleGroup(group))}
+        >
           <ha-icon icon="mdi:chevron-left"></ha-icon>
         </div>
       </div>
@@ -374,14 +397,8 @@ export class HorizontalTimeline extends LitElement {
     this.scrollEl?.scrollBy({ left: offset, behavior: 'smooth' });
   }
 
-  private _showDetail(event: ChronicleEvent) {
-    this.dispatchEvent(
-      new CustomEvent('chronicle-show-detail', {
-        bubbles: true,
-        composed: true,
-        detail: { event },
-      }),
-    );
+  private _activate(event: ChronicleEvent) {
+    handleEventAction(this, event, 'tap');
   }
 
   private _toggleGroup(group: EventGroup) {

@@ -1,5 +1,4 @@
-import { ChronicleEvent, ChronicleAction } from '../models/event';
-import { ActionConfig } from '../models/config';
+import { ChronicleEvent } from '../models/event';
 
 /**
  * Expand `{field}` placeholders in action strings with values from the event.
@@ -57,23 +56,7 @@ function expandDeep<T>(value: T, event: ChronicleEvent): T {
   return value;
 }
 
-/** Expand placeholders in a tap/hold ActionConfig's string fields. */
-export function expandActionConfig(config: ActionConfig, event: ChronicleEvent): ActionConfig {
-  return {
-    ...config,
-    navigation_path: config.navigation_path
-      ? expandPlaceholders(config.navigation_path, event)
-      : config.navigation_path,
-    service_data: config.service_data ? expandDeep(config.service_data, event) : config.service_data,
-  };
-}
-
-/** Expand placeholders in a ChronicleAction (timeline action buttons). */
-export function expandChronicleAction(action: ChronicleAction, event: ChronicleEvent): ChronicleAction {
-  return {
-    ...action,
-    url: action.url ? expandPlaceholders(action.url, event) : action.url,
-    serviceData: action.serviceData ? expandDeep(action.serviceData, event) : action.serviceData,
-    eventData: action.eventData ? expandDeep(action.eventData, event) : action.eventData,
-  };
+/** Expand placeholders in every string field of an action config. */
+export function expandActionConfig<T extends object>(config: T, event: ChronicleEvent): T {
+  return expandDeep(config, event);
 }

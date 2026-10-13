@@ -63,11 +63,3 @@ export async function resolveMediaUrl(
     return undefined;
   }
 }
-
-/**
- * Manually clear the entire media cache. Useful when the card is torn down
- * or when the user requests a refresh.
- */
-export function clearMediaCache(): void {
-  cache.clear();
-}

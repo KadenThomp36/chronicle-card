@@ -1,622 +1,382 @@
 import { LitElement, html, css, nothing } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { HomeAssistant } from '../types';
-import { ChronicleCardConfig, DEFAULT_CONFIG } from '../models/config';
+import { ChronicleCardConfig, DEFAULT_CONFIG, SourceConfig } from '../models/config';
 import { loadHaComponents } from '../utils/load-ha-components';
+import { GROUP_BY_OPTIONS, hexToRgb, makeComputeLabel, mapKeys, pruneConfig, rgbToHex, Schema } from './editor-utils';
+import { EDITOR_NAME } from '../constants';
 import './source-editor';
 
-@customElement('chronicle-card-editor')
+const SEVERITY_OPTIONS = [
+  { value: 'critical', label: 'Critical' },
+  { value: 'warning', label: 'Warning' },
+  { value: 'info', label: 'Info' },
+  { value: 'debug', label: 'Debug' },
+];
+
+const CATEGORY_OPTIONS = [
+  'person', 'vehicle', 'animal', 'pet', 'security', 'motion', 'door', 'lock',
+  'camera', 'light', 'climate', 'automation', 'system',
+].map((value) => ({ value, label: value.charAt(0).toUpperCase() + value.slice(1) }));
+
+const SOURCE_TYPES: Array<{ type: SourceConfig['type']; label: string; icon: string }> = [
+  { type: 'history', label: 'Entity state', icon: 'mdi:history' },
+  { type: 'logbook', label: 'Logbook', icon: 'mdi:format-list-bulleted' },
+  { type: 'calendar', label: 'Calendar', icon: 'mdi:calendar' },
+  { type: 'rest', label: 'REST / WebSocket', icon: 'mdi:api' },
+  { type: 'static', label: 'Static events', icon: 'mdi:playlist-edit' },
+];
+
+const SEVERITY_KEYS = ['critical', 'warning', 'info', 'debug'];
+
+/** Defaults as the form round-trips them (color_rgb → lowercase hex), for pruning. */
+const PRUNE_DEFAULTS = {
+  ...DEFAULT_CONFIG,
+  appearance: {
+    ...DEFAULT_CONFIG.appearance,
+    severity_colors: mapKeys(
+      DEFAULT_CONFIG.appearance!.severity_colors as Record<string, unknown>,
+      SEVERITY_KEYS,
+      (v) => rgbToHex(hexToRgb(v)),
+    ),
+  },
+} as Record<string, unknown>;
+
+const LABELS: Record<string, string> = {
+  layout: 'Layout',
+  time_format: 'Time format',
+  max_events: 'Max events',
+  days_back: 'Days back',
+  days_forward: 'Days forward',
+  show_header: 'Show header',
+  show_layout_toggle: 'Show layout toggle',
+  filters: 'Filters',
+  search: 'Search',
+  categories: 'Categories',
+  severities: 'Severities',
+  sources: 'Sources',
+  entities: 'Entities',
+  exclude_search: 'Exclude search',
+  exclude_categories: 'Exclude categories',
+  exclude_severities: 'Exclude severities',
+  exclude_sources: 'Exclude sources',
+  exclude_entities: 'Exclude entities',
+  grouping: 'Grouping',
+  enabled: 'Group similar events',
+  window_seconds: 'Window',
+  min_group_size: 'Minimum group size',
+  group_by: 'Group by',
+  group_name: 'Group name',
+  appearance: 'Appearance',
+  card_height: 'Card height',
+  compact: 'Compact mode',
+  show_description: 'Show description',
+  show_images: 'Show images',
+  show_icons: 'Show icons',
+  show_severity_badge: 'Show severity badge',
+  show_category: 'Show category tags',
+  animate_new_events: 'Animate new events',
+  severity_colors: 'Severity colors',
+  critical: 'Critical',
+  warning: 'Warning',
+  info: 'Info',
+  debug: 'Debug',
+};
+
+const HELPERS: Record<string, string> = {
+  time_format: 'Leave empty to follow your Home Assistant profile.',
+  days_back: 'Whole numbers are calendar days (0 = today since midnight); decimals are a rolling window.',
+  days_forward: 'Show upcoming calendar/static events. 0 = none.',
+  search: 'Only show events containing this text.',
+  exclude_search: 'Hide events containing this text.',
+  group_name: 'Custom summary. Placeholders: {count}, {label}, {source}, {entity}.',
+  card_height: 'A fixed height (e.g. 400px), "fill" for Panel layout, or "auto" to grow with content. In a sections view, resizing the card height also fills.',
+  compact: 'Single-line events. Descriptions are hidden unless "Show description" is enabled explicitly.',
+  show_description: 'Secondary line such as "Off → On".',
+};
+
+@customElement(EDITOR_NAME)
 export class ChronicleEditor extends LitElement {
   @property({ attribute: false }) hass?: HomeAssistant;
-  @state() private _config!: ChronicleCardConfig;
+  @state() private _config?: ChronicleCardConfig;
 
   connectedCallback(): void {
     super.connectedCallback();
-    loadHaComponents();
+    loadHaComponents().then(() => this.requestUpdate());
+  }
+
+  setConfig(config: ChronicleCardConfig): void {
+    this._config = config;
   }
 
   static styles = css`
-    :host {
-      display: block;
+    :host { display: block; }
+    .sources {
+      margin: 16px 0;
     }
-
-    .editor {
-      padding: 4px 0;
-    }
-
-    details {
-      margin-bottom: 4px;
-      border: 1px solid var(--divider-color, rgba(127,127,127,0.15));
-      border-radius: 10px;
-      overflow: hidden;
-    }
-    summary {
-      padding: 12px 14px;
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--primary-text-color, #333);
-      cursor: pointer;
-      user-select: none;
-      list-style: none;
+    .sources-header {
       display: flex;
-      align-items: center;
+      align-items: baseline;
       gap: 8px;
-      background: var(--secondary-background-color, rgba(127,127,127,0.04));
-    }
-    summary::-webkit-details-marker { display: none; }
-    summary::before {
-      content: '▸';
-      transition: transform 0.15s ease;
-      font-size: 11px;
-      color: var(--secondary-text-color, #999);
-    }
-    details[open] > summary::before {
-      transform: rotate(90deg);
-    }
-
-    .section-body {
-      padding: 12px 14px;
-    }
-
-    .field {
-      margin-bottom: 12px;
-    }
-    label {
-      display: block;
-      font-size: 11px;
+      margin: 0 0 8px;
+      font-size: 15px;
       font-weight: 500;
-      color: var(--secondary-text-color, #888);
-      margin-bottom: 4px;
-      text-transform: uppercase;
-      letter-spacing: 0.4px;
+      color: var(--primary-text-color);
     }
-    input[type="color"] {
-      width: 100%;
-      height: 36px;
-      padding: 2px 4px;
-      cursor: pointer;
-      border: 1px solid var(--divider-color, rgba(127,127,127,0.2));
-      border-radius: 6px;
-      background: var(--card-background-color, #fff);
-      box-sizing: border-box;
+    .sources-header .count {
+      font-size: 12px;
+      color: var(--secondary-text-color);
     }
-    input[type="color"]:focus {
-      outline: none;
-      border-color: var(--primary-color, #03a9f4);
-    }
-    ha-textfield, ha-select, ha-entity-picker, ha-selector {
-      display: block;
-      width: 100%;
-    }
-
-    .row {
-      display: flex;
-      gap: 12px;
-    }
-    .row .field { flex: 1; }
-
-    .toggle-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 6px 0;
-    }
-    .toggle-label {
+    .empty {
       font-size: 13px;
-      color: var(--primary-text-color, #333);
+      color: var(--secondary-text-color);
+      margin: 0 0 8px;
     }
-
-    .add-source-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
+    .add-row {
+      display: flex;
+      flex-wrap: wrap;
       gap: 6px;
+      margin-top: 8px;
     }
     .add-btn {
-      display: flex;
+      display: inline-flex;
       align-items: center;
-      justify-content: center;
-      gap: 4px;
-      padding: 8px 6px;
-      border: 2px dashed var(--divider-color, rgba(127,127,127,0.25));
-      border-radius: 8px;
+      gap: 6px;
+      padding: 6px 12px;
+      border: 1px dashed var(--divider-color, rgba(127,127,127,0.3));
+      border-radius: 18px;
       background: transparent;
-      color: var(--primary-color, #03a9f4);
-      font-size: 12px;
-      font-weight: 500;
+      color: var(--primary-color);
+      font: inherit;
+      font-size: 13px;
       cursor: pointer;
-      font-family: inherit;
-      transition: border-color 0.15s ease, background 0.15s ease;
     }
-    .add-btn:hover {
-      border-color: var(--primary-color, #03a9f4);
-      background: rgba(3, 169, 244, 0.04);
+    .add-btn:hover, .add-btn:focus-visible {
+      border-color: var(--primary-color);
+      outline: none;
     }
-
-    /* ha-switch alignment */
-    ha-switch {
-      --mdc-theme-secondary: var(--primary-color, #03a9f4);
-    }
-
+    .add-btn ha-icon { --mdc-icon-size: 16px; }
   `;
 
-  setConfig(config: ChronicleCardConfig): void {
-    this._config = {
-      ...DEFAULT_CONFIG,
-      ...config,
-      filters: { ...DEFAULT_CONFIG.filters, ...config.filters },
-      grouping: { ...DEFAULT_CONFIG.grouping, ...config.grouping },
-      appearance: { ...DEFAULT_CONFIG.appearance, ...config.appearance },
-    } as ChronicleCardConfig;
-  }
-
-  protected render() {
-    if (!this._config) return nothing;
-    const c = this._config;
-    const g = c.grouping ?? {};
-    const a = c.appearance ?? {};
-
-    return html`
-      <div class="editor">
-        <!-- General -->
-        <details open>
-          <summary>General</summary>
-          <div class="section-body">
-            <div class="field">
-              <ha-selector
-                .hass=${this.hass}
-                .selector=${{ text: {} }}
-                .value=${c.title ?? ''}
-                .label=${'Title'}
-                @value-changed=${(e: any) => this._set('title', e.detail.value)}
-              ></ha-selector>
-            </div>
-            <div class="row">
-              <div class="field">
-                <ha-selector
-                  .hass=${this.hass}
-                  .selector=${{ select: {
-                    options: [
-                      { value: 'vertical',   label: 'Vertical'   },
-                      { value: 'horizontal', label: 'Horizontal' },
-                    ],
-                    mode: 'dropdown',
-                  } }}
-                  .value=${c.layout ?? 'vertical'}
-                  .label=${'Layout'}
-                  @value-changed=${(e: any) => this._set('layout', e.detail.value)}
-                ></ha-selector>
-              </div>
-              <div class="field">
-                <ha-selector
-                  .hass=${this.hass}
-                  .selector=${{ select: {
-                    options: [
-                      { value: '24h', label: '24 Hour' },
-                      { value: '12h', label: '12 Hour' },
-                    ],
-                    mode: 'dropdown',
-                  } }}
-                  .value=${c.time_format ?? '24h'}
-                  .label=${'Time format'}
-                  @value-changed=${(e: any) => this._set('time_format', e.detail.value)}
-                ></ha-selector>
-              </div>
-            </div>
-            <div class="row">
-              <div class="field">
-                <ha-selector
-                  .hass=${this.hass}
-                  .selector=${{ number: { min: 1, max: 1000, mode: 'box' } }}
-                  .value=${c.max_events ?? 50}
-                  .label=${'Max events'}
-                  @value-changed=${(e: any) => this._set('max_events', e.detail.value)}
-                ></ha-selector>
-              </div>
-              <div class="field">
-                <ha-selector
-                  .hass=${this.hass}
-                  .selector=${{ number: { min: 1, max: 365, mode: 'box', unit_of_measurement: 'days' } }}
-                  .value=${c.days_back ?? 7}
-                  .label=${'Days back'}
-                  @value-changed=${(e: any) => this._set('days_back', e.detail.value)}
-                ></ha-selector>
-              </div>
-            </div>
-            <div class="toggle-row">
-              <span class="toggle-label">Show Header</span>
-              ${this._renderToggle(c.show_header !== false, (v) => this._set('show_header', v))}
-            </div>
-            <div class="toggle-row">
-              <span class="toggle-label">Show Layout Toggle</span>
-              ${this._renderToggle(c.show_layout_toggle !== false, (v) => this._set('show_layout_toggle', v))}
-            </div>
-          </div>
-        </details>
-
-        <!-- Sources -->
-        <details>
-          <summary>Sources (${(c.sources ?? []).length})</summary>
-          <div class="section-body"
-            @source-changed=${this._onSourceChanged}
-            @source-removed=${this._onSourceRemoved}
-          >
-            ${(c.sources ?? []).map((src, i) => html`
-              <chronicle-source-editor
-                .source=${src}
-                .index=${i}
-                .hass=${this.hass}
-              ></chronicle-source-editor>
-            `)}
-            <div class="add-source-row">
-              <button class="add-btn" @click=${() => this._addSource('calendar')}>+ Calendar</button>
-              <button class="add-btn" @click=${() => this._addSource('rest')}>+ REST API</button>
-              <button class="add-btn" @click=${() => this._addSource('history')}>+ Entity State</button>
-              <button class="add-btn" @click=${() => this._addSource('static')}>+ Template</button>
-              <button class="add-btn" @click=${() => this._addSource('logbook')}>+ Logbook</button>
-            </div>
-          </div>
-        </details>
-
-        <!-- Filters -->
-        <details>
-          <summary>Filters</summary>
-          <div class="section-body">
-            <div class="field">
-              <ha-selector
-                .hass=${this.hass}
-                .selector=${{ text: {} }}
-                .value=${c.filters?.search ?? ''}
-                .label=${'Search'}
-                .helper=${'Filter events by keyword'}
-                @value-changed=${(e: any) => this._setNested('filters', 'search', e.detail.value)}
-              ></ha-selector>
-            </div>
-            <div class="field">
-              <ha-selector
-                .hass=${this.hass}
-                .selector=${{ select: {
-                  options: this._getCategoryOptions(),
-                  multiple: true,
-                  custom_value: true,
-                  mode: 'list',
-                } }}
-                .value=${c.filters?.categories ?? []}
-                .label=${"Categories"}
-                .helper=${"Filter timeline to specific event categories"}
-                @value-changed=${(e: any) => this._setNested('filters', 'categories', e.detail.value)}
-              ></ha-selector>
-            </div>
-            <div class="field">
-              <ha-selector
-                .hass=${this.hass}
-                .selector=${{ select: {
-                  options: [
-                    { value: 'critical', label: 'Critical' },
-                    { value: 'warning', label: 'Warning' },
-                    { value: 'info', label: 'Info' },
-                    { value: 'debug', label: 'Debug' },
-                  ],
-                  multiple: true,
-                } }}
-                .value=${c.filters?.severities ?? []}
-                .label=${"Severities"}
-                .helper=${"Filter timeline to specific severity levels"}
-                @value-changed=${(e: any) => this._setNested('filters', 'severities', e.detail.value)}
-              ></ha-selector>
-            </div>
-            <div class="field">
-              <ha-selector
-                .hass=${this.hass}
-                .selector=${{ select: {
-                  options: this._getSourceNameOptions(),
-                  multiple: true,
-                  custom_value: true,
-                } }}
-                .value=${c.filters?.sources ?? []}
-                .label=${"Sources"}
-                .helper=${"Filter timeline to specific source names"}
-                @value-changed=${(e: any) => this._setNested('filters', 'sources', e.detail.value)}
-              ></ha-selector>
-            </div>
-            <div class="field">
-              <ha-selector
-                .hass=${this.hass}
-                .selector=${{ entity: { multiple: true } }}
-                .value=${c.filters?.entities ?? []}
-                .label=${"Filter Entities"}
-                @value-changed=${(e: any) => this._setNested('filters', 'entities', e.detail.value ?? [])}
-              ></ha-selector>
-            </div>
-
-            <details class="nested-details">
-              <summary>Exclusions</summary>
-              <div class="section-body">
-                <div class="field">
-                  <ha-selector
-                    .hass=${this.hass}
-                    .selector=${{ text: {} }}
-                    .value=${c.filters?.exclude_search ?? ''}
-                    .label=${'Exclude search'}
-                    .helper=${'Hide events matching keyword'}
-                    @value-changed=${(e: any) => this._setNested('filters', 'exclude_search', e.detail.value)}
-                  ></ha-selector>
-                </div>
-                <div class="field">
-                  <ha-selector
-                    .hass=${this.hass}
-                    .selector=${{ select: {
-                      options: this._getCategoryOptions(),
-                      multiple: true,
-                      custom_value: true,
-                      mode: 'list',
-                    } }}
-                    .value=${c.filters?.exclude_categories ?? []}
-                    .label=${"Exclude Categories"}
-                    .helper=${"Hide events in these categories"}
-                    @value-changed=${(e: any) => this._setNested('filters', 'exclude_categories', e.detail.value)}
-                  ></ha-selector>
-                </div>
-                <div class="field">
-                  <ha-selector
-                    .hass=${this.hass}
-                    .selector=${{ select: {
-                      options: [
-                        { value: 'critical', label: 'Critical' },
-                        { value: 'warning', label: 'Warning' },
-                        { value: 'info', label: 'Info' },
-                        { value: 'debug', label: 'Debug' },
-                      ],
-                      multiple: true,
-                    } }}
-                    .value=${c.filters?.exclude_severities ?? []}
-                    .label=${"Exclude Severities"}
-                    @value-changed=${(e: any) => this._setNested('filters', 'exclude_severities', e.detail.value)}
-                  ></ha-selector>
-                </div>
-                <div class="field">
-                  <ha-selector
-                    .hass=${this.hass}
-                    .selector=${{ select: {
-                      options: this._getSourceNameOptions(),
-                      multiple: true,
-                      custom_value: true,
-                    } }}
-                    .value=${c.filters?.exclude_sources ?? []}
-                    .label=${"Exclude Sources"}
-                    @value-changed=${(e: any) => this._setNested('filters', 'exclude_sources', e.detail.value)}
-                  ></ha-selector>
-                </div>
-                <div class="field">
-                  <ha-selector
-                    .hass=${this.hass}
-                    .selector=${{ entity: { multiple: true } }}
-                    .value=${c.filters?.exclude_entities ?? []}
-                    .label=${"Exclude Entities"}
-                    @value-changed=${(e: any) => this._setNested('filters', 'exclude_entities', e.detail.value ?? [])}
-                  ></ha-selector>
-                </div>
-              </div>
-            </details>
-          </div>
-        </details>
-
-        <!-- Grouping -->
-        <details>
-          <summary>Grouping</summary>
-          <div class="section-body">
-            <div class="toggle-row">
-              <span class="toggle-label">Enable Grouping</span>
-              ${this._renderToggle(g.enabled !== false, (v) => this._setNested('grouping', 'enabled', v))}
-            </div>
-            <div class="row">
-              <div class="field">
-                <ha-selector
-                  .hass=${this.hass}
-                  .selector=${{ number: { min: 0, max: 3600, mode: 'box', unit_of_measurement: 'seconds' } }}
-                  .value=${g.window_seconds ?? 120}
-                  .label=${'Window (seconds)'}
-                  @value-changed=${(e: any) => this._setNested('grouping', 'window_seconds', e.detail.value)}
-                ></ha-selector>
-              </div>
-              <div class="field">
-                <ha-selector
-                  .hass=${this.hass}
-                  .selector=${{ number: { min: 1, max: 100, mode: 'box' } }}
-                  .value=${g.min_group_size ?? 3}
-                  .label=${'Min group size'}
-                  @value-changed=${(e: any) => this._setNested('grouping', 'min_group_size', e.detail.value)}
-                ></ha-selector>
-              </div>
-            </div>
-            <div class="field">
-              <ha-selector
-                .hass=${this.hass}
-                .selector=${{ select: {
-                  options: [
-                    { value: 'category', label: 'Category' },
-                    { value: 'source',   label: 'Source'   },
-                    { value: 'entity',   label: 'Entity'   },
-                    { value: 'none',     label: 'None'     },
-                  ],
-                  mode: 'dropdown',
-                } }}
-                .value=${g.group_by ?? 'category'}
-                .label=${'Group by'}
-                @value-changed=${(e: any) => this._setNested('grouping', 'group_by', e.detail.value)}
-              ></ha-selector>
-            </div>
-            <div class="field">
-              <ha-selector
-                .hass=${this.hass}
-                .selector=${{ text: {} }}
-                .value=${g.group_name ?? ''}
-                .label=${'Group name'}
-                .helper=${'Custom summary label. Placeholders: {count}, {label}, {source}, {entity}. Leave empty for the default "N X events" summary.'}
-                @value-changed=${(e: any) => this._setNested('grouping', 'group_name', e.detail.value || undefined)}
-              ></ha-selector>
-            </div>
-          </div>
-        </details>
-
-        <!-- Appearance -->
-        <details>
-          <summary>Appearance</summary>
-          <div class="section-body">
-            <div class="field">
-              <ha-selector
-                .hass=${this.hass}
-                .selector=${{ select: {
-                  options: [
-                    { value: '400px', label: '400px (default)' },
-                    { value: 'fill',  label: 'Fill available space (Panel layout)' },
-                    { value: 'auto',  label: 'Auto (grow with content)' },
-                  ],
-                  custom_value: true,
-                  mode: 'dropdown',
-                } }}
-                .value=${a.card_height ?? '400px'}
-                .label=${'Card height'}
-                .helper=${'A fixed height (e.g. 400px), "fill" to use the full dashboard height (Panel layout), or "auto" to grow with content.'}
-                @value-changed=${(e: any) => this._setNested('appearance', 'card_height', e.detail.value)}
-              ></ha-selector>
-            </div>
-            <div class="toggle-row">
-              <span class="toggle-label">Compact Mode</span>
-              ${this._renderToggle(a.compact ?? false, (v) => this._setNested('appearance', 'compact', v))}
-            </div>
-            <div class="toggle-row">
-              <span class="toggle-label">Show Images</span>
-              ${this._renderToggle(a.show_images !== false, (v) => this._setNested('appearance', 'show_images', v))}
-            </div>
-            <div class="toggle-row">
-              <span class="toggle-label">Show Icons</span>
-              ${this._renderToggle(a.show_icons !== false, (v) => this._setNested('appearance', 'show_icons', v))}
-            </div>
-            <div class="toggle-row">
-              <span class="toggle-label">Show Severity Badge</span>
-              ${this._renderToggle(a.show_severity_badge !== false, (v) => this._setNested('appearance', 'show_severity_badge', v))}
-            </div>
-            <div class="toggle-row">
-              <span class="toggle-label">Show Category Tags</span>
-              ${this._renderToggle(a.show_category !== false, (v) => this._setNested('appearance', 'show_category', v))}
-            </div>
-            <div class="toggle-row">
-              <span class="toggle-label">Animate New Events</span>
-              ${this._renderToggle(a.animate_new_events !== false, (v) => this._setNested('appearance', 'animate_new_events', v))}
-            </div>
-
-            <div style="margin-top: 12px;">
-              <label>Severity Colors</label>
-              <div class="row">
-                <div class="field">
-                  <label>Critical</label>
-                  <input type="color" .value=${a.severity_colors?.critical ?? '#D32F2F'} @input=${(e: any) => this._setSeverityColor('critical', e.target.value)} />
-                </div>
-                <div class="field">
-                  <label>Warning</label>
-                  <input type="color" .value=${a.severity_colors?.warning ?? '#FF9800'} @input=${(e: any) => this._setSeverityColor('warning', e.target.value)} />
-                </div>
-                <div class="field">
-                  <label>Info</label>
-                  <input type="color" .value=${a.severity_colors?.info ?? '#2196F3'} @input=${(e: any) => this._setSeverityColor('info', e.target.value)} />
-                </div>
-                <div class="field">
-                  <label>Debug</label>
-                  <input type="color" .value=${a.severity_colors?.debug ?? '#9E9E9E'} @input=${(e: any) => this._setSeverityColor('debug', e.target.value)} />
-                </div>
-              </div>
-            </div>
-          </div>
-        </details>
-      </div>
-    `;
-  }
-
-  private _renderToggle(checked: boolean, onChange: (val: boolean) => void) {
-    return html`
-      <ha-switch
-        .checked=${checked}
-        @change=${(e: any) => onChange(e.target.checked)}
-      ></ha-switch>
-    `;
-  }
-
-  private _set(key: string, value: unknown) {
-    this._config = { ...this._config, [key]: value };
-    this._fire();
-  }
-
-  private _setNested(section: string, key: string, value: unknown) {
-    const current = (this._config as any)[section] ?? {};
-    this._config = { ...this._config, [section]: { ...current, [key]: value } };
-    this._fire();
-  }
-
-  private _setSeverityColor(severity: string, color: string) {
-    const current = this._config.appearance?.severity_colors ?? {};
-    this._setNested('appearance', 'severity_colors', { ...current, [severity]: color });
-  }
-
-  private _csvToArray(value: string): string[] {
-    const trimmed = value.trim();
-    if (!trimmed) return [];
-    return trimmed.split(',').map(s => s.trim()).filter(Boolean);
-  }
-
-  /** Build category options from known categories in constants. */
-  private _getCategoryOptions(): Array<{ value: string; label: string }> {
+  private get _generalSchema(): Schema[] {
     return [
-      { value: 'person', label: 'Person' },
-      { value: 'vehicle', label: 'Vehicle' },
-      { value: 'animal', label: 'Animal' },
-      { value: 'pet', label: 'Pet' },
-      { value: 'security', label: 'Security' },
-      { value: 'motion', label: 'Motion' },
-      { value: 'door', label: 'Door' },
-      { value: 'lock', label: 'Lock' },
-      { value: 'camera', label: 'Camera' },
-      { value: 'light', label: 'Light' },
-      { value: 'climate', label: 'Climate' },
-      { value: 'automation', label: 'Automation' },
-      { value: 'system', label: 'System' },
+      { name: 'title', selector: { text: {} } },
+      {
+        name: '', type: 'grid', schema: [
+          { name: 'layout', selector: { select: { mode: 'dropdown', options: [
+            { value: 'vertical', label: 'Vertical' },
+            { value: 'horizontal', label: 'Horizontal' },
+          ] } } },
+          { name: 'time_format', selector: { select: { mode: 'dropdown', options: [
+            { value: '24h', label: '24 hour' },
+            { value: '12h', label: '12 hour' },
+          ] } } },
+          { name: 'days_back', selector: { number: { min: 0, max: 365, step: 'any', mode: 'box', unit_of_measurement: 'days' } } },
+          { name: 'days_forward', selector: { number: { min: 0, max: 365, step: 'any', mode: 'box', unit_of_measurement: 'days' } } },
+          { name: 'max_events', selector: { number: { min: 1, max: 1000, mode: 'box' } } },
+        ],
+      },
+      {
+        name: '', type: 'grid', schema: [
+          { name: 'show_header', selector: { boolean: {} } },
+          { name: 'show_layout_toggle', selector: { boolean: {} } },
+        ],
+      },
     ];
   }
 
-  /** Build source name options from the current config's sources. */
-  private _getSourceNameOptions(): Array<{ value: string; label: string }> {
-    return (this._config.sources ?? [])
-      .filter(s => s.name)
-      .map(s => ({ value: s.name!, label: s.name! }));
+  private get _optionsSchema(): Schema[] {
+    const sourceNames = (this._config?.sources ?? [])
+      .filter((s) => s.name)
+      .map((s) => ({ value: s.name!, label: s.name! }));
+    const selectMulti = (options: unknown[], custom = true) =>
+      ({ select: { multiple: true, custom_value: custom, mode: 'dropdown', options } });
+
+    return [
+      {
+        type: 'expandable', name: 'filters', title: 'Filters', icon: 'mdi:filter-outline', schema: [
+          { name: 'search', selector: { text: {} } },
+          { name: 'categories', selector: selectMulti(CATEGORY_OPTIONS) },
+          { name: 'severities', selector: selectMulti(SEVERITY_OPTIONS, false) },
+          { name: 'sources', selector: selectMulti(sourceNames) },
+          { name: 'entities', selector: { entity: { multiple: true } } },
+          {
+            type: 'expandable', title: 'Exclusions', icon: 'mdi:filter-remove-outline', schema: [
+              { name: 'exclude_search', selector: { text: {} } },
+              { name: 'exclude_categories', selector: selectMulti(CATEGORY_OPTIONS) },
+              { name: 'exclude_severities', selector: selectMulti(SEVERITY_OPTIONS, false) },
+              { name: 'exclude_sources', selector: selectMulti(sourceNames) },
+              { name: 'exclude_entities', selector: { entity: { multiple: true } } },
+            ],
+          },
+        ],
+      },
+      {
+        type: 'expandable', name: 'grouping', title: 'Grouping', icon: 'mdi:group', schema: [
+          { name: 'enabled', selector: { boolean: {} } },
+          {
+            name: '', type: 'grid', schema: [
+              { name: 'window_seconds', selector: { number: { min: 0, max: 86400, mode: 'box', unit_of_measurement: 's' } } },
+              { name: 'min_group_size', selector: { number: { min: 2, max: 100, mode: 'box' } } },
+            ],
+          },
+          { name: 'group_by', selector: { select: { mode: 'dropdown', options: GROUP_BY_OPTIONS } } },
+          { name: 'group_name', selector: { text: {} } },
+        ],
+      },
+      {
+        type: 'expandable', name: 'appearance', title: 'Appearance', icon: 'mdi:palette-outline', schema: [
+          { name: 'card_height', selector: { select: { mode: 'dropdown', custom_value: true, options: [
+            { value: '400px', label: '400px' },
+            { value: 'auto', label: 'Auto (grow with content)' },
+            { value: 'fill', label: 'Fill available space' },
+          ] } } },
+          {
+            name: '', type: 'grid', schema: [
+              { name: 'compact', selector: { boolean: {} } },
+              { name: 'show_description', selector: { boolean: {} } },
+              { name: 'show_images', selector: { boolean: {} } },
+              { name: 'show_icons', selector: { boolean: {} } },
+              { name: 'show_severity_badge', selector: { boolean: {} } },
+              { name: 'show_category', selector: { boolean: {} } },
+              { name: 'animate_new_events', selector: { boolean: {} } },
+            ],
+          },
+          {
+            type: 'expandable', name: 'severity_colors', title: 'Severity colors', schema: [
+              { name: '', type: 'grid', schema: SEVERITY_KEYS.map((name) => ({ name, selector: { color_rgb: {} } })) },
+            ],
+          },
+        ],
+      },
+    ];
   }
 
-  private _addSource(type: 'calendar' | 'rest' | 'history' | 'static' | 'logbook') {
-    const nameMap = { calendar: 'Calendar', rest: 'REST API', history: 'Entity State', static: 'Template', logbook: 'Logbook' };
-    const sources = [...(this._config.sources ?? []), { type, name: nameMap[type] }];
-    this._config = { ...this._config, sources };
-    this._fire();
+  /** Config merged with defaults for display; severity colors as RGB for color_rgb. */
+  private get _displayData(): Record<string, unknown> {
+    const c = this._config!;
+    const appearance = { ...DEFAULT_CONFIG.appearance, ...c.appearance };
+    return {
+      ...DEFAULT_CONFIG,
+      ...c,
+      filters: { ...DEFAULT_CONFIG.filters, ...c.filters },
+      grouping: { ...DEFAULT_CONFIG.grouping, ...c.grouping },
+      appearance: {
+        ...appearance,
+        show_description: appearance.show_description ?? !appearance.compact,
+        severity_colors: mapKeys(
+          { ...DEFAULT_CONFIG.appearance!.severity_colors, ...appearance.severity_colors },
+          SEVERITY_KEYS,
+          hexToRgb,
+        ),
+      },
+    };
   }
 
-  private _onSourceChanged(e: CustomEvent) {
-    const { index, key, value } = e.detail;
-    const sources = [...(this._config.sources ?? [])];
-    sources[index] = { ...sources[index], [key]: value };
-    this._config = { ...this._config, sources };
-    this._fire();
+  private _computeHelper = (schema: { name?: string }) => HELPERS[schema.name ?? ''];
+
+  protected render() {
+    if (!this._config || !this.hass) return nothing;
+    const data = this._displayData;
+    const computeLabel = makeComputeLabel(this.hass, LABELS);
+    const sources = this._config.sources ?? [];
+
+    return html`
+      <ha-form
+        .hass=${this.hass}
+        .data=${data}
+        .schema=${this._generalSchema}
+        .computeLabel=${computeLabel}
+        .computeHelper=${this._computeHelper}
+        @value-changed=${this._formChanged}
+      ></ha-form>
+
+      <div class="sources">
+        <div class="sources-header">Sources <span class="count">${sources.length}</span></div>
+        ${sources.length === 0 ? html`<p class="empty">Add a source to start building the timeline.</p>` : nothing}
+        ${sources.map((src, i) => html`
+          <chronicle-source-editor
+            .hass=${this.hass}
+            .source=${src}
+            .index=${i}
+            @source-changed=${this._sourceChanged}
+            @source-removed=${this._sourceRemoved}
+          ></chronicle-source-editor>
+        `)}
+        <div class="add-row">
+          ${SOURCE_TYPES.map((t) => html`
+            <button class="add-btn" @click=${() => this._addSource(t.type)}>
+              <ha-icon .icon=${t.icon}></ha-icon>${t.label}
+            </button>
+          `)}
+        </div>
+      </div>
+
+      <ha-form
+        .hass=${this.hass}
+        .data=${data}
+        .schema=${this._optionsSchema}
+        .computeLabel=${computeLabel}
+        .computeHelper=${this._computeHelper}
+        @value-changed=${this._formChanged}
+      ></ha-form>
+    `;
   }
 
-  private _onSourceRemoved(e: CustomEvent) {
-    const { index } = e.detail;
-    const sources = [...(this._config.sources ?? [])];
-    sources.splice(index, 1);
-    this._config = { ...this._config, sources };
-    this._fire();
+  private _formChanged(e: CustomEvent): void {
+    e.stopPropagation();
+    const value = { ...(e.detail.value as Record<string, unknown>) };
+    const appearance = { ...(value.appearance as Record<string, unknown> | undefined) };
+    if (appearance.severity_colors) {
+      appearance.severity_colors = mapKeys(appearance.severity_colors as Record<string, unknown>, SEVERITY_KEYS, rgbToHex);
+    }
+    // show_description is displayed as its effective value; only persist a real override
+    const prev = this._config?.appearance;
+    if (prev?.show_description === undefined && appearance.show_description === !prev?.compact) {
+      delete appearance.show_description;
+    }
+    value.appearance = appearance;
+    this._commit(value);
   }
 
-  private _fire() {
+  private _sourceChanged(e: CustomEvent): void {
+    e.stopPropagation();
+    const { index, source } = e.detail as { index: number; source: SourceConfig };
+    const sources = [...(this._config!.sources ?? [])];
+    sources[index] = source;
+    this._commit({ ...this._config!, sources });
+  }
+
+  private _sourceRemoved(e: CustomEvent): void {
+    e.stopPropagation();
+    const sources = [...(this._config!.sources ?? [])];
+    sources.splice(e.detail.index as number, 1);
+    this._commit({ ...this._config!, sources });
+  }
+
+  private _addSource(type: SourceConfig['type']): void {
+    const label = SOURCE_TYPES.find((t) => t.type === type)?.label ?? type;
+    const sources = [...(this._config!.sources ?? []), { type, name: label } as SourceConfig];
+    this._commit({ ...this._config!, sources });
+  }
+
+  /** Strip display defaults back out and tell HA about the new config. */
+  private _commit(next: Record<string, unknown>): void {
+    const raw = this._config as unknown as Record<string, unknown>;
+    const { type, sources, ...rest } = next;
+    const pruned = pruneConfig(rest, raw, PRUNE_DEFAULTS);
+    // Keep the user's key order; new keys go after, sources last
+    const order = [...Object.keys(raw).filter((k) => k in pruned), ...Object.keys(pruned).filter((k) => !(k in raw))];
+    const config = {
+      type: type ?? raw.type,
+      ...Object.fromEntries(order.map((k) => [k, pruned[k]])),
+      sources: sources ?? raw.sources ?? [],
+    } as unknown as ChronicleCardConfig;
+    this._config = config;
     this.dispatchEvent(new CustomEvent('config-changed', {
       bubbles: true,
       composed: true,
-      detail: { config: this._config },
+      detail: { config },
     }));
   }
 }

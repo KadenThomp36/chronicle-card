@@ -2,5 +2,6 @@
   "name": "Chronicle Card",
   "render_readme": true,
   "filename": "chronicle-card.js",
-  "content_in_root": false
+  "content_in_root": false,
+  "homeassistant": "2024.8.0"
 }

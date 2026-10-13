@@ -21,11 +21,11 @@ A universal, extensible timeline card for [Home Assistant](https://www.home-assi
 - **Event grouping** — Clusters rapid events (e.g. 5 motion detections in 2 minutes) into expandable groups
 - **Thumbnail support** — Displays event images from cameras, Frigate snapshots, or any URL
 - **Severity system** — Critical / Warning / Info / Debug badges with customizable colors
-- **Action buttons** — Call services, navigate to URLs, or fire events from each timeline entry
+- **Native actions** — Tap/hold actions and action buttons use Home Assistant's own action handler (perform-action with confirmation, navigate, url, more-info, toggle, assist)
 - **Detail dialog** — Click any event for a rich popup with full description, image, metadata, and actions
 - **Visual config editor** — Full GUI editor in the HA dashboard editor, no YAML required
-- **Localization** — English, German, French, Spanish, Italian, Portuguese, Dutch, Swedish, Polish
-- **Performance** — Virtual scrolling, debounced fetching, media URL caching
+- **Localization** — State labels, attribute values, dates and times come from Home Assistant itself in your profile's language, 12/24h setting and time zone; card strings in English, German, French, Spanish, Italian, Portuguese, Dutch, Swedish, Polish
+- **Lightweight** — Live updates come from the state stream Home Assistant already sends the dashboard (no extra subscriptions); polling, template and media results are cached
 
 ---
 
@@ -39,8 +39,9 @@ Chronicle Card is in the **HACS default store**. Click the badge below to open t
 
 1. Open HACS in your Home Assistant instance
 2. Search for **Chronicle Card** and click **Download**
-3. Go to **Settings → Dashboards → Resources**, click **Add**, and enter `/hacsfiles/chronicle-card/chronicle-card.js` as **JavaScript Module**
-4. Restart Home Assistant
+3. Refresh your browser. HACS registers the dashboard resource automatically; if you manage dashboards in YAML mode, add `/hacsfiles/chronicle-card/chronicle-card.js` as a **JavaScript Module** resource yourself
+
+Requires Home Assistant **2024.8** or newer.
 
 ### Manual
 
@@ -79,9 +80,10 @@ That's it. The card will fetch events from the calendar entity, automatically as
 | `layout` | string | `vertical` | `vertical` or `horizontal` |
 | `show_layout_toggle` | boolean | `true` | Show button to switch layouts |
 | `max_events` | number | `50` | Maximum events to display |
-| `days_back` | number | `7` | How many days of history to fetch |
-| `time_format` | string | `24h` | `12h` or `24h` |
-| `language` | string | *auto* | Override language (`en`, `de`, `fr`, `es`, `it`, `pt`, `nl`, `sv`) |
+| `days_back` | number | `7` | How far back to look. Whole numbers are calendar days — `0` = today since midnight, `1` = yesterday and today. Decimals are a rolling window (`0.5` = the last 12 hours) |
+| `days_forward` | number | `0` | Look ahead for upcoming calendar/static events, same day semantics as `days_back` |
+| `time_format` | string | *profile* | `12h` or `24h`. Unset follows your Home Assistant profile (as do date format and time zone) |
+| `language` | string | *auto* | Override the card's language (`en`, `de`, `fr`, `es`, `it`, `pt`, `nl`, `sv`, `pl`) |
 | `show_header` | boolean | `true` | Show the card header |
 | `sources` | list | **Required** | Array of source configurations (see below) |
 | `filters` | object | `{}` | Filter configuration |
@@ -104,7 +106,11 @@ sources:
     default_icon: mdi:calendar     # Fallback icon
     default_color: "#4CAF50"       # Fallback color
     default_severity: info         # Fallback severity
+
+days_forward: 7                    # Card option: also show the coming week
 ```
+
+All-day events show without a time. Combine `days_forward` with `days_back: 0` for an agenda of today and the days ahead.
 
 #### REST Source
 
@@ -143,9 +149,7 @@ sources:
 
 #### History Source
 
-Converts entity state changes into timeline events. The adapter reads each entity's `device_class` to generate human-readable titles and assign correct categories automatically.
-
-For example, a `binary_sensor` with `device_class: door` produces **"Front Door Opened"** / **"Front Door Closed"** instead of raw on/off values. Supported device classes include door, motion, window, lock, smoke, moisture, occupancy, vibration, and many more.
+Converts entity state changes into timeline events. State labels come from Home Assistant's own formatting — device-class aware and in your language — so a `binary_sensor` with `device_class: door` produces **"Front Door Open"** / **"Front Door Closed"**, and a motion sensor **"Hallway Motion Detected"**, without any configuration. New state changes appear live.
 
 ```yaml
 sources:
@@ -189,7 +193,7 @@ sources:
           armed_away: mdi:shield-lock
 ```
 
-**Show attribute values** — `show_attributes` appends the listed attribute values to the event description, e.g. "Idle → Heating · temperature: 72". Uses the historical per-state value when available:
+**Show attribute values** — `show_attributes` adds a line with the listed attributes, formatted by Home Assistant (translated names, units), e.g. "Temperature: 21.5 °C". It uses the historical per-state value when available and is shown in compact mode too:
 
 ```yaml
 sources:
@@ -231,7 +235,7 @@ sources:
 
 Per-entity settings override source-level defaults, which override auto-detected device class defaults. Entities without `entity_config` use smart defaults automatically.
 
-**Dynamic image thumbnails** — Use Jinja2 templates to generate per-event thumbnail URLs:
+**Image thumbnails** — `image_template` can be a plain URL/path (`/local/door.png`) or a Jinja2 template rendered per event:
 
 ```yaml
 sources:
@@ -247,11 +251,13 @@ sources:
       {% endif %}
 ```
 
-Template variables: `entity_id`, `state`, `old_state`, `timestamp`, `attributes`, `source_name`. Templates are batch-rendered in a single WebSocket call for performance.
+Template variables: `entity_id`, `state`, `old_state`, `timestamp`, `attributes`, `source_name`. Results are cached, so polling doesn't re-render them.
+
+**Video clips** — `clip_template` works the same way (plain URL/path or Jinja2) and plays the clip in the detail dialog; the thumbnail stays the still image. If a clip can't be played inline (e.g. some iOS setups), the dialog falls back to the image and offers an **Open clip** link.
 
 > **Note:** Use `/local/` URLs (files in `/config/www/`) or integration-specific proxy URLs (e.g. Frigate snapshots). HA's `/api/camera_proxy/` URLs require bearer token auth that `<img>` tags cannot send.
 
-**Tap & hold actions** — Attach HA's standard action system to timeline events:
+**Tap & hold actions** — Use Home Assistant's standard actions on timeline events (available on every source type):
 
 ```yaml
 sources:
@@ -266,24 +272,7 @@ sources:
       navigation_path: /lovelace/cameras
 ```
 
-Action types: `more-info`, `navigate`, `call-service`, `none`. Default tap (no config) opens the Chronicle detail dialog.
-
-Built-in device class translations:
-
-| Device Class | `on` | `off` |
-|-------------|------|-------|
-| door / opening / window | Opened | Closed |
-| motion | Motion Detected | Motion Cleared |
-| lock | Unlocked | Locked |
-| smoke | Smoke Detected | Clear |
-| moisture | Wet | Dry |
-| occupancy | Occupied | Unoccupied |
-| presence | Present | Away |
-| vibration | Vibration | Still |
-| connectivity | Connected | Disconnected |
-| battery | Low | Normal |
-
-Non-binary entities (locks, covers, alarms, climate, etc.) also get human-readable labels automatically.
+Every Home Assistant action type works — `more-info`, `toggle`, `navigate`, `url`, `perform-action` (with optional `confirmation`), `assist`, `fire-dom-event`, `none` — because the card hands them to HA's own action handler. With no action configured, tap opens the Chronicle detail dialog. String fields support [`{field}` placeholders](#actions).
 
 #### Logbook Source
 
@@ -327,12 +316,14 @@ sources:
 |--------|------|---------|-------------|
 | `type` | string | **Required** | `calendar`, `rest`, `history`, `logbook`, or `static` |
 | `name` | string | `""` | Display name for the source |
-| `default_icon` | string | *auto* | Fallback MDI icon (e.g. `mdi:calendar`) |
+| `default_icon` | string | *auto* | Fallback icon (e.g. `mdi:calendar`; any icon set HA knows works) |
 | `default_color` | string | *auto* | Fallback hex color (e.g. `#4CAF50`) |
 | `default_severity` | string | `info` | `critical`, `warning`, `info`, or `debug` |
 | `icon_map` | object | `{}` | Keyword-to-icon mapping (see [Icon Resolution](#icon--color-resolution)) |
 | `color_map` | object | `{}` | Keyword-to-color mapping |
 | `actions` | list | `[]` | Action buttons shown on each event (see [Actions](#actions)) |
+| `tap_action` | object | *dialog* | [HA action](https://www.home-assistant.io/dashboards/actions/) on tap. Unset opens the detail dialog |
+| `hold_action` | object | — | HA action on hold (500 ms) |
 
 ### Source Options (Calendar)
 
@@ -364,11 +355,10 @@ sources:
 | `state_map` | object | Source-level default: override state labels (e.g. `{"on": "Opened", "off": "Closed"}`) |
 | `state_color` | object | Source-level default: per-state color overrides, keyed by raw state value |
 | `state_icon` | object | Source-level default: per-state MDI icon overrides, keyed by raw state value |
-| `show_attributes` | list | Source-level default: attribute names appended to the event description |
+| `show_attributes` | list | Source-level default: attributes shown under each event |
 | `entity_config` | object | Per-entity overrides, keyed by entity ID. See table below |
-| `image_template` | string | Jinja2 template rendered per event to produce a thumbnail URL. Variables: `entity_id`, `state`, `old_state`, `timestamp`, `attributes`, `source_name` |
-| `tap_action` | object | Action on tap: `{ action: "more-info" \| "navigate" \| "call-service" \| "none" }` |
-| `hold_action` | object | Action on hold (500ms): same format as `tap_action` |
+| `image_template` | string | Thumbnail: a URL/path, or a Jinja2 template rendered per event. Variables: `entity_id`, `state`, `old_state`, `timestamp`, `attributes`, `source_name` |
+| `clip_template` | string | Video clip for the detail dialog: a URL/path or Jinja2 template (same variables) |
 
 **Per-Entity Config** (`entity_config.<entity_id>`):
 
@@ -379,11 +369,12 @@ sources:
 | `state_map` | object | Override state labels for this entity (overrides source-level) |
 | `state_color` | object | Per-state color overrides for this entity (e.g. `{"armed_away": "#80ff87"}`) |
 | `state_icon` | object | Per-state MDI icon overrides for this entity |
-| `show_attributes` | list | Attribute names appended to the event description (e.g. `[temperature, brightness]`) |
+| `show_attributes` | list | Attributes shown under each event (e.g. `[temperature, brightness]`) |
 | `icon` | string | MDI icon override for this entity |
 | `color` | string | Hex color override for this entity |
 | `severity` | string | Severity override (`critical`, `warning`, `info`, `debug`) |
 | `image_template` | string | Per-entity image template override |
+| `clip_template` | string | Per-entity clip template override |
 | `tap_action` | object | Per-entity tap action override |
 | `hold_action` | object | Per-entity hold action override |
 
@@ -428,6 +419,8 @@ filters:
 | `sources` | list | Show only events from these source names. Empty = show all |
 | `entities` | list | Show only events from these entity IDs. Empty = show all |
 | `search` | string | Full-text search filter |
+| `exclude_categories` / `exclude_severities` / `exclude_sources` / `exclude_entities` | list | Hide matching events (applied after the filters above) |
+| `exclude_search` | string | Hide events containing this text |
 
 ### Grouping
 
@@ -480,7 +473,7 @@ grouping:
   group_by: category
 ```
 
-The visual editor exposes this as a **Grouping Override** section inside each source row. Blank fields inherit the card-level config; a **Clear override** button drops back to inheritance.
+The visual editor exposes this as a **Grouping override** section inside each source. Blank fields inherit the card-level config; clearing all of them drops the override.
 
 ### Appearance
 
@@ -491,7 +484,7 @@ appearance:
   show_images: true
   show_icons: true
   show_severity_badge: true
-  show_source_badge: false
+  show_category: true
   animate_new_events: true
   severity_colors:
     critical: "#D32F2F"
@@ -502,18 +495,19 @@ appearance:
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `card_height` | string | `400px` | Fixed height with scroll (e.g. `400px`), `fill` to stretch to the full dashboard height (Panel layout), or `auto` for no limit |
-| `compact` | boolean | `false` | Reduced padding and hidden descriptions |
+| `card_height` | string | `400px` | Fixed height with scroll (e.g. `400px`), `fill` to stretch to the full dashboard height (Panel layout), or `auto` for no limit. In a sections view, giving the card a height in the layout editor also fills it |
+| `compact` | boolean | `false` | Single-line events; hides descriptions and tags (attribute lines stay) |
+| `show_description` | boolean | *auto* | Show the secondary line (e.g. "Off → On"). Defaults to on, or off in compact mode |
 | `show_images` | boolean | `true` | Show event thumbnails |
 | `show_icons` | boolean | `true` | Show category icons |
 | `show_severity_badge` | boolean | `true` | Show severity level badges |
-| `show_source_badge` | boolean | `false` | Show source name badges |
+| `show_category` | boolean | `true` | Show category/label/entity tags |
 | `animate_new_events` | boolean | `true` | Slide-in animation for new events |
 | `severity_colors` | object | *(see above)* | Override colors per severity level |
 
 ### Actions
 
-Add interactive buttons to events that call services, navigate, or fire events.
+Add buttons to events. A button takes any [Home Assistant action](https://www.home-assistant.io/dashboards/actions/) — the same keys as `tap_action`:
 
 ```yaml
 sources:
@@ -522,15 +516,17 @@ sources:
     actions:
       - label: View Camera
         icon: mdi:cctv
-        type: navigate
-        url: /lovelace/cameras
+        action: navigate
+        navigation_path: /lovelace/cameras
 
       - label: Dismiss
         icon: mdi:close
-        type: service
-        service: input_boolean.turn_off
+        action: perform-action
+        perform_action: input_boolean.turn_off
         target:
           entity_id: input_boolean.alert_active
+        confirmation:
+          text: Dismiss this alert?
 
       - label: Trigger Alarm
         icon: mdi:alarm-light
@@ -543,16 +539,12 @@ sources:
 | Option | Type | Description |
 |--------|------|-------------|
 | `label` | string | Button text |
-| `icon` | string | Optional MDI icon |
-| `type` | string | `service`, `navigate`, or `fire-event` |
-| `service` | string | HA service to call (for `service` type) |
-| `serviceData` | object | Service call data |
-| `target` | object | Service call target (e.g. `{ entity_id: "light.kitchen" }`) |
-| `url` | string | URL to navigate to (for `navigate` type) |
-| `eventType` | string | Custom event type (for `fire-event` type) |
-| `eventData` | object | Custom event data |
+| `icon` | string | Optional icon |
+| `action` + action keys | | Any HA action: `perform-action` (`perform_action`, `data`, `target`), `navigate` (`navigation_path`), `url` (`url_path`), `more-info`, `toggle`, `assist`, … plus optional `confirmation` |
 
-**Placeholders** — action strings (`url`, `navigation_path`, `serviceData` / `service_data` values, `eventData` values) expand `{field}` placeholders against the event they belong to: `{id}` (the raw upstream id for REST sources — e.g. the Frigate event id), `{entity}`, `{title}`, `{source}`, `{start}`, `{end}`, `{media_url}`, `{category}`, `{severity}`, plus any scalar metadata key (e.g. `{new_state}` for history events). Unknown placeholders are left as-is.
+The older button format still works: `type: service` (`service`, `serviceData`, `target`), `type: navigate` (`url`), and `type: fire-event` (`eventType`, `eventData` — fires a DOM event for other cards to catch).
+
+**Placeholders** — every string in an action (tap/hold actions and buttons) expands `{field}` placeholders against the event it belongs to: `{id}` (the raw upstream id for REST sources — e.g. the Frigate event id), `{entity}`, `{title}`, `{source}`, `{start}`, `{end}`, `{media_url}`, `{clip_url}`, `{category}`, `{severity}`, plus any scalar metadata key (e.g. `{new_state}` for history events). Unknown placeholders are left as-is.
 
 ```yaml
 tap_action:
@@ -899,7 +891,7 @@ The LLM caption ends up in `input_text.doorbell_last_caption` and can be surface
 | `sv` | Swedish |
 | `pl` | Polish |
 
-Language is auto-detected from your Home Assistant locale. Override with the `language` option.
+Language is auto-detected from your Home Assistant profile. Override with the `language` option. State labels, attribute names/values, dates ("Today", "5 minutes ago") and times are formatted by Home Assistant and your browser, so they're translated for every language Home Assistant supports, not only the ones above.
 
 ---
 

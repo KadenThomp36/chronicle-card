@@ -1,38 +1,20 @@
 import { LitElement, html, css, nothing } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { ChronicleEvent } from '../../models/event';
-import { AppearanceConfig, ActionConfig } from '../../models/config';
-import { HomeAssistant } from '../../types';
-import { CATEGORY_ICONS } from '../../constants';
+import { AppearanceConfig } from '../../models/config';
 import { formatTime } from '../../utils/date-utils';
-import { safeColor } from '../../utils/color-utils';
-import { expandActionConfig, expandChronicleAction } from '../../utils/action-placeholders';
+import { safeColor, tintColor, validIcon } from '../../utils/color-utils';
+import { handleEventAction } from '../../utils/actions';
 import './severity-badge';
 import './action-button';
 
 const HOLD_DURATION = 500;
 
-function validIcon(icon: string): string {
-  return icon && icon.startsWith('mdi:') ? icon : CATEGORY_ICONS.default;
-}
-
-/** Mix a hex color toward white to create a light tint for icon contrast. */
-function tintColor(hex: string, amount = 0.82): string {
-  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  if (!m) return '#ffffff';
-  const r = Math.round(parseInt(m[1], 16) + (255 - parseInt(m[1], 16)) * amount);
-  const g = Math.round(parseInt(m[2], 16) + (255 - parseInt(m[2], 16)) * amount);
-  const b = Math.round(parseInt(m[3], 16) + (255 - parseInt(m[3], 16)) * amount);
-  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-}
-
 @customElement('chronicle-event-item')
 export class EventItem extends LitElement {
   @property({ attribute: false }) event!: ChronicleEvent;
   @property({ attribute: false }) appearance?: AppearanceConfig;
-  @property({ attribute: false }) hass?: HomeAssistant;
-  @property({ type: Boolean }) compact = false;
-  @property({ type: String }) timeFormat: '12h' | '24h' = '24h';
+  @property({ type: Boolean, reflect: true }) compact = false;
   @property({ type: Boolean, reflect: true }) animated = false;
 
   static styles = css`
@@ -98,6 +80,10 @@ export class EventItem extends LitElement {
       transition: background 0.2s ease, box-shadow 0.2s ease;
       border: 1px solid transparent;
     }
+    .event-item:focus-visible {
+      outline: 2px solid var(--primary-color, #03a9f4);
+      outline-offset: -2px;
+    }
     .event-item:hover {
       background: var(--secondary-background-color, rgba(127,127,127,0.05));
       border-color: var(--divider-color, rgba(127,127,127,0.08));
@@ -153,6 +139,15 @@ export class EventItem extends LitElement {
       opacity: 0.85;
     }
 
+    .details {
+      font-size: 11.5px;
+      color: var(--secondary-text-color, #888);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      line-height: 1.4;
+    }
+
     .meta-row {
       display: flex;
       align-items: center;
@@ -200,7 +195,7 @@ export class EventItem extends LitElement {
 
     :host([compact]) .content { gap: 0; }
     :host([compact]) .title { font-size: 12px; }
-    :host([compact]) .description,
+    :host([compact]) .details { font-size: 11px; }
     :host([compact]) .meta-row,
     :host([compact]) .actions-row { display: none; }
   `;
@@ -213,21 +208,31 @@ export class EventItem extends LitElement {
     const showIcons = this.appearance?.show_icons !== false;
     const showBadge = this.appearance?.show_severity_badge !== false;
     const showCategory = this.appearance?.show_category !== false;
-    const time = formatTime(e.start, this.timeFormat);
+    // Compact hides the description unless explicitly enabled
+    const showDescription = this.compact
+      ? this.appearance?.show_description === true
+      : this.appearance?.show_description !== false;
+    // Date-only starts are all-day events — a "00:00" time would mislead
+    const time = /^\d{4}-\d{2}-\d{2}$/.test(e.start) ? '' : formatTime(e.start);
+    const color = safeColor(e.color);
 
     return html`
       <div class="event-row">
         ${showIcons ? html`
-          <div class="icon-wrap" style="background-color: ${safeColor(e.color)}">
-            <ha-icon .icon=${validIcon(e.icon)} style="color: ${tintColor(safeColor(e.color))}"></ha-icon>
+          <div class="icon-wrap" style="background-color: ${color}">
+            <ha-icon .icon=${validIcon(e.icon)} style="color: ${tintColor(color)}"></ha-icon>
           </div>
-        ` : ''}
+        ` : nothing}
 
         <div class="event-item"
+          role="button"
+          tabindex="0"
           @pointerdown=${this._onPointerDown}
           @pointerup=${this._onPointerUp}
-          @pointercancel=${this._onPointerCancel}
-          @contextmenu=${(e: Event) => { if (this.event.holdAction) e.preventDefault(); }}
+          @pointercancel=${this._cancelHold}
+          @pointerleave=${this._cancelHold}
+          @keydown=${this._onKeyDown}
+          @contextmenu=${(ev: Event) => { if (this.event.holdAction) ev.preventDefault(); }}
         >
           <div class="content">
             <div class="top-row">
@@ -237,38 +242,42 @@ export class EventItem extends LitElement {
                   .severity=${e.severity}
                   .customColors=${this.appearance?.severity_colors}
                 ></chronicle-severity-badge>
-              ` : ''}
-              <span class="time">${time}</span>
+              ` : nothing}
+              ${time ? html`<span class="time">${time}</span>` : nothing}
             </div>
-            ${e.description ? html`<div class="description">${e.description}</div>` : ''}
+            ${showDescription && e.description ? html`<div class="description">${e.description}</div>` : nothing}
+            ${e.details ? html`<div class="details">${e.details}</div>` : nothing}
             <div class="meta-row">
-              ${showCategory && e.category ? html`<span class="category-tag">${e.category}</span>` : ''}
-              ${showCategory && e.label ? html`<span class="category-tag">${e.label}</span>` : ''}
-              ${showCategory && e.entityName ? html`<span class="category-tag">${e.entityName}</span>` : ''}
+              ${showCategory && e.category ? html`<span class="category-tag">${e.category}</span>` : nothing}
+              ${showCategory && e.label ? html`<span class="category-tag">${e.label}</span>` : nothing}
+              ${showCategory && e.entityName ? html`<span class="category-tag">${e.entityName}</span>` : nothing}
             </div>
             ${e.actions && e.actions.length > 0 ? html`
               <div class="actions-row">
                 ${e.actions.map((a) => html`
-                  <chronicle-action-button .action=${expandChronicleAction(a, e)} .hass=${this.hass}></chronicle-action-button>
+                  <chronicle-action-button .action=${a} .event=${e}></chronicle-action-button>
                 `)}
               </div>
-            ` : ''}
+            ` : nothing}
           </div>
 
           ${showImages && e.mediaUrl ? html`
             <img class="thumbnail" src=${e.mediaUrl} alt="" loading="lazy" />
-          ` : ''}
+          ` : nothing}
         </div>
       </div>
     `;
   }
 
   private _holdTimer: ReturnType<typeof setTimeout> | null = null;
+  private _pressed = false;
   private _holdFired = false;
   private _startX = 0;
   private _startY = 0;
 
   private _onPointerDown(e: PointerEvent) {
+    if (e.button !== 0) return;
+    this._pressed = true;
     this._holdFired = false;
     this._startX = e.clientX;
     this._startY = e.clientY;
@@ -283,89 +292,30 @@ export class EventItem extends LitElement {
       clearTimeout(this._holdTimer);
       this._holdTimer = null;
     }
+    if (!this._pressed) return;
+    this._pressed = false;
     // Ignore if pointer moved (user was scrolling, not tapping)
-    const dx = e.clientX - this._startX;
-    const dy = e.clientY - this._startY;
-    if (Math.abs(dx) > 10 || Math.abs(dy) > 10) return;
-
-    if (!this._holdFired) {
-      this._handleAction('tap');
-    }
+    if (Math.abs(e.clientX - this._startX) > 10 || Math.abs(e.clientY - this._startY) > 10) return;
+    if (!this._holdFired) this._handleAction('tap');
   }
 
-  private _onPointerCancel() {
+  private _cancelHold() {
+    this._pressed = false;
     if (this._holdTimer) {
       clearTimeout(this._holdTimer);
       this._holdTimer = null;
     }
   }
 
+  private _onKeyDown(e: KeyboardEvent) {
+    if (e.target !== e.currentTarget) return;
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      this._handleAction('tap');
+    }
+  }
+
   private _handleAction(type: 'tap' | 'hold') {
-    const rawConfig = type === 'hold' ? this.event.holdAction : this.event.tapAction;
-    // Expand {id}/{entity}/... placeholders against this event before acting
-    const config = rawConfig ? expandActionConfig(rawConfig, this.event) : rawConfig;
-
-    // No config or 'default' → tap opens detail dialog (existing default behavior)
-    if (!config || config.action === 'default') {
-      if (type === 'tap') {
-        this.dispatchEvent(
-          new CustomEvent('chronicle-show-detail', {
-            bubbles: true,
-            composed: true,
-            detail: { event: this.event },
-          }),
-        );
-      }
-      return;
-    }
-
-    switch (config.action) {
-      case 'more-info':
-        if (this.event.entityId) {
-          this.dispatchEvent(
-            new CustomEvent('hass-more-info', {
-              bubbles: true,
-              composed: true,
-              detail: { entityId: this.event.entityId },
-            }),
-          );
-        }
-        break;
-
-      case 'navigate':
-        if (config.navigation_path) {
-          history.pushState(null, '', config.navigation_path);
-          const locEvt = new CustomEvent('location-changed', {
-            bubbles: true,
-            composed: true,
-          });
-          window.dispatchEvent(locEvt);
-        }
-        break;
-
-      case 'call-service':
-        if (config.service && this.hass) {
-          const [domain, service] = config.service.split('.', 2);
-          if (domain && service) {
-            this.hass.callService(domain, service, config.service_data ?? {}, config.target);
-          }
-        }
-        break;
-
-      case 'none':
-        break;
-
-      default:
-        // Unknown action — fall back to detail dialog for tap
-        if (type === 'tap') {
-          this.dispatchEvent(
-            new CustomEvent('chronicle-show-detail', {
-              bubbles: true,
-              composed: true,
-              detail: { event: this.event },
-            }),
-          );
-        }
-    }
+    handleEventAction(this, this.event, type);
   }
 }

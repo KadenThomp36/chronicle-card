@@ -1,12 +1,14 @@
 import { LitElement, html, css } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
-import { ChronicleAction } from '../../models/event';
-import { HomeAssistant } from '../../types';
+import { ChronicleAction, ChronicleEvent } from '../../models/event';
+import { buttonActionConfig, fireHassAction } from '../../utils/actions';
+import { expandActionConfig } from '../../utils/action-placeholders';
 
 @customElement('chronicle-action-button')
 export class ActionButton extends LitElement {
-  @property({ attribute: false }) hass?: HomeAssistant;
   @property({ attribute: false }) action!: ChronicleAction;
+  /** The event this button belongs to — source of `{field}` placeholders. */
+  @property({ attribute: false }) event!: ChronicleEvent;
 
   static styles = css`
     :host {
@@ -45,53 +47,30 @@ export class ActionButton extends LitElement {
 
   protected render() {
     return html`
-      <button @click=${this._handleClick}>
+      <button @click=${this._handleClick} @pointerdown=${(e: Event) => e.stopPropagation()}>
         ${this.action.icon ? html`<ha-icon .icon=${this.action.icon}></ha-icon>` : ''}
         ${this.action.label}
       </button>
     `;
   }
 
-  private async _handleClick(e: Event) {
+  private _handleClick(e: Event) {
     e.stopPropagation();
-    if (!this.action) return;
+    if (!this.action || !this.event) return;
 
-    switch (this.action.type) {
-      case 'service': {
-        if (!this.hass || !this.action.service) return;
-        const [domain, service] = this.action.service.split('.');
-        if (domain && service) {
-          await this.hass.callService(
-            domain,
-            service,
-            this.action.serviceData ?? {},
-            this.action.target,
-          );
-        }
-        break;
+    // Legacy custom DOM event — not an HA action type
+    if (!this.action.action && this.action.type === 'fire-event') {
+      if (this.action.eventType) {
+        this.dispatchEvent(new CustomEvent(this.action.eventType, {
+          bubbles: true,
+          composed: true,
+          detail: expandActionConfig(this.action.eventData ?? {}, this.event),
+        }));
       }
-      case 'navigate': {
-        if (this.action.url) {
-          if (this.action.url.startsWith('http')) {
-            window.open(this.action.url, '_blank');
-          } else {
-            history.pushState(null, '', this.action.url);
-            window.dispatchEvent(new Event('location-changed'));
-          }
-        }
-        break;
-      }
-      case 'fire-event': {
-        if (this.action.eventType) {
-          const event = new CustomEvent(this.action.eventType, {
-            bubbles: true,
-            composed: true,
-            detail: this.action.eventData ?? {},
-          });
-          this.dispatchEvent(event);
-        }
-        break;
-      }
+      return;
     }
+
+    const config = buttonActionConfig(this.action);
+    if (config) fireHassAction(this, this.event, config);
   }
 }

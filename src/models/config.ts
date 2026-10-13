@@ -1,12 +1,32 @@
-import { SeverityLevel } from './event';
+import { ChronicleAction, SeverityLevel } from './event';
 
-/** HA-standard action configuration for tap/hold on timeline events. */
+/**
+ * Tap/hold action — HA's native action schema, handed to the frontend via the
+ * `hass-action` event, so every native action type (perform-action, url,
+ * toggle, assist, confirmation, …) works. `default` is Chronicle's own: open
+ * the detail dialog. String fields support `{field}` event placeholders.
+ */
 export interface ActionConfig {
-  action: 'more-info' | 'navigate' | 'call-service' | 'none' | 'default';
+  action:
+    | 'default'
+    | 'more-info'
+    | 'toggle'
+    | 'navigate'
+    | 'url'
+    | 'perform-action'
+    | 'call-service'
+    | 'assist'
+    | 'fire-dom-event'
+    | 'none';
   navigation_path?: string;
+  url_path?: string;
+  perform_action?: string;
+  data?: Record<string, unknown>;
+  target?: { entity_id?: string | string[]; device_id?: string | string[]; area_id?: string | string[] };
+  /** Pre-2024.8 names — still accepted by HA. */
   service?: string;
   service_data?: Record<string, unknown>;
-  target?: { entity_id?: string | string[]; device_id?: string | string[]; area_id?: string | string[] };
+  [key: string]: unknown;
 }
 
 /** Per-entity overrides within a history source. */
@@ -22,6 +42,7 @@ export interface EntityOverrides {
   color?: string;
   severity?: SeverityLevel;
   image_template?: string;
+  clip_template?: string;
   tap_action?: ActionConfig;
   hold_action?: ActionConfig;
 }
@@ -49,23 +70,17 @@ export interface SourceConfig {
   default_severity?: SeverityLevel;
   icon_map?: Record<string, string>;
   color_map?: Record<string, string>;
-  actions?: Array<{
-    label: string;
-    icon?: string;
-    type: 'service' | 'navigate' | 'fire-event';
-    service?: string;
-    serviceData?: Record<string, unknown>;
-    target?: { entity_id?: string };
-    url?: string;
-    eventType?: string;
-    eventData?: Record<string, unknown>;
-  }>;
+  /** Buttons rendered under each event. */
+  actions?: ChronicleAction[];
   state_map?: Record<string, string>;
   state_color?: Record<string, string>;
   state_icon?: Record<string, string>;
   show_attributes?: string[];
   state_filter?: string[];
+  /** Jinja2 (or a plain URL/path) resolved to the event's image. */
   image_template?: string;
+  /** Jinja2 (or a plain URL/path) resolved to a video clip for the detail dialog. */
+  clip_template?: string;
   tap_action?: ActionConfig;
   hold_action?: ActionConfig;
   /**
@@ -117,9 +132,10 @@ export interface AppearanceConfig {
   show_images?: boolean;
   show_icons?: boolean;
   show_severity_badge?: boolean;
-  show_source_badge?: boolean;
   show_category?: boolean;
   animate_new_events?: boolean;
+  /** Secondary description line (e.g. "Off → On"). Unset = shown, except in compact mode. */
+  show_description?: boolean;
   severity_colors?: Partial<Record<SeverityLevel, string>>;
 }
 
@@ -129,7 +145,11 @@ export interface ChronicleCardConfig {
   layout?: 'vertical' | 'horizontal';
   show_layout_toggle?: boolean;
   max_events?: number;
+  /** Whole numbers count calendar days (0 = today since midnight); fractions are a rolling window. */
   days_back?: number;
+  /** Look ahead (calendar/static sources), same day semantics as days_back. */
+  days_forward?: number;
+  /** Unset = follow the user's Home Assistant profile setting. */
   time_format?: '12h' | '24h';
   language?: string;
   show_header?: boolean;
@@ -137,6 +157,8 @@ export interface ChronicleCardConfig {
   filters?: FilterConfig;
   grouping?: GroupingConfig;
   appearance?: AppearanceConfig;
+  /** Sections-view sizing written by HA's layout editor. */
+  grid_options?: { rows?: number | 'auto'; columns?: number | 'full' };
 }
 
 export const DEFAULT_CONFIG: Partial<ChronicleCardConfig> = {
@@ -144,7 +166,7 @@ export const DEFAULT_CONFIG: Partial<ChronicleCardConfig> = {
   show_layout_toggle: true,
   max_events: 50,
   days_back: 7,
-  time_format: '24h',
+  days_forward: 0,
   show_header: true,
   filters: {
     categories: [],
@@ -170,7 +192,6 @@ export const DEFAULT_CONFIG: Partial<ChronicleCardConfig> = {
     show_images: true,
     show_icons: true,
     show_severity_badge: true,
-    show_source_badge: false,
     show_category: true,
     animate_new_events: true,
     severity_colors: {

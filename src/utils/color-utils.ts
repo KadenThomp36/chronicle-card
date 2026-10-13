@@ -1,5 +1,5 @@
 import { SeverityLevel } from '../models/event';
-import { SEVERITY_COLORS } from '../constants';
+import { CATEGORY_ICONS, SEVERITY_COLORS } from '../constants';
 
 const HEX_COLOR_RE = /^#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
 const FUNC_COLOR_RE = /^(?:rgb|rgba|hsl|hsla)\(\s*[0-9.,%\s/-]+\s*\)$/i;
@@ -21,79 +21,12 @@ export function safeColor(value: unknown, fallback: string = COLOR_FALLBACK): st
   return fallback;
 }
 
-/**
- * Parse a hex color string (with or without #, 3 or 6 digits) into RGB components.
- * Returns { r: 0, g: 0, b: 0 } for invalid input.
- */
-export function hexToRgb(hex: string): { r: number; g: number; b: number } {
-  const fallback = { r: 0, g: 0, b: 0 };
-
-  if (typeof hex !== 'string') {
-    return fallback;
-  }
-
-  let cleaned = hex.replace(/^#/, '');
-
-  // Expand shorthand (e.g. "F0A" -> "FF00AA")
-  if (cleaned.length === 3) {
-    cleaned = cleaned[0] + cleaned[0] + cleaned[1] + cleaned[1] + cleaned[2] + cleaned[2];
-  }
-
-  if (cleaned.length !== 6 || !/^[0-9a-fA-F]{6}$/.test(cleaned)) {
-    return fallback;
-  }
-
-  return {
-    r: parseInt(cleaned.substring(0, 2), 16),
-    g: parseInt(cleaned.substring(2, 4), 16),
-    b: parseInt(cleaned.substring(4, 6), 16),
-  };
-}
-
-/**
- * Convert RGB components to a 6-digit hex color string with leading #.
- * Values are clamped to 0-255.
- */
-export function rgbToHex(r: number, g: number, b: number): string {
-  const clamp = (v: number) => Math.max(0, Math.min(255, Math.round(v)));
-  const toHex = (v: number) => clamp(v).toString(16).padStart(2, '0');
-  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
-}
-
-/**
- * Darken a hex color by the given amount (0 = no change, 1 = black).
- */
-export function darken(hex: string, amount: number): string {
-  const clamped = Math.max(0, Math.min(1, amount));
-  const { r, g, b } = hexToRgb(hex);
-  const factor = 1 - clamped;
-  return rgbToHex(
-    Math.round(r * factor),
-    Math.round(g * factor),
-    Math.round(b * factor),
-  );
-}
-
-/**
- * Lighten a hex color by the given amount (0 = no change, 1 = white).
- */
-export function lighten(hex: string, amount: number): string {
-  const clamped = Math.max(0, Math.min(1, amount));
-  const { r, g, b } = hexToRgb(hex);
-  return rgbToHex(
-    Math.round(r + (255 - r) * clamped),
-    Math.round(g + (255 - g) * clamped),
-    Math.round(b + (255 - b) * clamped),
-  );
-}
-
-/**
- * Return an rgba() CSS string for the given hex color and alpha (0-1).
- */
-export function withAlpha(hex: string, alpha: number): string {
-  const { r, g, b } = hexToRgb(hex);
-  const a = Math.max(0, Math.min(1, alpha));
-  return `rgba(${r}, ${g}, ${b}, ${a})`;
+/** Mix a hex color toward white for icon contrast; non-hex colors get white. */
+export function tintColor(hex: string, amount = 0.82): string {
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  if (!m) return '#ffffff';
+  const mix = (c: string) => Math.round(parseInt(c, 16) + (255 - parseInt(c, 16)) * amount);
+  return `#${[m[1], m[2], m[3]].map((c) => mix(c).toString(16).padStart(2, '0')).join('')}`;
 }
 
 /**
@@ -109,4 +42,12 @@ export function getSeverityColor(
     return customColors[severity]!;
   }
   return SEVERITY_COLORS[severity] ?? SEVERITY_COLORS.info;
+}
+
+/**
+ * Any "prefix:name" icon — mdi:, hass:, and custom icon sets registered with
+ * HA's icon picker (e.g. phu:, si:) all render through <ha-icon>.
+ */
+export function validIcon(icon: string | undefined): string {
+  return icon && /^[a-z0-9_-]+:[a-z0-9_-]+$/i.test(icon) ? icon : CATEGORY_ICONS.default;
 }

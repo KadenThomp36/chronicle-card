@@ -2,31 +2,15 @@ import { LitElement, html, css, nothing } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { EventGroup } from '../../models/event';
 import { AppearanceConfig } from '../../models/config';
-import { CATEGORY_ICONS } from '../../constants';
-import { formatTime } from '../../utils/date-utils';
-import { safeColor } from '../../utils/color-utils';
+import { formatTime, timestampOf } from '../../utils/date-utils';
+import { safeColor, tintColor, validIcon } from '../../utils/color-utils';
 import './event-item';
-
-function validIcon(icon: string): string {
-  return icon && icon.startsWith('mdi:') ? icon : CATEGORY_ICONS.default;
-}
-
-function tintColor(hex: string, amount = 0.82): string {
-  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  if (!m) return '#ffffff';
-  const r = Math.round(parseInt(m[1], 16) + (255 - parseInt(m[1], 16)) * amount);
-  const g = Math.round(parseInt(m[2], 16) + (255 - parseInt(m[2], 16)) * amount);
-  const b = Math.round(parseInt(m[3], 16) + (255 - parseInt(m[3], 16)) * amount);
-  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-}
 
 @customElement('chronicle-event-group')
 export class EventGroupElement extends LitElement {
   @property({ attribute: false }) group!: EventGroup;
   @property({ attribute: false }) appearance?: AppearanceConfig;
-  @property({ attribute: false }) hass?: any;
-  @property({ type: Boolean }) compact = false;
-  @property({ type: String }) timeFormat: '12h' | '24h' = '24h';
+  @property({ type: Boolean, reflect: true }) compact = false;
 
   static styles = css`
     :host {
@@ -101,6 +85,10 @@ export class EventGroupElement extends LitElement {
       cursor: pointer;
       transition: background 0.15s ease, box-shadow 0.15s ease;
       border: 1px solid transparent;
+    }
+    .group-header:focus-visible {
+      outline: 2px solid var(--primary-color, #03a9f4);
+      outline-offset: -2px;
     }
     .group-header:hover {
       background: var(--secondary-background-color, rgba(127,127,127,0.05));
@@ -235,10 +223,10 @@ export class EventGroupElement extends LitElement {
     if (!g) return nothing;
 
     const rep = g.representative;
-    const first = g.events[0];
-    const last = g.events[g.events.length - 1];
-    const t1 = formatTime(first.start, this.timeFormat);
-    const t2 = formatTime(last.start, this.timeFormat);
+    // Endpoints by timestamp, not array position — the store sorts newest-first
+    const times = g.events.map((e) => timestampOf(e.start));
+    const t1 = formatTime(new Date(Math.min(...times)));
+    const t2 = formatTime(new Date(Math.max(...times)));
     const timeStr = t1 === t2 ? t1 : `${t1} – ${t2}`;
     const showImages = this.appearance?.show_images !== false;
 
@@ -257,7 +245,15 @@ export class EventGroupElement extends LitElement {
             <span class="count-badge">${g.events.length}</span>
           </div>
 
-          <div class="group-header" @click=${this._toggle}>
+          <div class="group-header"
+            role="button"
+            tabindex="0"
+            aria-expanded=${g.expanded ? 'true' : 'false'}
+            @click=${this._toggle}
+            @keydown=${(e: KeyboardEvent) => {
+              if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this._toggle(); }
+            }}
+          >
             <div class="content">
               <div class="top-row">
                 <span class="summary">${g.summary}</span>
@@ -278,16 +274,16 @@ export class EventGroupElement extends LitElement {
                     : html`<img class="thumb" src=${url} alt="" loading="lazy" />`
                 )}
               </div>
-            ` : ''}
+            ` : nothing}
 
             <ha-icon
-              class="chevron ${g.expanded ? 'open' : ''}"
+              class="chevron ${g.expanded ? 'open' : nothing}"
               icon="mdi:chevron-down"
             ></ha-icon>
           </div>
         </div>
 
-        <div class="children ${g.expanded ? 'expanded' : ''}">
+        <div class="children ${g.expanded ? 'expanded' : nothing}">
           <div class="children-inner">
             ${g.expanded ? html`
               <div class="children-content">
@@ -295,13 +291,11 @@ export class EventGroupElement extends LitElement {
                   <chronicle-event-item
                     .event=${event}
                     .appearance=${this.appearance}
-                    .hass=${this.hass}
-                    .timeFormat=${this.timeFormat}
                     ?compact=${this.compact}
                   ></chronicle-event-item>
                 `)}
               </div>
-            ` : ''}
+            ` : nothing}
           </div>
         </div>
       </div>

@@ -7,13 +7,6 @@ export const SEVERITY_COLORS: Record<SeverityLevel, string> = {
   debug: '#9E9E9E',
 };
 
-export const SEVERITY_ICONS: Record<SeverityLevel, string> = {
-  critical: 'mdi:alert-circle',
-  warning: 'mdi:alert',
-  info: 'mdi:information',
-  debug: 'mdi:bug',
-};
-
 export const CATEGORY_ICONS: Record<string, string> = {
   person: 'mdi:walk',
   vehicle: 'mdi:car',
@@ -48,12 +41,9 @@ export const CATEGORY_COLORS: Record<string, string> = {
   default: '#78909C',
 };
 
-export const CARD_VERSION = '1.13.0';
+export const CARD_VERSION = '1.14.0';
 export const CARD_NAME = 'chronicle-card';
 export const EDITOR_NAME = 'chronicle-card-editor';
 
 export const DEFAULT_POLL_INTERVAL = 30;
 export const MEDIA_CACHE_TTL = 3 * 60 * 60 * 1000; // 3 hours
-export const VIRTUAL_SCROLL_BUFFER = 5;
-export const VIRTUAL_SCROLL_ITEM_HEIGHT = 72;
-export const VIRTUAL_SCROLL_ITEM_HEIGHT_COMPACT = 48;

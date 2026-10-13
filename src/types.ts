@@ -6,18 +6,17 @@ export interface HomeAssistant {
   states: Record<string, HassEntity>;
   language: string;
   locale: HassLocale;
+  config: { time_zone: string };
   themes: { darkMode: boolean };
+  localize: (key: string, ...args: unknown[]) => string;
+  /** Native state formatting (HA 2023.9+) — device-class aware and localized. */
+  formatEntityState?: (stateObj: HassEntity, state?: string) => string;
+  formatEntityAttributeName?: (stateObj: HassEntity, attribute: string) => string;
+  formatEntityAttributeValue?: (stateObj: HassEntity, attribute: string, value?: unknown) => string;
 }
 
 export interface HassConnection {
-  subscribeEvents: (callback: (event: HassEvent) => void, eventType?: string) => Promise<() => void>;
   subscribeMessage: <T>(callback: (msg: T) => void, msg: Record<string, unknown>) => Promise<() => void>;
-}
-
-export interface HassEvent {
-  event_type: string;
-  data: Record<string, unknown>;
-  time_fired: string;
 }
 
 export interface HassEntity {
@@ -31,7 +30,10 @@ export interface HassEntity {
 export interface HassLocale {
   language: string;
   number_format: string;
+  /** "language" | "system" | "12" | "24" */
   time_format: string;
+  /** "local" | "server" */
+  time_zone?: string;
 }
 
 export interface ServiceTarget {

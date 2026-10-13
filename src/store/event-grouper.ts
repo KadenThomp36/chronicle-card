@@ -1,6 +1,16 @@
 import { ChronicleEvent, EventGroup } from '../models/event';
 import { GroupingConfig } from '../models/config';
 import { localize } from '../localize';
+import { timestampOf } from '../utils/date-utils';
+
+/** Stable identity for a group across re-grouping: its oldest event. */
+export function groupKey(group: EventGroup): string {
+  let oldest = group.events[0];
+  for (const e of group.events) {
+    if (timestampOf(e.start) < timestampOf(oldest.start)) oldest = e;
+  }
+  return oldest.id;
+}
 
 export function groupEvents(
   events: ChronicleEvent[],
@@ -87,7 +97,7 @@ export function groupEvents(
 
   for (const event of events) {
     const key = getKey(event);
-    const ts = new Date(event.start).getTime();
+    const ts = timestampOf(event.start);
 
     if (bucketKey === null) {
       bucketKey = key;

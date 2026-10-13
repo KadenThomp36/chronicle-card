@@ -1,13 +1,13 @@
 import { LitElement, html, css } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { SeverityLevel } from '../../models/event';
-import { SEVERITY_COLORS } from '../../constants';
-import { safeColor } from '../../utils/color-utils';
+import { getSeverityColor, safeColor } from '../../utils/color-utils';
+import { localize } from '../../localize';
 
 @customElement('chronicle-severity-badge')
 export class SeverityBadge extends LitElement {
   @property() severity: SeverityLevel = 'info';
-  @property() customColors?: Partial<Record<SeverityLevel, string>>;
+  @property({ attribute: false }) customColors?: Partial<Record<SeverityLevel, string>>;
 
   static styles = css`
     :host {
@@ -32,10 +32,10 @@ export class SeverityBadge extends LitElement {
   `;
 
   protected render() {
-    const color = safeColor(this.customColors?.[this.severity] ?? SEVERITY_COLORS[this.severity] ?? SEVERITY_COLORS.info);
+    const color = safeColor(getSeverityColor(this.severity, this.customColors));
     return html`
       <span class="badge" style="background-color: ${color}">
-        ${this.severity}
+        ${localize(`chronicle.severity.${this.severity}`)}
       </span>
     `;
   }

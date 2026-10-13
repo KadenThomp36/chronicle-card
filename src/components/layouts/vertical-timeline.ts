@@ -1,8 +1,8 @@
-import { LitElement, html, css, nothing } from 'lit';
+import { LitElement, html, css, PropertyValues } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { ChronicleEvent, EventGroup, isEventGroup } from '../../models/event';
 import { AppearanceConfig } from '../../models/config';
-import { localize, getLocale } from '../../localize';
+import { dateKey, formatDateHeader } from '../../utils/date-utils';
 import '../elements/event-item';
 import '../elements/event-group';
 import '../elements/date-header';
@@ -18,10 +18,25 @@ interface DateSection {
 export class VerticalTimeline extends LitElement {
   @property({ attribute: false }) items: Array<ChronicleEvent | EventGroup> = [];
   @property({ attribute: false }) appearance?: AppearanceConfig;
-  @property({ attribute: false }) hass?: any;
   @property({ type: Boolean }) compact = false;
-  @property({ type: String }) timeFormat: '12h' | '24h' = '24h';
   @property({ type: Boolean }) animateNew = true;
+
+  /** Event ids already shown — anything not in here on update is new and animates in. */
+  private _seen = new Set<string>();
+  private _fresh = new Set<string>();
+
+  protected willUpdate(changed: PropertyValues): void {
+    if (!changed.has('items')) return;
+    const ids = new Set<string>();
+    for (const item of this.items ?? []) {
+      for (const e of isEventGroup(item) ? item.events : [item]) ids.add(e.id);
+    }
+    // First paint isn't "new" — only animate arrivals after that
+    this._fresh = this._seen.size && this.animateNew
+      ? new Set([...ids].filter((id) => !this._seen.has(id)))
+      : new Set();
+    this._seen = ids;
+  }
 
   static styles = css`
     :host {
@@ -115,8 +130,6 @@ export class VerticalTimeline extends LitElement {
                     <chronicle-event-group
                       .group=${item}
                       .appearance=${this.appearance}
-                      .hass=${this.hass}
-                      .timeFormat=${this.timeFormat}
                       ?compact=${this.compact}
                     ></chronicle-event-group>
                   `
@@ -124,9 +137,8 @@ export class VerticalTimeline extends LitElement {
                     <chronicle-event-item
                       .event=${item}
                       .appearance=${this.appearance}
-                      .hass=${this.hass}
-                      .timeFormat=${this.timeFormat}
                       ?compact=${this.compact}
+                      ?animated=${this._fresh.has(item.id)}
                     ></chronicle-event-item>
                   `,
               )}
@@ -139,36 +151,17 @@ export class VerticalTimeline extends LitElement {
 
   private _groupByDate(items: Array<ChronicleEvent | EventGroup>): DateSection[] {
     const sections = new Map<string, DateSection>();
-    const now = new Date();
-    const today = this._dateKey(now);
-    const yesterday = this._dateKey(new Date(now.getTime() - 86400000));
-
     for (const item of items) {
-      const startStr = isEventGroup(item) ? item.representative.start : item.start;
-      const key = this._dateKey(new Date(startStr));
-
-      if (!sections.has(key)) {
-        let label: string;
-        if (key === today) {
-          label = localize('chronicle.today');
-        } else if (key === yesterday) {
-          label = localize('chronicle.yesterday');
-        } else {
-          const d = new Date(startStr);
-          let locale: string | undefined = getLocale();
-          try { new Intl.DateTimeFormat(locale); } catch { locale = undefined; }
-          label = d.toLocaleDateString(locale, { weekday: 'short', month: 'short', day: 'numeric' });
-        }
-        sections.set(key, { dateKey: key, label, items: [] });
+      const start = isEventGroup(item) ? item.representative.start : item.start;
+      const key = dateKey(start);
+      let section = sections.get(key);
+      if (!section) {
+        section = { dateKey: key, label: formatDateHeader(start), items: [] };
+        sections.set(key, section);
       }
-      sections.get(key)!.items.push(item);
+      section.items.push(item);
     }
-
     return Array.from(sections.values());
-  }
-
-  private _dateKey(d: Date): string {
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
 
   private _countEvents(items: Array<ChronicleEvent | EventGroup>): number {

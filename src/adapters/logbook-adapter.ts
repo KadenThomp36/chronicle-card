@@ -36,7 +36,7 @@ const DOMAIN_CATEGORY: Record<string, string> = {
   media_player: 'system',
   fan: 'climate',
   sensor: 'system',
-}
+};
 
 /**
  * Logbook source adapter.
@@ -77,7 +77,7 @@ export class LogbookAdapter implements ISourceAdapter {
       const response = await hass.callWS<LogbookEntry[]>({
         type: 'logbook/get_events',
         start_time: range.start.toISOString(),
-        end_time: range.end.toISOString(),
+        end_time: new Date(Math.min(range.end.getTime(), Date.now())).toISOString(),
         entity_ids: entities,
       });
 

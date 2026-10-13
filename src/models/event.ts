@@ -9,6 +9,8 @@ export interface ChronicleEvent {
   sourceId: string;
   title: string;
   description: string;
+  /** Formatted attribute summary (history `show_attributes`), shown even in compact mode. */
+  details?: string;
   start: string;
   end: string;
   mediaUrl?: string;
@@ -26,13 +28,16 @@ export interface ChronicleEvent {
   metadata?: Record<string, unknown>;
 }
 
-export interface ChronicleAction {
+/**
+ * Button under an event. Either a native HA action (`action: perform-action`,
+ * `navigate`, `url`, … — same keys as tap_action) or the legacy
+ * `type: service | navigate | fire-event` shape.
+ */
+export interface ChronicleAction extends Partial<ActionConfig> {
   label: string;
   icon?: string;
-  type: 'service' | 'navigate' | 'fire-event';
-  service?: string;
+  type?: 'service' | 'navigate' | 'fire-event';
   serviceData?: Record<string, unknown>;
-  target?: { entity_id?: string };
   url?: string;
   eventType?: string;
   eventData?: Record<string, unknown>;

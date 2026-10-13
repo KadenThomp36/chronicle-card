@@ -2,7 +2,6 @@ import { HomeAssistant } from '../types';
 
 const JINJA_RE = /\{[%{]/;
 const TEMPLATE_TIMEOUT = 5000;
-const BATCH_CHUNK_SIZE = 50;
 
 /** True if `str` contains Jinja2 template syntax. */
 export function isJinjaTemplate(str: string): boolean {
@@ -19,8 +18,9 @@ export interface TemplateContext {
 }
 
 /**
- * Render a single Jinja2 template via the HA WebSocket `render_template` call.
- * Subscribes, grabs the first result, then unsubscribes. Times out after 5s.
+ * Render a Jinja2 template once via HA's `render_template` subscription:
+ * take the first result, then unsubscribe (the server otherwise keeps
+ * re-rendering on every dependency change). Times out after 5s.
  */
 export async function renderTemplate(
   hass: HomeAssistant,
@@ -49,7 +49,7 @@ export async function renderTemplate(
             resolve(msg.result);
           }
         },
-        { type: 'render_template', template, variables },
+        { type: 'render_template', template, variables, timeout: TEMPLATE_TIMEOUT / 1000 },
       )
       .then((u) => {
         unsub = u;
@@ -64,37 +64,4 @@ export async function renderTemplate(
         }
       });
   });
-}
-
-/**
- * Render a user template for multiple event contexts.
- *
- * Each context is rendered individually via HA's `render_template` WS call,
- * passing variables directly so they're available at the top-level Jinja2 scope.
- * Processes in parallel chunks to balance speed and WS load.
- */
-export async function renderTemplateBatch(
-  hass: HomeAssistant,
-  userTemplate: string,
-  contexts: TemplateContext[],
-): Promise<string[]> {
-  if (contexts.length === 0) return [];
-
-  const allResults: string[] = [];
-
-  for (let i = 0; i < contexts.length; i += BATCH_CHUNK_SIZE) {
-    const chunk = contexts.slice(i, i + BATCH_CHUNK_SIZE);
-    const results = await Promise.allSettled(
-      chunk.map((ctx) => renderTemplate(hass, userTemplate, { ...ctx })),
-    );
-    for (const r of results) {
-      // HA's render_template can resolve with null when the user template
-      // evaluates to None (e.g. {{ attributes.foo }} where foo is missing).
-      // Guard against null/undefined so one such result doesn't blow up the
-      // whole batch via `.trim()` on null.
-      allResults.push(r.status === 'fulfilled' && r.value ? r.value.trim() : '');
-    }
-  }
-
-  return allResults;
 }
