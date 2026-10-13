@@ -22,6 +22,13 @@ There are **no tests, linter, or formatter** configured. `tsc` runs only as part
 
 CI (`.github/workflows/validate.yml`) only runs HACS validation — it does not build or type-check.
 
+**Docs live in three places — update all of them for any user-facing change:**
+- `README.md` (also what HACS renders)
+- `docs/documentation.html` + `docs/index.html` — the GitHub Pages site (https://kadenthomp36.github.io/chronicle-card/, served from `main:/docs`). Hand-written HTML: bump the `version-badge` in both files, and keep option tables, examples, install steps and FAQ in sync with the README. Code blocks use `hl-key`/`hl-str`/`hl-num`/`hl-comment` spans in `documentation.html` and `key`/`str`/`num` in `index.html`.
+- `CHANGELOG.md` — holds only the *current* release's notes (overwritten each release) and doubles as the GitHub release body.
+
+Release checklist: bump `CARD_VERSION` + `package.json` → `npm run build` → update README, both `docs/` pages and CHANGELOG → commit → tag `vX.Y.Z` → `gh release create` with the CHANGELOG text → close the fixed issues with a link to the release.
+
 `hacs.json` declares `"homeassistant": "2024.8.0"` as the minimum. Anything newer must be feature-detected (see `atLeast()` in `components/editor-utils.ts`, and the optional `hass.format*` helpers in `types.ts`) or the minimum must be raised deliberately.
 
 ## Architecture
