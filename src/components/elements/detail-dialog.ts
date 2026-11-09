@@ -4,6 +4,8 @@ import { ChronicleEvent, SeverityLevel } from '../../models/event';
 import { getSeverityColor, safeColor, validIcon } from '../../utils/color-utils';
 import { formatDateTime } from '../../utils/date-utils';
 import { localize } from '../../localize';
+import { HomeAssistant } from '../../types';
+import { authorizeClipUrl, clipCandidates } from '../../utils/clip-url';
 
 const VIDEO_RE = /\.(mp4|webm|mov|m3u8|mkv|ogv)([?#]|$)/i;
 
@@ -102,6 +104,16 @@ const dialogStyles = css`
     text-decoration: none;
   }
   .clip-link ha-icon { --mdc-icon-size: 14px; }
+  .clip-error {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 12px 20px 0;
+    font-size: 12.5px;
+    color: var(--secondary-text-color, #888);
+  }
+  .clip-error ha-icon { --mdc-icon-size: 16px; flex-shrink: 0; }
+  .clip-error + .clip-link { margin-top: 4px; }
 
   .body { padding: 16px 20px 24px; }
   .body-with-media { padding-top: 8px; }
@@ -258,7 +270,16 @@ export class DetailDialog extends LitElement {
 
   private _event: ChronicleEvent | null = null;
   private _open = false;
+  private _hass?: HomeAssistant;
+  /** Clip URLs to try in order (see clipCandidates); advanced on <video> error. */
+  private _clipCandidates: string[] = [];
+  private _clipIndex = 0;
+  /** Authorized (signed/resolved) URL of the current candidate; '' while pending. */
+  private _clipSrc = '';
+  /** Authorized URL of the preferred candidate, for the "Open clip" link. */
+  private _clipLink = '';
   private _clipFailed = false;
+  private _clipToken = 0;
   private _container: HTMLDivElement | null = null;
   private _returnFocus: Element | null = null;
   private _closeTimer?: ReturnType<typeof setTimeout>;
@@ -269,10 +290,16 @@ export class DetailDialog extends LitElement {
     return nothing;
   }
 
-  show(event: ChronicleEvent): void {
+  show(event: ChronicleEvent, hass?: HomeAssistant): void {
     clearTimeout(this._closeTimer);
     this._event = event;
+    this._hass = hass;
+    this._clipCandidates = clipCandidates((event.metadata?.clip_url as string | undefined) || '');
+    this._clipIndex = 0;
+    this._clipSrc = '';
+    this._clipLink = '';
     this._clipFailed = false;
+    this._loadClip();
     this._returnFocus = document.activeElement;
     this._ensureContainer();
     this._renderDialog();
@@ -288,6 +315,7 @@ export class DetailDialog extends LitElement {
   close(): void {
     if (!this._open) return;
     this._open = false;
+    this._clipToken++;
     this._renderDialog();
     (this._returnFocus as HTMLElement | null)?.focus?.();
     this._closeTimer = setTimeout(() => {
@@ -320,10 +348,11 @@ export class DetailDialog extends LitElement {
     const e = this._event;
     if (!e) return nothing;
 
-    const clipUrl = (e.metadata?.clip_url as string | undefined) || '';
-    const playClip = !!clipUrl && !this._clipFailed;
-    const mediaSrc = playClip ? clipUrl : e.mediaUrl || '';
+    const hasClip = this._clipCandidates.length > 0;
+    const playClip = hasClip && !this._clipFailed;
+    const mediaSrc = playClip ? this._clipSrc : e.mediaUrl || '';
     const mediaIsVideo = playClip || VIDEO_RE.test(mediaSrc);
+    const clipLink = this._clipLink || this._clipCandidates[0] || '';
     const location = e.metadata?.location as string | undefined;
     const severityColor = safeColor(getSeverityColor(e.severity, this.severityColors));
     const showMoreInfo = !!e.entityId && ['history', 'logbook', 'calendar'].includes(e.sourceType);
@@ -337,17 +366,20 @@ export class DetailDialog extends LitElement {
             <ha-icon icon="mdi:close"></ha-icon>
           </button>
 
-          ${mediaSrc ? html`
+          ${mediaSrc || playClip ? html`
             <div class="media-wrap">
               ${mediaIsVideo
-                ? html`<video class="media" src=${mediaSrc} controls autoplay muted loop playsinline
-                    poster=${playClip && e.mediaUrl ? e.mediaUrl : nothing}
-                    @error=${() => this._onClipError(playClip)}></video>`
+                ? this._video(mediaSrc, playClip && e.mediaUrl && !VIDEO_RE.test(e.mediaUrl) ? e.mediaUrl : '', playClip)
                 : html`<img class="media" src=${mediaSrc} alt="" /><div class="media-gradient"></div>`}
             </div>
           ` : nothing}
-          ${clipUrl ? html`
-            <a class="clip-link" href=${clipUrl} target="_blank" rel="noopener">
+          ${this._clipFailed ? html`
+            <div class="clip-error" role="status">
+              <ha-icon icon="mdi:video-off-outline"></ha-icon>${localize('chronicle.detail.clip_unavailable')}
+            </div>
+          ` : nothing}
+          ${hasClip ? html`
+            <a class="clip-link" href=${clipLink} target="_blank" rel="noopener">
               <ha-icon icon="mdi:open-in-new"></ha-icon>${localize('chronicle.detail.open_clip')}
             </a>
           ` : nothing}
@@ -403,10 +435,51 @@ export class DetailDialog extends LitElement {
     `;
   }
 
-  /** Clip couldn't play (codec, auth, iOS range requests) — fall back to the still. */
-  private _onClipError(wasClip: boolean): void {
-    if (!wasClip || this._clipFailed) return;
-    this._clipFailed = true;
+  /**
+   * Inline player. `muted`/`playsInline` are also set as properties: WebKit
+   * only honours the `muted` attribute at parse time, and Lit clones templates,
+   * so the attribute alone can leave the video unmuted, and iOS then blocks
+   * autoplay. `webkit-playsinline` covers iOS < 10. No `src` until the clip
+   * URL is authorized, so a pending clip shows the poster rather than an error.
+   */
+  private _video(src: string, poster: string, isClip: boolean) {
+    return html`<video class="media" controls autoplay loop playsinline webkit-playsinline muted
+      .muted=${true}
+      .playsInline=${true}
+      src=${src || nothing}
+      poster=${poster || nothing}
+      @error=${isClip ? (ev: Event) => this._onClipError(ev) : nothing}></video>`;
+  }
+
+  /** Authorize the current candidate (sign path / resolve media-source), then play it. */
+  private async _loadClip(): Promise<void> {
+    const raw = this._clipCandidates[this._clipIndex];
+    if (!raw) return;
+    const token = ++this._clipToken;
+    const src = await authorizeClipUrl(this._hass, raw);
+    if (token !== this._clipToken) return;
+    this._clipSrc = src;
+    if (this._clipIndex === 0) this._clipLink = src;
+    this._renderDialog();
+  }
+
+  /**
+   * The current clip URL couldn't play (codec, auth, no range support on iOS).
+   * Try the next candidate (e.g. Frigate's HLS playlist), then fall back to the
+   * still image with a notice and the "Open clip" link. It never stays blank.
+   */
+  private _onClipError(ev: Event): void {
+    const video = ev.target as HTMLVideoElement;
+    // Ignore errors from a src that has already been replaced
+    if (this._clipFailed || !this._clipSrc || video.getAttribute('src') !== this._clipSrc) return;
+    console.warn('[chronicle-card] Clip failed to play:', this._clipSrc, video.error?.code, video.error?.message);
+    this._clipIndex++;
+    this._clipSrc = '';
+    if (this._clipIndex < this._clipCandidates.length) {
+      this._loadClip();
+    } else {
+      this._clipFailed = true;
+    }
     this._renderDialog();
   }
 

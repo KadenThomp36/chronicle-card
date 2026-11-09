@@ -24,6 +24,7 @@ const translations: Record<string, TranslationDict> = {
     'chronicle.detail.end': 'End',
     'chronicle.detail.location': 'Location',
     'chronicle.detail.open_clip': 'Open clip',
+    'chronicle.detail.clip_unavailable': 'This clip can\'t be played here.',
     'chronicle.detail.close': 'Close',
 
     // Severity levels
@@ -49,6 +50,7 @@ const translations: Record<string, TranslationDict> = {
     'chronicle.detail.end': 'Ende',
     'chronicle.detail.location': 'Ort',
     'chronicle.detail.open_clip': 'Clip öffnen',
+    'chronicle.detail.clip_unavailable': 'Dieser Clip kann hier nicht abgespielt werden.',
     'chronicle.detail.close': 'Schließen',
 
     'chronicle.severity.critical': 'Kritisch',
@@ -73,6 +75,7 @@ const translations: Record<string, TranslationDict> = {
     'chronicle.detail.end': 'Fin',
     'chronicle.detail.location': 'Lieu',
     'chronicle.detail.open_clip': 'Ouvrir le clip',
+    'chronicle.detail.clip_unavailable': 'Ce clip ne peut pas être lu ici.',
     'chronicle.detail.close': 'Fermer',
 
     'chronicle.severity.critical': 'Critique',
@@ -97,6 +100,7 @@ const translations: Record<string, TranslationDict> = {
     'chronicle.detail.end': 'Fin',
     'chronicle.detail.location': 'Ubicación',
     'chronicle.detail.open_clip': 'Abrir clip',
+    'chronicle.detail.clip_unavailable': 'Este clip no se puede reproducir aquí.',
     'chronicle.detail.close': 'Cerrar',
 
     'chronicle.severity.critical': 'Crítico',
@@ -121,6 +125,7 @@ const translations: Record<string, TranslationDict> = {
     'chronicle.detail.end': 'Fine',
     'chronicle.detail.location': 'Luogo',
     'chronicle.detail.open_clip': 'Apri clip',
+    'chronicle.detail.clip_unavailable': 'Questo clip non può essere riprodotto qui.',
     'chronicle.detail.close': 'Chiudi',
 
     'chronicle.severity.critical': 'Critico',
@@ -145,6 +150,7 @@ const translations: Record<string, TranslationDict> = {
     'chronicle.detail.end': 'Fim',
     'chronicle.detail.location': 'Local',
     'chronicle.detail.open_clip': 'Abrir clipe',
+    'chronicle.detail.clip_unavailable': 'Este clipe não pode ser reproduzido aqui.',
     'chronicle.detail.close': 'Fechar',
 
     'chronicle.severity.critical': 'Crítico',
@@ -169,6 +175,7 @@ const translations: Record<string, TranslationDict> = {
     'chronicle.detail.end': 'Einde',
     'chronicle.detail.location': 'Locatie',
     'chronicle.detail.open_clip': 'Clip openen',
+    'chronicle.detail.clip_unavailable': 'Deze clip kan hier niet worden afgespeeld.',
     'chronicle.detail.close': 'Sluiten',
 
     'chronicle.severity.critical': 'Kritiek',
@@ -193,6 +200,7 @@ const translations: Record<string, TranslationDict> = {
     'chronicle.detail.end': 'Slut',
     'chronicle.detail.location': 'Plats',
     'chronicle.detail.open_clip': 'Öppna klipp',
+    'chronicle.detail.clip_unavailable': 'Klippet kan inte spelas upp här.',
     'chronicle.detail.close': 'Stäng',
 
     'chronicle.severity.critical': 'Kritisk',
@@ -217,6 +225,7 @@ const translations: Record<string, TranslationDict> = {
     'chronicle.detail.end': 'Koniec',
     'chronicle.detail.location': 'Lokalizacja',
     'chronicle.detail.open_clip': 'Otwórz klip',
+    'chronicle.detail.clip_unavailable': 'Tego klipu nie można tutaj odtworzyć.',
     'chronicle.detail.close': 'Zamknij',
 
     // Severity levels

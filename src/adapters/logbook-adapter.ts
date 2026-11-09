@@ -1,7 +1,7 @@
 import { ISourceAdapter } from './adapter';
 import { HomeAssistant, TimeRange } from '../types';
 import { ChronicleEvent, SeverityLevel } from '../models/event';
-import { SourceConfig } from '../models/config';
+import { clipTemplateOf, SourceConfig } from '../models/config';
 import { resolveIcon, resolveColor } from '../utils/icon-resolver';
 import { applyEventText } from '../utils/action-placeholders';
 
@@ -175,6 +175,9 @@ export class LogbookAdapter implements ISourceAdapter {
         domain,
         state: entry.state ?? '',
         source_name: this.config.name || 'logbook',
+        // Resolved by the store, same as for history sources
+        _image_template: entityConf?.image_template || this.config.image_template,
+        _clip_template: clipTemplateOf(entityConf) || clipTemplateOf(this.config),
       },
     }, entityConf, this.config);
   }

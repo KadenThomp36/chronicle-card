@@ -55,6 +55,8 @@ export interface EntityOverrides extends EventTextConfig {
   severity?: SeverityLevel;
   image_template?: string;
   clip_template?: string;
+  /** Alias of `clip_template`. */
+  clip_url_template?: string;
   tap_action?: ActionConfig;
   hold_action?: ActionConfig;
 }
@@ -70,9 +72,10 @@ export interface SourceConfig extends EventTextConfig {
   field_map?: Record<string, string>;
   media_url_template?: string;
   /**
-   * Optional template for a video clip URL (e.g. Frigate clip.mp4), expanded
+   * REST: template for a video clip URL (e.g. Frigate clip.mp4), expanded
    * with the same `{field}` placeholders as media_url_template. When set, the
    * detail dialog plays the clip instead of showing the still/gif thumbnail.
+   * History/logbook: alias of `clip_template` (see clipTemplateOf).
    */
   clip_url_template?: string;
   ws_params?: Record<string, unknown>;
@@ -111,6 +114,15 @@ export interface SourceConfig extends EventTextConfig {
     severity?: SeverityLevel;
     category?: string;
   }>;
+}
+
+/**
+ * Clip template of an entity source (history/logbook) or per-entity override.
+ * `clip_template` is the documented name; `clip_url_template` is accepted
+ * too, so the REST option's name doesn't get silently ignored.
+ */
+export function clipTemplateOf(c?: { clip_template?: string; clip_url_template?: string }): string | undefined {
+  return c?.clip_template || c?.clip_url_template || undefined;
 }
 
 export interface FilterConfig {

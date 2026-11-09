@@ -251,9 +251,19 @@ sources:
       {% endif %}
 ```
 
-Template variables: `entity_id`, `state`, `old_state`, `timestamp`, `attributes`, `source_name`. Results are cached, so polling doesn't re-render them.
+Template variables: `entity_id`, `state`, `old_state`, `timestamp`, `attributes`, `source_name`. Results are cached, so polling doesn't re-render them. Plain (non-Jinja) strings can use the same `{field}` placeholders as actions, e.g. `/local/snapshots/{entity_id}.jpg`.
 
-**Video clips** — `clip_template` works the same way (plain URL/path or Jinja2) and plays the clip in the detail dialog; the thumbnail stays the still image. If a clip can't be played inline (e.g. some iOS setups), the dialog falls back to the image and offers an **Open clip** link.
+**Video clips** — `clip_template` works the same way and plays the clip in the detail dialog, while the thumbnail stays the still image. It accepts a URL/path, a `media-source://` id (e.g. a file in your media folder) or a Jinja2 template. `clip_url_template` is accepted as another name for it, the same as on REST sources. Authenticated HA paths (`/api/…`, `/media/…`) are signed automatically, so the video player can load them. See [Clip playback on iPhone/iPad](#clip-playback-on-iphoneipad) for what happens when a clip can't play.
+
+```yaml
+sources:
+  - type: history
+    entities:
+      - binary_sensor.driveway_motion
+    image_template: /local/snapshots/driveway_latest.jpg
+    clip_template: >-
+      media-source://media_source/local/clips/driveway_{{ as_timestamp(timestamp) | timestamp_custom('%Y%m%d_%H%M%S', true) }}.mp4
+```
 
 > **Note:** Use `/local/` URLs (files in `/config/www/`) or integration-specific proxy URLs (e.g. Frigate snapshots). HA's `/api/camera_proxy/` URLs require bearer token auth that `<img>` tags cannot send.
 
@@ -287,7 +297,7 @@ sources:
       - automation.noise_above_50db
 ```
 
-Logbook sources are poll-based (the logbook has no lightweight push channel) — new entries appear on the next poll (`poll_interval`, default 30s). Per-entity `entity_config` overrides (`name`, `icon`, `color`, `severity`, `title_template`, `description_template`, `show_description`, `tap_action`, `hold_action`) work the same as for history sources.
+Logbook sources are poll-based (the logbook has no lightweight push channel) — new entries appear on the next poll (`poll_interval`, default 30s). Per-entity `entity_config` overrides (`name`, `icon`, `color`, `severity`, `title_template`, `description_template`, `show_description`, `image_template`, `clip_template`, `tap_action`, `hold_action`) work the same as for history sources. `image_template` and `clip_template` also work the same as for history: `state` is the logbook entry's state, and `old_state` and `attributes` are empty.
 
 **Custom title and description** — by default an entry's title is its name followed by its message, and the description repeats the message. `title_template` and `description_template` reshape that with `{field}` placeholders, and `show_description: false` drops the description line. This suits entries you write yourself with the [`logbook.log`](https://www.home-assistant.io/integrations/logbook/#adding-custom-entries) action — put a short headline in `name` and the details in `message` (set `entity_id` to one of the source's entities so the entry is picked up):
 
@@ -365,7 +375,7 @@ sources:
 | `response_path` | string | Dot-notation path to the events array in the response (e.g. `data.events`) |
 | `field_map` | object | Map response fields to Chronicle fields. Keys are Chronicle field names, values are source field names |
 | `media_url_template` | string | URL template with `{field}` placeholders (e.g. `/api/frigate/notifications/{id}/snapshot.jpg`) |
-| `clip_url_template` | string | Video clip URL template, same `{field}` placeholders. The detail dialog plays the clip in an inline video player instead of the still/gif |
+| `clip_url_template` | string | Video clip URL template, same `{field}` placeholders. The detail dialog plays the clip in an inline video player instead of the still/gif. For Frigate clip URLs, Safari and iOS play the matching HLS playlist automatically (see [Clip playback on iPhone/iPad](#clip-playback-on-iphoneipad)) |
 | `poll_interval` | number | Seconds between fetches (default: 30) |
 
 **Field map keys:** `id`, `title`, `description`, `start`, `end`, `mediaUrl`, `mediaContentId`, `icon`, `color`, `category`, `label`, `severity`, `entityId`, `entityName`
@@ -386,7 +396,7 @@ sources:
 | `show_description` | boolean | `false` hides the description line for this source's events (default `true`) |
 | `entity_config` | object | Per-entity overrides, keyed by entity ID. See table below |
 | `image_template` | string | Thumbnail: a URL/path, or a Jinja2 template rendered per event. Variables: `entity_id`, `state`, `old_state`, `timestamp`, `attributes`, `source_name` |
-| `clip_template` | string | Video clip for the detail dialog: a URL/path or Jinja2 template (same variables) |
+| `clip_template` | string | Video clip for the detail dialog: a URL/path, `media-source://` id or Jinja2 template (same variables). `clip_url_template` is accepted as an alias |
 
 **Per-Entity Config** (`entity_config.<entity_id>`):
 
@@ -418,7 +428,9 @@ sources:
 | `title_template` | string | Custom event title with `{field}` placeholders, e.g. `"{name}"`. Default: `{name} {message}` (see [Logbook Source](#logbook-source)) |
 | `description_template` | string | Custom description, e.g. `"{message}"` or `"by {context_name}"`. Default: `{message}` |
 | `show_description` | boolean | `false` hides the description line (default `true`) |
-| `entity_config` | object | Per-entity overrides (`name`, `icon`, `color`, `severity`, `title_template`, `description_template`, `show_description`, `tap_action`, `hold_action`), keyed by entity ID |
+| `entity_config` | object | Per-entity overrides (`name`, `icon`, `color`, `severity`, `title_template`, `description_template`, `show_description`, `image_template`, `clip_template`, `tap_action`, `hold_action`), keyed by entity ID |
+| `image_template` | string | Thumbnail: a URL/path or Jinja2 template, as for history sources |
+| `clip_template` | string | Video clip for the detail dialog, as for history sources (alias: `clip_url_template`) |
 | `poll_interval` | number | Seconds between fetches (default: 30) |
 
 ### Source Options (Static)
@@ -670,6 +682,12 @@ grouping:
   min_group_size: 2
   group_by: category
 ```
+
+#### Clip playback on iPhone/iPad
+
+Frigate's `clip.mp4` is generated on the fly and streamed without support for byte-range requests. Android and desktop Chrome play it, but Safari and every iOS browser need range requests for MP4, and that includes the Home Assistant iOS app. Frigate's own docs recommend its HLS playlist on iOS instead. Chronicle does this for you. When a clip URL is a Frigate event clip (`/api/frigate/notifications/{id}/clip.mp4` through the HA integration, or `/api/events/{id}/clip.mp4` on Frigate itself), Safari and iOS play the matching `master.m3u8` playlist. Other browsers keep using `clip.mp4`. You don't need to change your config.
+
+If a clip still can't play (an unsupported codec, a missing recording, a server that doesn't support range requests), the dialog tries the other format. If that fails too, it shows the still image, the message *"This clip can't be played here."* and an **Open clip** link. Your own clip servers need to answer range requests (HTTP 206) for iOS, or serve HLS (`.m3u8`).
 
 ### Multi-Source Home Timeline
 

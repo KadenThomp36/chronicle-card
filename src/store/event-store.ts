@@ -6,6 +6,7 @@ import { adapterRegistry } from '../adapters/adapter-registry';
 import { groupEvents, groupKey } from './event-grouper';
 import { resolveMediaUrl } from '../utils/media-resolver';
 import { isJinjaTemplate, renderTemplate, TemplateContext } from '../utils/template-renderer';
+import { expandPlaceholders } from '../utils/action-placeholders';
 import { startOfDay, timestampOf } from '../utils/date-utils';
 import { DEFAULT_POLL_INTERVAL } from '../constants';
 
@@ -392,7 +393,8 @@ export class EventStore {
 
   /**
    * Resolve `image_template` / `clip_template` (stored in metadata by the
-   * adapter). Plain strings without Jinja syntax are used as-is; templates are
+   * adapter). Plain strings without Jinja syntax are used as-is, after
+   * expanding `{field}` placeholders the same way actions do. Templates are
    * rendered via HA's `render_template` with the event's variables, chunked
    * to bound concurrent subscriptions, and cached across polls.
    */
@@ -404,7 +406,7 @@ export class EventStore {
         const tpl = e.metadata?.[field.key];
         if (typeof tpl !== 'string' || !tpl.trim() || field.has(e)) continue;
         if (!isJinjaTemplate(tpl)) {
-          field.apply(e, tpl.trim());
+          field.apply(e, expandPlaceholders(tpl.trim(), e));
           continue;
         }
         jobs.push({ event: e, template: tpl, apply: field.apply });
@@ -414,7 +416,8 @@ export class EventStore {
 
     const contextOf = (e: ChronicleEvent): TemplateContext => ({
       entity_id: e.entityId || '',
-      state: (e.metadata?.new_state as string) || '',
+      // History events carry new_state; logbook entries carry state
+      state: (e.metadata?.new_state as string) || (e.metadata?.state as string) || '',
       old_state: (e.metadata?.old_state as string) || '',
       timestamp: e.start,
       attributes: (e.metadata?.attributes as Record<string, unknown>) || {},
