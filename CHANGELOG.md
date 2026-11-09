@@ -1,69 +1,63 @@
-# Chronicle Card v1.14.0 — Native Home Assistant Integration, Look-Ahead, Lighter Live Updates
+# Chronicle Card v1.15.0 — Custom Titles, Wrapping Text, Clips on iOS
 
-This release re-audits the whole card against current Home Assistant frontend APIs and moves everything possible onto HA's own building blocks: its state formatting, action handler, form editor and locale settings.
-
-## ⚠️ Behavior changes
-
-- **Requires Home Assistant 2024.8 or newer** (declared in `hacs.json`).
-- **History state labels now come from Home Assistant** (`formatEntityState`). They are translated into your language and device-class aware, but some English wording changes: e.g. a door is "Front Door **Open**" instead of "Opened". `state_map` still overrides anything.
-- **`time_format` now follows your HA profile by default** (12/24h, plus the profile's time zone setting). Set `time_format: 12h`/`24h` to force one.
-- **Whole-number `days_back` counts calendar days.** `days_back: 0` now means "today since midnight" (it used to show nothing), and `1` means yesterday + today, regardless of the time of day (thanks @varhub, #36). Decimals keep the old rolling window (`0.5` = the last 12 hours).
-- **Compact mode** keeps hiding descriptions, but `show_attributes` values now show in compact mode too.
+This release lets you write your own event titles and descriptions for history and logbook sources, lets long titles wrap, and makes Frigate clips play on iPhone, iPad and Safari. Existing configs look the same as before.
 
 ## Bug Fixes
 
-- **History sources no longer subscribe to the entire `state_changed` firehose (#33).** Live updates now come from the state stream Home Assistant already sends the dashboard, so they add **zero** websocket traffic; previously a busy instance pushed hundreds of KB/s to every open dashboard. This also removes the double subscription race. Huge thanks to @dimatx for the measurements and the PRs (#34, #35) that pinned this down.
-- **Attributes now show in compact mode (#28).** They were appended to the description, which compact mode hides; they now have their own line.
-- **Group time ranges read oldest → newest (#30)** instead of "20:33 – 20:32".
-- **`image_template` accepts a plain URL or path (#31)**, e.g. `image_template: /local/pets/yoshi.jpg`. No Jinja wrapper needed.
-- **Cards kept running after HA moved them, but stopped updating.** After a view switch or edit mode, a card could keep its old events forever; config edits also didn't refetch until the next poll. Both are fixed.
-- REST, logbook and calendar sources now refresh on their `poll_interval` even when no entity state is changing.
-- All-day calendar events no longer shift to the previous day west of UTC and show without a misleading "00:00".
-- Expanded groups stay expanded across refreshes.
-- The "Animate new events" option actually animates new events now.
-- Severity override in the editor no longer offers "Detail Dialog" as a severity.
-- Custom icon sets (`hass:`, `phu:`, `si:` …) are no longer replaced with the default icon.
-- The card's documentation link in the card picker pointed to a nonexistent repository.
+- **Frigate clips now play on iPhone, iPad and Safari, including the Home Assistant iOS app (#21).** Frigate streams `clip.mp4` on the fly without byte-range support, and Apple's WebKit refuses to play MP4 without it. That caused the crossed-out play icon. On Apple devices the card now plays Frigate's HLS playlist (`master.m3u8`) for the same event, which is what Frigate itself recommends for iOS. This covers `/api/frigate/notifications/{id}/clip.mp4` and Frigate's own `/api/events/{id}/clip.mp4`. Other browsers keep using `clip.mp4`. No config change is needed. Thanks @dnestico for the report.
+- **The clip player never stays blank.** If a clip can't play, the dialog tries the other format. If that fails too, it shows the still image, the message "This clip can't be played here." and an **Open clip** link.
+- **Authenticated clip URLs work.** Clip URLs under `/api/…` and `/media/…` are now signed automatically, valid for 15 minutes. This also fixes Frigate notification clips when the integration's notification expiry option is on.
+- Inline autoplay is more reliable on iOS.
 
 ## New Features
 
-- **`days_forward` (#29)** — show upcoming calendar and static events alongside the past:
+- **Custom titles and descriptions for history and logbook sources (#37).** New `title_template` and `description_template` options use the same `{field}` placeholders as action strings. `{title}` and `{description}` insert the default text. A placeholder with no value expands to nothing, and a title that ends up empty falls back to the default. `show_description: false` hides the description line. All three work at the source level and per entity in `entity_config`, and per-entity settings win. Thanks @Popiche for the request.
+  - Logbook placeholders: `{name}`, `{message}`, `{entity_name}`, `{entity_id}`, `{state}`, `{domain}`, plus every `context_*` field Home Assistant returns (`{context_name}`, `{context_entity_id}`, `{context_user_id}`, …).
+  - History placeholders: `{name}`, `{entity_name}`, `{new_label}`, `{old_label}`, `{new_state}`, `{old_state}`, `{device_class}`, `{attributes.<name>}`.
+
   ```yaml
-  days_back: 0
-  days_forward: 7
+  # automation
+  - action: logbook.log
+    data:
+      entity_id: switch.dishwasher
+      name: Dishwasher · Delayed Start
+      message: "Program {{ program }} · starts in {{ delay }} h"
+  # card
   sources:
-    - type: calendar
-      entity: calendar.family
+    - type: logbook
+      entities: [switch.dishwasher, automation.noise_alert]
+      title_template: "{name}"
+      description_template: "{message}"
+      entity_config:
+        automation.noise_alert:
+          show_description: false
+  appearance:
+    title_lines: 2
+    description_lines: 0
   ```
-- **`appearance.show_description` (#32)** — hide the "Breakfast → 2. Breakfast" second line for event-like sensors. Defaults to on (off in compact mode).
-- **`clip_template` for history sources (#21)** — a URL/path or Jinja2 template whose video plays in the detail dialog. If a clip can't play inline (reported on iOS), the dialog falls back to the still image and shows an **Open clip** link.
-- **Every Home Assistant action type** works for tap/hold and action buttons, because the card now hands them to HA's own handler: `perform-action` (with `confirmation`), `navigate`, `url`, `toggle`, `more-info`, `assist`, `fire-dom-event`. Tap/hold actions are now available on **all** source types, and buttons accept native action keys:
+
+  `logbook.log` entries only show up when their `entity_id` is one of the source's entities.
+- **Wrapping titles and descriptions (#37).** New `appearance.title_lines` and `appearance.description_lines`. `1` (the default) keeps the single line with "…", `N` wraps and cuts off after N lines, and `0` means no limit. Works in both vertical and horizontal layouts, and line breaks in descriptions are kept.
+- **Clips and images for logbook sources.** Logbook sources now support `image_template` and `clip_template`, at the source level and per entity, the same as history sources.
+- **`clip_url_template` works on history and logbook sources (#21)** as another name for `clip_template`, so the same option name works on every source type.
+- **`clip_template` accepts `media-source://` ids**, e.g. clips in your media folder:
   ```yaml
-  actions:
-    - label: Dismiss
-      icon: mdi:close
-      action: perform-action
-      perform_action: input_boolean.turn_off
-      target: { entity_id: input_boolean.alert }
-      confirmation: { text: Dismiss this alert? }
+  sources:
+    - type: history
+      entities: [binary_sensor.driveway_motion]
+      clip_template: >-
+        media-source://media_source/local/clips/driveway_{{ as_timestamp(timestamp) | timestamp_custom('%Y%m%d_%H%M%S', true) }}.mp4
   ```
-  The older `type: service | navigate | fire-event` buttons keep working.
-- **Localized everywhere:** attribute names and values (with units), "Today"/"Tomorrow", and relative times come from Home Assistant and your browser, so they're translated in every language HA supports.
-- **Sections view support:** sensible default width, and resizing the card's height in the layout editor makes the timeline fill it. The card picker preview uses a calendar or a few entities from your system. On HA 2026.6+ the card is suggested when adding a card for a calendar, door, lock, person, etc.
-- Detail dialog shows calendar event **location**, uses your custom severity colors, and is keyboard accessible. Timeline entries can be focused and activated with the keyboard.
+- **Placeholders in plain image and clip templates.** Plain (non-Jinja) `image_template` / `clip_template` strings now expand `{field}` placeholders, e.g. `/local/snapshots/{entity_id}.jpg`.
+- **Dotted placeholders.** Placeholders accept metadata paths like `{attributes.temperature}`, in actions too.
 
 ## Visual editor
 
-- Rebuilt on Home Assistant's own form system with native pickers:
-  - HA's action editor for tap/hold
-  - a state picker for state filters
-  - attribute pickers
-  - icon and color pickers
-  - YAML editors (instead of raw JSON boxes) for field maps, WebSocket commands, state labels and static events
-- Saving from the editor no longer writes every default (empty filter lists, default colors, …) into your YAML. Existing configs are unaffected.
+- Each history and logbook source has a new **Title & description** section, with the same fields per entity.
+- **Title lines** and **Description lines** are under Appearance.
+- Logbook sources show image and clip template fields.
 
-## Under the hood
+## Other changes
 
-- History is fetched with the WebSocket `history/history_during_period` command (compressed format, no URL length limits).
-- Jinja2 template results are cached, so polling doesn't re-render them.
-- Bundle size dropped from 180 KB to 133 KB after removing dead code (unused virtual-scroll and API helper modules, English state-label tables, unused strings).
+- The entity-name tag is hidden when it's identical to the event title.
+- New docs section: "Clip playback on iPhone/iPad". Servers other than Frigate must answer range requests (HTTP 206) or serve `.m3u8` for clips to play on iOS.
