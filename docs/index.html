@@ -1888,7 +1888,7 @@
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="2" width="20" height="20" rx="2"/><circle cx="8" cy="8" r="2"/><path d="M21 15l-5-5L5 21"/></svg>
         </div>
         <h3>Thumbnails</h3>
-        <p>Camera snapshots, Frigate images, or any URL render inline as event thumbnails. The detail dialog plays video clips (mp4, webm, HLS, <code>clip_url_template</code> or <code>clip_template</code>) inline.</p>
+        <p>Camera snapshots, Frigate images, or any URL render inline as event thumbnails. The detail dialog plays video clips (mp4, webm, HLS, <code>clip_url_template</code> or <code>clip_template</code>) inline, including Frigate clips on iPhone and iPad.</p>
       </div>
       <div class="bento-card reveal reveal-delay-3">
         <div class="bento-icon" style="background:rgba(67,160,71,0.12);color:var(--green)">
@@ -1994,7 +1994,7 @@
         <ul class="source-features">
           <li>State labels and attribute values formatted natively by Home Assistant</li>
           <li>Per-entity config: name, icon, color, severity, and state filter overrides</li>
-          <li><code>image_template</code> / <code>clip_template</code> (a URL or Jinja2) for thumbnails and clips per event</li>
+          <li><code>image_template</code> / <code>clip_template</code> (a URL, <code>media-source://</code> id or Jinja2) for thumbnails and clips per event</li>
           <li>Any Home Assistant <code>tap_action</code> / <code>hold_action</code> (more-info, navigate, perform-action, url…)</li>
         </ul>
       </div>
@@ -2053,6 +2053,7 @@
           <li>Captures fast automation and script triggers the history source misses</li>
           <li>Per-entity config: name, icon, color, severity, and action overrides</li>
           <li>Custom title &amp; description templates — e.g. a short <code>logbook.log</code> headline with the details underneath</li>
+          <li><code>image_template</code> / <code>clip_template</code> for thumbnails and clips, as for history</li>
           <li>Poll-based updates (default 30s interval)</li>
           <li>Mix with history sources for full coverage</li>
         </ul>
@@ -2274,6 +2275,15 @@
         </button>
         <div class="faq-answer">
           <p>Yes! Chronicle has first-class Frigate support via the REST/WebSocket adapter. It connects to Frigate's WebSocket API, maps detection events to timeline entries, and renders camera snapshots as inline thumbnails. See the examples in the documentation for a ready-to-use Frigate config.</p>
+        </div>
+      </div>
+      <div class="faq-item reveal reveal-delay-1">
+        <button class="faq-question" onclick="toggleFaq(this)">
+          Do Frigate clips play on iPhone and iPad?
+          <svg class="faq-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-answer">
+          <p>Yes. Frigate&rsquo;s <code>clip.mp4</code> is streamed without byte-range support, which Safari and the Home Assistant iOS app need for MP4. On those devices Chronicle plays Frigate&rsquo;s HLS playlist (<code>master.m3u8</code>) for the same event instead, with no config change. If a clip still can&rsquo;t play, the dialog shows the snapshot and an <strong>Open clip</strong> link.</p>
         </div>
       </div>
       <div class="faq-item reveal reveal-delay-1">

@@ -108,11 +108,11 @@ const HELPERS: Record<string, string> = {
   response_path: 'Dot-path to the array in the response, e.g. data.items.',
   field_map: 'Map response fields to: id, title, description, start, end, mediaUrl, category, label, entityId.',
   media_url_template: 'Image URL built from response fields, e.g. /api/frigate/notifications/{id}/snapshot.jpg',
-  clip_url_template: 'Video URL played in the detail dialog, e.g. /api/frigate/notifications/{id}/clip.mp4',
+  clip_url_template: 'Video URL played in the detail dialog, e.g. /api/frigate/notifications/{id}/clip.mp4 (on iPhone/iPad/Safari the matching HLS playlist is used automatically).',
   poll_interval: 'Seconds between refreshes (default 30).',
   show_attributes: 'Attribute values shown under each event.',
   image_template: 'A URL/path, or a Jinja2 template. Variables: entity_id, state, old_state, timestamp, attributes, source_name. Use /local/ or proxy URLs — camera_proxy needs auth that images can\'t send.',
-  clip_template: 'Video URL/path or Jinja2 template (same variables as the image template), played in the detail dialog.',
+  clip_template: 'Video URL/path, media-source:// id or Jinja2 template (same variables as the image template), played in the detail dialog. Plain URLs can use {field} placeholders.',
   events: 'List of events: title, start, end, description, icon, color, severity, category.',
   actions: 'Buttons under each event. Native actions use tap_action keys (action: perform-action, …); strings support {field} placeholders.',
   tap_action: '"Default action" opens the Chronicle detail dialog. Strings support {field} placeholders such as {id} or {entity_id}.',
@@ -211,7 +211,11 @@ export class SourceEditor extends LitElement {
       { name: 'tap_action', selector: { ui_action: {} } },
       { name: 'hold_action', selector: { ui_action: {} } },
     ];
-    if (type !== 'history') return [...common, ...TEXT_SCHEMA, ...actions];
+    const templates: Schema[] = [
+      { name: 'image_template', selector: { template: {} } },
+      { name: 'clip_template', selector: { template: {} } },
+    ];
+    if (type !== 'history') return [...common, ...TEXT_SCHEMA, ...templates, ...actions];
     return [
       ...common,
       ...TEXT_SCHEMA,
@@ -220,8 +224,7 @@ export class SourceEditor extends LitElement {
       { name: 'state_map', selector: { object: {} } },
       { name: 'state_icon', selector: { object: {} } },
       { name: 'state_color', selector: { object: {} } },
-      { name: 'image_template', selector: { template: {} } },
-      { name: 'clip_template', selector: { template: {} } },
+      ...templates,
       ...actions,
     ];
   }
@@ -266,6 +269,8 @@ export class SourceEditor extends LitElement {
       case 'logbook':
         fields = [
           { name: 'entities', selector: { entity: { multiple: true } } },
+          { name: 'image_template', selector: { template: {} } },
+          { name: 'clip_template', selector: { template: {} } },
           pollInterval,
         ];
         break;

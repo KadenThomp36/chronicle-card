@@ -314,7 +314,7 @@ export class ChronicleCard extends LitElement {
   }
 
   private _onShowDetail(e: CustomEvent) {
-    this._dialog?.show(e.detail.event as ChronicleEvent);
+    this._dialog?.show(e.detail.event as ChronicleEvent, this._hass);
   }
 
   private _onToggleGroup(e: CustomEvent) {

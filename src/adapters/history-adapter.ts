@@ -1,7 +1,7 @@
 import { ISourceAdapter } from './adapter';
 import { HomeAssistant, HassEntity, TimeRange } from '../types';
 import { ChronicleEvent, SeverityLevel } from '../models/event';
-import { SourceConfig } from '../models/config';
+import { clipTemplateOf, SourceConfig } from '../models/config';
 import { resolveIcon, resolveColor } from '../utils/icon-resolver';
 import { applyEventText } from '../utils/action-placeholders';
 
@@ -100,9 +100,9 @@ export class HistoryAdapter implements ISourceAdapter {
     const entityConfs = Object.values(this.config.entity_config ?? {});
     return !!(
       this.config.image_template ||
-      this.config.clip_template ||
+      clipTemplateOf(this.config) ||
       this.config.show_attributes?.length ||
-      entityConfs.some((c) => c.image_template || c.clip_template || c.show_attributes?.length)
+      entityConfs.some((c) => c.image_template || clipTemplateOf(c) || c.show_attributes?.length)
     );
   }
 
@@ -357,7 +357,7 @@ export class HistoryAdapter implements ISourceAdapter {
         attributes,
         source_name: this.config.name || 'history',
         _image_template: entityConf?.image_template || this.config.image_template,
-        _clip_template: entityConf?.clip_template || this.config.clip_template,
+        _clip_template: clipTemplateOf(entityConf) || clipTemplateOf(this.config),
       },
     }, entityConf, this.config);
   }

@@ -925,7 +925,7 @@
             <tr><td><code>response_path</code></td><td>string</td><td>Dot-notation path to the events array in the response</td></tr>
             <tr><td><code>field_map</code></td><td>object</td><td>Maps response fields to Chronicle event fields</td></tr>
             <tr><td><code>media_url_template</code></td><td>string</td><td>Template for media URLs with <code>{field}</code> placeholders</td></tr>
-            <tr><td><code>clip_url_template</code></td><td>string</td><td>Video clip URL template with the same <code>{field}</code> placeholders as <code>media_url_template</code> (e.g. <code>/api/frigate/notifications/{id}/clip.mp4</code>). The detail dialog plays the clip in an inline video player instead of the still image</td></tr>
+            <tr><td><code>clip_url_template</code></td><td>string</td><td>Video clip URL template with the same <code>{field}</code> placeholders as <code>media_url_template</code> (e.g. <code>/api/frigate/notifications/{id}/clip.mp4</code>). The detail dialog plays the clip in an inline video player instead of the still image. For Frigate clip URLs, Safari and iOS play the matching HLS playlist automatically (see <a href="#ios-clips">Clip playback on iPhone/iPad</a>)</td></tr>
             <tr><td><code>poll_interval</code></td><td>number</td><td>Polling interval in seconds</td></tr>
           </tbody>
         </table>
@@ -1011,7 +1011,7 @@
         </div>
 
         <h3>Images &amp; Clips</h3>
-        <p><code>image_template</code> sets each event&rsquo;s thumbnail. It can be a plain URL or path, or a Jinja2 template rendered per event with the variables <code>entity_id</code>, <code>state</code>, <code>old_state</code>, <code>timestamp</code>, <code>attributes</code> and <code>source_name</code>. <code>clip_template</code> works the same way and plays a video in the detail dialog while the thumbnail stays a still image. If a clip can&rsquo;t play inline (for example on some iOS setups), the dialog falls back to the image and shows an <strong>Open clip</strong> link. Rendered templates are cached, so polling doesn&rsquo;t re-render them.</p>
+        <p><code>image_template</code> sets each event&rsquo;s thumbnail. It can be a plain URL or path, or a Jinja2 template rendered per event with the variables <code>entity_id</code>, <code>state</code>, <code>old_state</code>, <code>timestamp</code>, <code>attributes</code> and <code>source_name</code>. <code>clip_template</code> works the same way and plays a video in the detail dialog while the thumbnail stays a still image. It also accepts a <code>media-source://</code> id, such as a file in your media folder, and <code>clip_url_template</code> is accepted as another name for it. Plain (non-Jinja) strings can use the same <code>{field}</code> placeholders as actions, e.g. <code>/local/snapshots/{entity_id}.jpg</code>. Authenticated HA paths (<code>/api/&hellip;</code>, <code>/media/&hellip;</code>) are signed automatically so the video player can load them. Rendered templates are cached, so polling doesn&rsquo;t re-render them. See <a href="#ios-clips">Clip playback on iPhone/iPad</a> for what happens when a clip can&rsquo;t play.</p>
         <div class="code-block">
           <div class="code-header">
             <span>yaml</span>
@@ -1026,7 +1026,12 @@
   - <span class="hl-key">type</span>: <span class="hl-str">history</span>
     <span class="hl-key">entities</span>:
       - <span class="hl-str">sensor.pet_feeder</span>
-    <span class="hl-key">image_template</span>: <span class="hl-str">/local/pets/yoshi.jpg</span>   <span class="hl-comment"># a plain path works too</span></div>
+    <span class="hl-key">image_template</span>: <span class="hl-str">/local/pets/yoshi.jpg</span>   <span class="hl-comment"># a plain path works too</span>
+  - <span class="hl-key">type</span>: <span class="hl-str">history</span>
+    <span class="hl-key">entities</span>:
+      - <span class="hl-str">binary_sensor.driveway_motion</span>
+    <span class="hl-key">clip_template</span>: &gt;-
+      media-source://media_source/local/clips/driveway_{{ as_timestamp(timestamp) | timestamp_custom('%Y%m%d_%H%M%S', true) }}.mp4</div>
         </div>
         <div class="callout-info" style="margin-top:12px;">
           Use <code>/local/</code> URLs (files in <code>/config/www/</code>) or integration proxy URLs such as Frigate snapshots. Home Assistant&rsquo;s <code>/api/camera_proxy/</code> URLs need an auth header that images can&rsquo;t send.
@@ -1050,7 +1055,7 @@
             <tr><td><code>show_description</code></td><td>boolean</td><td><code>false</code> hides the description line for this source&rsquo;s events (default <code>true</code>)</td></tr>
             <tr><td><code>entity_config</code></td><td>object</td><td>Per-entity overrides, keyed by entity ID (see table below)</td></tr>
             <tr><td><code>image_template</code></td><td>string</td><td>Thumbnail: a URL/path or a Jinja2 template (see <a href="#source-history">Images &amp; Clips</a>)</td></tr>
-            <tr><td><code>clip_template</code></td><td>string</td><td>Video clip for the detail dialog: a URL/path or a Jinja2 template with the same variables</td></tr>
+            <tr><td><code>clip_template</code></td><td>string</td><td>Video clip for the detail dialog: a URL/path, a <code>media-source://</code> id or a Jinja2 template with the same variables. <code>clip_url_template</code> is accepted as an alias</td></tr>
           </tbody>
         </table>
 
@@ -1128,7 +1133,7 @@
       <!-- ===== LOGBOOK SOURCE ===== -->
       <div class="doc-section" id="source-logbook">
         <h2>Logbook Source</h2>
-        <p>Displays Home Assistant logbook entries as timeline events &mdash; including automation and script triggers that are too fast for the history database to record (automations that fire and return to idle within milliseconds still show up). The source is poll-based (default 30&nbsp;second <code>poll_interval</code>) and does not push live updates.</p>
+        <p>Displays Home Assistant logbook entries as timeline events &mdash; including automation and script triggers that are too fast for the history database to record (automations that fire and return to idle within milliseconds still show up). The source is poll-based (default 30&nbsp;second <code>poll_interval</code>) and does not push live updates. <code>image_template</code> and <code>clip_template</code> work the same as for <a href="#source-history">history sources</a>: <code>state</code> is the logbook entry&rsquo;s state, and <code>old_state</code> and <code>attributes</code> are empty.</p>
         <div class="code-block">
           <div class="code-header">
             <span>yaml</span>
@@ -1150,7 +1155,9 @@
             <tr><td><code>title_template</code></td><td>string</td><td>Custom event title with <code>{field}</code> placeholders, e.g. <code>"{name}"</code>. Default: <code>{name} {message}</code></td></tr>
             <tr><td><code>description_template</code></td><td>string</td><td>Custom description, e.g. <code>"{message}"</code> or <code>"by {context_name}"</code>. Default: <code>{message}</code></td></tr>
             <tr><td><code>show_description</code></td><td>boolean</td><td><code>false</code> hides the description line (default <code>true</code>)</td></tr>
-            <tr><td><code>entity_config</code></td><td>object</td><td>Per-entity overrides keyed by entity ID: <code>name</code>, <code>icon</code>, <code>color</code>, <code>severity</code>, <code>title_template</code>, <code>description_template</code>, <code>show_description</code>, <code>tap_action</code>, <code>hold_action</code></td></tr>
+            <tr><td><code>entity_config</code></td><td>object</td><td>Per-entity overrides keyed by entity ID: <code>name</code>, <code>icon</code>, <code>color</code>, <code>severity</code>, <code>title_template</code>, <code>description_template</code>, <code>show_description</code>, <code>image_template</code>, <code>clip_template</code>, <code>tap_action</code>, <code>hold_action</code></td></tr>
+            <tr><td><code>image_template</code></td><td>string</td><td>Thumbnail: a URL/path or a Jinja2 template, as for history sources</td></tr>
+            <tr><td><code>clip_template</code></td><td>string</td><td>Video clip for the detail dialog, as for history sources (alias: <code>clip_url_template</code>)</td></tr>
             <tr><td><code>poll_interval</code></td><td>number</td><td>Polling interval in seconds (default <code>30</code>)</td></tr>
           </tbody>
         </table>
@@ -1756,6 +1763,12 @@
     <span class="hl-key">default_severity</span>: <span class="hl-str">warning</span></div>
         </div>
         <p>With <code>clip_url_template</code> set, opening an event's detail dialog plays the recorded clip in an inline video player instead of the snapshot.</p>
+
+        <h3 id="ios-clips">Clip playback on iPhone/iPad</h3>
+        <p>Frigate&rsquo;s <code>clip.mp4</code> is generated on the fly and streamed without support for byte-range requests. Android and desktop Chrome play it, but Safari and every iOS browser need range requests for MP4, and that includes the Home Assistant iOS app. Frigate&rsquo;s own docs recommend its HLS playlist on iOS instead. Chronicle does this for you. When a clip URL is a Frigate event clip (<code>/api/frigate/notifications/{id}/clip.mp4</code> through the HA integration, or <code>/api/events/{id}/clip.mp4</code> on Frigate itself), Safari and iOS play the matching <code>master.m3u8</code> playlist. Other browsers keep using <code>clip.mp4</code>. You don&rsquo;t need to change your config.</p>
+        <div class="callout-info" style="margin-top:12px;">
+          If a clip still can&rsquo;t play (an unsupported codec, a missing recording, a server without range requests), the dialog tries the other format. If that fails too, it shows the still image, the message &ldquo;This clip can&rsquo;t be played here.&rdquo; and an <strong>Open clip</strong> link. Your own clip servers need to answer range requests (HTTP 206) for iOS, or serve HLS (<code>.m3u8</code>).
+        </div>
       </div>
 
       <!-- Multi-Source Timeline -->
