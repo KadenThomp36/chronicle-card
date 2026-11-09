@@ -29,8 +29,20 @@ export interface ActionConfig {
   [key: string]: unknown;
 }
 
-/** Per-entity overrides within a history source. */
-export interface EntityOverrides {
+/**
+ * Event text overrides (history and logbook sources). Templates use `{field}`
+ * placeholders — the same machinery as action strings — and `{title}` /
+ * `{description}` hold the default text. Empty templates mean "default".
+ */
+export interface EventTextConfig {
+  title_template?: string;
+  description_template?: string;
+  /** false = no description line for these events. */
+  show_description?: boolean;
+}
+
+/** Per-entity overrides within a history or logbook source. */
+export interface EntityOverrides extends EventTextConfig {
   name?: string;
   state_filter?: string[];
   state_map?: Record<string, string>;
@@ -47,7 +59,7 @@ export interface EntityOverrides {
   hold_action?: ActionConfig;
 }
 
-export interface SourceConfig {
+export interface SourceConfig extends EventTextConfig {
   type: 'calendar' | 'rest' | 'history' | 'static' | 'logbook';
   name?: string;
   entity?: string;
@@ -136,6 +148,10 @@ export interface AppearanceConfig {
   animate_new_events?: boolean;
   /** Secondary description line (e.g. "Off → On"). Unset = shown, except in compact mode. */
   show_description?: boolean;
+  /** Lines an event title may wrap onto before it is truncated. 1 = single line, 0 = no limit. */
+  title_lines?: number;
+  /** Same for the description line. */
+  description_lines?: number;
   severity_colors?: Partial<Record<SeverityLevel, string>>;
 }
 
@@ -194,6 +210,8 @@ export const DEFAULT_CONFIG: Partial<ChronicleCardConfig> = {
     show_severity_badge: true,
     show_category: true,
     animate_new_events: true,
+    title_lines: 1,
+    description_lines: 1,
     severity_colors: {
       critical: '#D32F2F',
       warning: '#FF9800',

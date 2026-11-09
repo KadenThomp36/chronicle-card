@@ -71,6 +71,8 @@ const LABELS: Record<string, string> = {
   card_height: 'Card height',
   compact: 'Compact mode',
   show_description: 'Show description',
+  title_lines: 'Title lines',
+  description_lines: 'Description lines',
   show_images: 'Show images',
   show_icons: 'Show icons',
   show_severity_badge: 'Show severity badge',
@@ -93,6 +95,8 @@ const HELPERS: Record<string, string> = {
   card_height: 'A fixed height (e.g. 400px), "fill" for Panel layout, or "auto" to grow with content. In a sections view, resizing the card height also fills.',
   compact: 'Single-line events. Descriptions are hidden unless "Show description" is enabled explicitly.',
   show_description: 'Secondary line such as "Off → On".',
+  title_lines: 'Lines a long title can wrap onto before it is cut off with "…". 1 = single line, 0 = no limit.',
+  description_lines: 'Same for the description line.',
 };
 
 @customElement(EDITOR_NAME)
@@ -231,6 +235,12 @@ export class ChronicleEditor extends LitElement {
             { value: 'auto', label: 'Auto (grow with content)' },
             { value: 'fill', label: 'Fill available space' },
           ] } } },
+          {
+            name: '', type: 'grid', schema: [
+              { name: 'title_lines', selector: { number: { min: 0, max: 10, mode: 'box' } } },
+              { name: 'description_lines', selector: { number: { min: 0, max: 10, mode: 'box' } } },
+            ],
+          },
           {
             name: '', type: 'grid', schema: [
               { name: 'compact', selector: { boolean: {} } },

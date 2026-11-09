@@ -5,6 +5,7 @@ import { AppearanceConfig } from '../../models/config';
 import { formatTime } from '../../utils/date-utils';
 import { safeColor, tintColor, validIcon } from '../../utils/color-utils';
 import { handleEventAction } from '../../utils/actions';
+import { lineClampStyle } from '../../utils/line-clamp';
 import './severity-badge';
 import './action-button';
 
@@ -106,6 +107,10 @@ export class EventItem extends LitElement {
       display: flex;
       align-items: center;
       gap: 6px;
+    }
+    /* A wrapped title keeps the time/badge level with its first line */
+    .top-row.wrap {
+      align-items: baseline;
     }
     .title {
       font-size: 13px;
@@ -215,6 +220,8 @@ export class EventItem extends LitElement {
     // Date-only starts are all-day events — a "00:00" time would mislead
     const time = /^\d{4}-\d{2}-\d{2}$/.test(e.start) ? '' : formatTime(e.start);
     const color = safeColor(e.color);
+    const titleStyle = lineClampStyle(this.appearance?.title_lines);
+    const descriptionStyle = lineClampStyle(this.appearance?.description_lines, true);
 
     return html`
       <div class="event-row">
@@ -235,8 +242,8 @@ export class EventItem extends LitElement {
           @contextmenu=${(ev: Event) => { if (this.event.holdAction) ev.preventDefault(); }}
         >
           <div class="content">
-            <div class="top-row">
-              <span class="title">${e.title}</span>
+            <div class="top-row ${titleStyle ? 'wrap' : ''}">
+              <span class="title" style=${titleStyle}>${e.title}</span>
               ${showBadge && e.severity !== 'info' ? html`
                 <chronicle-severity-badge
                   .severity=${e.severity}
@@ -245,12 +252,12 @@ export class EventItem extends LitElement {
               ` : nothing}
               ${time ? html`<span class="time">${time}</span>` : nothing}
             </div>
-            ${showDescription && e.description ? html`<div class="description">${e.description}</div>` : nothing}
+            ${showDescription && e.description ? html`<div class="description" style=${descriptionStyle}>${e.description}</div>` : nothing}
             ${e.details ? html`<div class="details">${e.details}</div>` : nothing}
             <div class="meta-row">
               ${showCategory && e.category ? html`<span class="category-tag">${e.category}</span>` : nothing}
               ${showCategory && e.label ? html`<span class="category-tag">${e.label}</span>` : nothing}
-              ${showCategory && e.entityName ? html`<span class="category-tag">${e.entityName}</span>` : nothing}
+              ${showCategory && e.entityName && e.entityName !== e.title ? html`<span class="category-tag">${e.entityName}</span>` : nothing}
             </div>
             ${e.actions && e.actions.length > 0 ? html`
               <div class="actions-row">

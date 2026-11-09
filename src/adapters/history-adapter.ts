@@ -3,6 +3,7 @@ import { HomeAssistant, HassEntity, TimeRange } from '../types';
 import { ChronicleEvent, SeverityLevel } from '../models/event';
 import { SourceConfig } from '../models/config';
 import { resolveIcon, resolveColor } from '../utils/icon-resolver';
+import { applyEventText } from '../utils/action-placeholders';
 
 interface HistoryState {
   entity_id: string;
@@ -326,7 +327,7 @@ export class HistoryAdapter implements ISourceAdapter {
 
     const start = new Date(currState.last_changed).toISOString();
 
-    return {
+    return applyEventText({
       id: `history:${entityId}:${new Date(start).getTime()}`,
       sourceType: 'history',
       sourceId: this.config.name || 'history',
@@ -344,6 +345,9 @@ export class HistoryAdapter implements ISourceAdapter {
       tapAction: entityConf?.tap_action || this.config.tap_action,
       holdAction: entityConf?.hold_action || this.config.hold_action,
       metadata: {
+        // Placeholders for title/description templates and actions
+        name: displayName,
+        entity_name: friendlyName,
         old_state: prevState.state,
         new_state: currState.state,
         old_label: oldLabel,
@@ -355,6 +359,6 @@ export class HistoryAdapter implements ISourceAdapter {
         _image_template: entityConf?.image_template || this.config.image_template,
         _clip_template: entityConf?.clip_template || this.config.clip_template,
       },
-    };
+    }, entityConf, this.config);
   }
 }

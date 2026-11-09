@@ -1045,6 +1045,9 @@
             <tr><td><code>state_color</code></td><td>object</td><td>Source-level default: per-state color overrides keyed by raw state value (e.g. <code>armed_away: "#80ff87"</code>)</td></tr>
             <tr><td><code>state_icon</code></td><td>object</td><td>Source-level default: per-state MDI icon overrides keyed by raw state value</td></tr>
             <tr><td><code>show_attributes</code></td><td>string[]</td><td>Source-level default: attributes shown on a line under each event, formatted by Home Assistant (e.g. &ldquo;Temperature: 21.5 &deg;C&rdquo;). Also shown in compact mode</td></tr>
+            <tr><td><code>title_template</code></td><td>string</td><td>Custom event title with <code>{field}</code> placeholders: <code>{name}</code>, <code>{entity_name}</code>, <code>{new_label}</code>, <code>{old_label}</code>, <code>{new_state}</code>, <code>{old_state}</code>, <code>{device_class}</code>, <code>{attributes.&lt;name&gt;}</code>, <code>{title}</code> (the default title)&hellip; e.g. <code>"{name} is {new_label}"</code>. See <a href="#source-logbook">Custom title &amp; description</a></td></tr>
+            <tr><td><code>description_template</code></td><td>string</td><td>Custom description, same placeholders (<code>{description}</code> is the default, &ldquo;Off &rarr; On&rdquo;)</td></tr>
+            <tr><td><code>show_description</code></td><td>boolean</td><td><code>false</code> hides the description line for this source&rsquo;s events (default <code>true</code>)</td></tr>
             <tr><td><code>entity_config</code></td><td>object</td><td>Per-entity overrides, keyed by entity ID (see table below)</td></tr>
             <tr><td><code>image_template</code></td><td>string</td><td>Thumbnail: a URL/path or a Jinja2 template (see <a href="#source-history">Images &amp; Clips</a>)</td></tr>
             <tr><td><code>clip_template</code></td><td>string</td><td>Video clip for the detail dialog: a URL/path or a Jinja2 template with the same variables</td></tr>
@@ -1064,6 +1067,9 @@
             <tr><td><code>state_color</code></td><td>object</td><td>Per-state color overrides for this entity, keyed by raw state value (overrides source-level map)</td></tr>
             <tr><td><code>state_icon</code></td><td>object</td><td>Per-state MDI icon overrides for this entity, keyed by raw state value (overrides source-level map)</td></tr>
             <tr><td><code>show_attributes</code></td><td>string[]</td><td>Attributes shown under this entity&rsquo;s events (overrides the source-level list)</td></tr>
+            <tr><td><code>title_template</code></td><td>string</td><td>Title template for this entity (overrides source-level)</td></tr>
+            <tr><td><code>description_template</code></td><td>string</td><td>Description template for this entity (overrides source-level)</td></tr>
+            <tr><td><code>show_description</code></td><td>boolean</td><td>Show/hide the description line for this entity (overrides source-level)</td></tr>
             <tr><td><code>icon</code></td><td>string</td><td>MDI icon override (e.g. <code>mdi:lock-alert</code>)</td></tr>
             <tr><td><code>color</code></td><td>string</td><td>Hex color override (e.g. <code>#FF9800</code>)</td></tr>
             <tr><td><code>severity</code></td><td>string</td><td>Severity override: <code>critical</code>, <code>warning</code>, <code>info</code>, or <code>debug</code></td></tr>
@@ -1141,10 +1147,52 @@
           <tbody>
             <tr><td><code>entities</code></td><td>string[]</td><td>Entity IDs to show logbook entries for (required)</td></tr>
             <tr><td><code>entity</code></td><td>string</td><td>Single entity ID (shorthand &mdash; use <code>entities</code> for multiple)</td></tr>
-            <tr><td><code>entity_config</code></td><td>object</td><td>Per-entity overrides keyed by entity ID: <code>name</code>, <code>icon</code>, <code>color</code>, <code>severity</code>, <code>tap_action</code>, <code>hold_action</code></td></tr>
+            <tr><td><code>title_template</code></td><td>string</td><td>Custom event title with <code>{field}</code> placeholders, e.g. <code>"{name}"</code>. Default: <code>{name} {message}</code></td></tr>
+            <tr><td><code>description_template</code></td><td>string</td><td>Custom description, e.g. <code>"{message}"</code> or <code>"by {context_name}"</code>. Default: <code>{message}</code></td></tr>
+            <tr><td><code>show_description</code></td><td>boolean</td><td><code>false</code> hides the description line (default <code>true</code>)</td></tr>
+            <tr><td><code>entity_config</code></td><td>object</td><td>Per-entity overrides keyed by entity ID: <code>name</code>, <code>icon</code>, <code>color</code>, <code>severity</code>, <code>title_template</code>, <code>description_template</code>, <code>show_description</code>, <code>tap_action</code>, <code>hold_action</code></td></tr>
             <tr><td><code>poll_interval</code></td><td>number</td><td>Polling interval in seconds (default <code>30</code>)</td></tr>
           </tbody>
         </table>
+
+        <h3>Custom Title &amp; Description</h3>
+        <p>By default an entry&rsquo;s title is its name followed by its message, and the description repeats the message. <code>title_template</code> and <code>description_template</code> reshape that with <code>{field}</code> placeholders, and <code>show_description: false</code> drops the description line. This suits entries you write yourself with the <a href="https://www.home-assistant.io/integrations/logbook/#adding-custom-entries" target="_blank" rel="noopener"><code>logbook.log</code></a> action &mdash; put a short headline in <code>name</code> and the details in <code>message</code> (set <code>entity_id</code> to one of the source&rsquo;s entities so the entry is picked up).</p>
+        <div class="code-block">
+          <div class="code-header">
+            <span>yaml</span>
+            <button class="code-copy" onclick="copyCode(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy</button>
+          </div>
+          <div class="code-body"><span class="hl-comment"># In an automation</span>
+- <span class="hl-key">action</span>: <span class="hl-str">logbook.log</span>
+  <span class="hl-key">data</span>:
+    <span class="hl-key">entity_id</span>: <span class="hl-str">switch.dishwasher</span>
+    <span class="hl-key">name</span>: <span class="hl-str">Dishwasher · Delayed Start</span>
+    <span class="hl-key">message</span>: <span class="hl-str">"Program {{ program }} · starts in {{ delay }} h · {{ reason }}"</span>
+
+<span class="hl-comment"># In the card</span>
+<span class="hl-key">sources</span>:
+  - <span class="hl-key">type</span>: <span class="hl-str">logbook</span>
+    <span class="hl-key">entities</span>: [<span class="hl-str">switch.dishwasher</span>, <span class="hl-str">automation.noise_alert</span>]
+    <span class="hl-key">title_template</span>: <span class="hl-str">"{name}"</span>          <span class="hl-comment"># "Dishwasher · Delayed Start"</span>
+    <span class="hl-key">description_template</span>: <span class="hl-str">"{message}"</span> <span class="hl-comment"># details underneath</span>
+    <span class="hl-key">entity_config</span>:
+      <span class="hl-key">automation.noise_alert</span>:
+        <span class="hl-key">show_description</span>: <span class="hl-num">false</span>       <span class="hl-comment"># title only for this one</span></div>
+        </div>
+        <table class="doc-table">
+          <thead>
+            <tr><th>Placeholder</th><th>Value</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>{name}</code></td><td>The entry name (or your <code>entity_config</code> name)</td></tr>
+            <tr><td><code>{message}</code></td><td>The entry message (empty for plain state changes)</td></tr>
+            <tr><td><code>{entity_name}</code></td><td>The entity&rsquo;s friendly name</td></tr>
+            <tr><td><code>{entity_id}</code>, <code>{state}</code>, <code>{domain}</code></td><td>Entity ID, new state (state changes), domain</td></tr>
+            <tr><td><code>{context_*}</code></td><td>What caused the entry, e.g. <code>{context_name}</code>, <code>{context_entity_id}</code>, <code>{context_user_id}</code></td></tr>
+            <tr><td><code>{title}</code> / <code>{description}</code></td><td>The default title / description</td></tr>
+          </tbody>
+        </table>
+        <p>The general <a href="#actions">action placeholders</a> work too. A placeholder with no value for an entry expands to nothing; a title that would be empty keeps the default. Per-entity settings win over source-level ones, and history sources accept the same three options. To let long titles and messages wrap instead of being cut off, see <code>title_lines</code> / <code>description_lines</code> under <a href="#appearance">Appearance</a>.</p>
       </div>
 
       <!-- ===== STATIC SOURCE ===== -->
@@ -1316,6 +1364,8 @@
   <span class="hl-key">show_severity_badge</span>: <span class="hl-num">true</span>
   <span class="hl-key">show_category</span>: <span class="hl-num">true</span>
   <span class="hl-key">animate_new_events</span>: <span class="hl-num">true</span>
+  <span class="hl-key">title_lines</span>: <span class="hl-num">1</span>
+  <span class="hl-key">description_lines</span>: <span class="hl-num">1</span>
   <span class="hl-key">severity_colors</span>:
     <span class="hl-key">critical</span>: <span class="hl-str">"#D32F2F"</span>
     <span class="hl-key">warning</span>: <span class="hl-str">"#FF9800"</span>
@@ -1335,6 +1385,8 @@
             <tr><td><code>show_severity_badge</code></td><td>boolean</td><td><code>true</code></td><td>Show severity labels on events</td></tr>
             <tr><td><code>show_category</code></td><td>boolean</td><td><code>true</code></td><td>Show the category / label / entity-name pill row beneath each event title. Disable for a denser layout that keeps icons and descriptions but drops the metadata pills.</td></tr>
             <tr><td><code>animate_new_events</code></td><td>boolean</td><td><code>true</code></td><td>Animate new events as they arrive</td></tr>
+            <tr><td><code>title_lines</code></td><td>number</td><td><code>1</code></td><td>Lines a long event title may wrap onto before it is cut off with &ldquo;&hellip;&rdquo; (vertical and horizontal layouts). <code>1</code> = single line, <code>0</code> = no limit</td></tr>
+            <tr><td><code>description_lines</code></td><td>number</td><td><code>1</code></td><td>Same for the description line. Line breaks in the text (e.g. a multi-line logbook message) are kept when it wraps</td></tr>
             <tr><td><code>severity_colors</code></td><td>object</td><td>(built-in)</td><td>Override severity level colors</td></tr>
           </tbody>
         </table>
@@ -1397,7 +1449,7 @@
         <p>The older button format still works: <code>type: service</code> (<code>service</code>, <code>serviceData</code>, <code>target</code>), <code>type: navigate</code> (<code>url</code>), and <code>type: fire-event</code> (<code>eventType</code>, <code>eventData</code>, which fires a DOM event for other cards to catch).</p>
 
         <h3>Placeholders</h3>
-        <p>Every string in an action &mdash; tap/hold actions and buttons, including nested <code>data</code> &mdash; expands <code>{field}</code> placeholders against the event before the action runs. Unknown placeholders are left as-is.</p>
+        <p>Every string in an action &mdash; tap/hold actions and buttons, including nested <code>data</code> &mdash; expands <code>{field}</code> placeholders against the event before the action runs. Unknown placeholders are left as-is. The same placeholders work in history/logbook <code>title_template</code> / <code>description_template</code>.</p>
         <table class="doc-table">
           <thead>
             <tr><th>Placeholder</th><th>Value</th></tr>
@@ -1412,7 +1464,7 @@
             <tr><td><code>{clip_url}</code></td><td>Resolved clip URL</td></tr>
             <tr><td><code>{category}</code></td><td>Event category</td></tr>
             <tr><td><code>{severity}</code></td><td>Severity level</td></tr>
-            <tr><td><code>{&lt;metadata&gt;}</code></td><td>Any scalar metadata key on the event (e.g. <code>{new_state}</code>)</td></tr>
+            <tr><td><code>{&lt;metadata&gt;}</code></td><td>Any scalar metadata key on the event (e.g. <code>{new_state}</code>), or a dotted path into object metadata (e.g. <code>{attributes.temperature}</code>)</td></tr>
           </tbody>
         </table>
       </div>

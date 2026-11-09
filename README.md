@@ -287,7 +287,32 @@ sources:
       - automation.noise_above_50db
 ```
 
-Logbook sources are poll-based (the logbook has no lightweight push channel) — new entries appear on the next poll (`poll_interval`, default 30s). Per-entity `entity_config` overrides (`name`, `icon`, `color`, `severity`, `tap_action`, `hold_action`) work the same as for history sources.
+Logbook sources are poll-based (the logbook has no lightweight push channel) — new entries appear on the next poll (`poll_interval`, default 30s). Per-entity `entity_config` overrides (`name`, `icon`, `color`, `severity`, `title_template`, `description_template`, `show_description`, `tap_action`, `hold_action`) work the same as for history sources.
+
+**Custom title and description** — by default an entry's title is its name followed by its message, and the description repeats the message. `title_template` and `description_template` reshape that with `{field}` placeholders, and `show_description: false` drops the description line. This suits entries you write yourself with the [`logbook.log`](https://www.home-assistant.io/integrations/logbook/#adding-custom-entries) action — put a short headline in `name` and the details in `message` (set `entity_id` to one of the source's entities so the entry is picked up):
+
+```yaml
+# In an automation
+- action: logbook.log
+  data:
+    entity_id: switch.dishwasher
+    name: Dishwasher · Delayed Start
+    message: "Program {{ program }} · starts in {{ delay }} h · {{ reason }}"
+```
+
+```yaml
+# In the card
+sources:
+  - type: logbook
+    entities: [switch.dishwasher, automation.noise_alert]
+    title_template: "{name}"          # "Dishwasher · Delayed Start"
+    description_template: "{message}" # details underneath
+    entity_config:
+      automation.noise_alert:
+        show_description: false       # title only for this one
+```
+
+Logbook placeholders: `{name}` (the entry name, or your `entity_config` name), `{message}`, `{entity_name}` (the entity's friendly name), `{entity_id}`, `{state}`, `{domain}`, and the logbook's `context_*` fields describing the cause (e.g. `{context_name}`, `{context_entity_id}`, `{context_user_id}`). `{title}` and `{description}` insert the default text, and the general placeholders from [Actions](#actions) work too. A placeholder with no value for an entry expands to nothing; a title that would be empty keeps the default. Per-entity settings win over source-level ones. History sources accept the same three options — see [Source Options (History)](#source-options-history). To let long titles and messages wrap instead of being cut off, see `title_lines` / `description_lines` under [Appearance](#appearance).
 
 #### Static Source
 
@@ -356,6 +381,9 @@ sources:
 | `state_color` | object | Source-level default: per-state color overrides, keyed by raw state value |
 | `state_icon` | object | Source-level default: per-state MDI icon overrides, keyed by raw state value |
 | `show_attributes` | list | Source-level default: attributes shown under each event |
+| `title_template` | string | Custom event title with `{field}` placeholders: `{name}`, `{entity_name}`, `{new_label}`, `{old_label}`, `{new_state}`, `{old_state}`, `{device_class}`, `{attributes.<name>}`, `{title}` (the default title)… e.g. `"{name} is {new_label}"` |
+| `description_template` | string | Custom description, same placeholders (`{description}` is the default, "Off → On") |
+| `show_description` | boolean | `false` hides the description line for this source's events (default `true`) |
 | `entity_config` | object | Per-entity overrides, keyed by entity ID. See table below |
 | `image_template` | string | Thumbnail: a URL/path, or a Jinja2 template rendered per event. Variables: `entity_id`, `state`, `old_state`, `timestamp`, `attributes`, `source_name` |
 | `clip_template` | string | Video clip for the detail dialog: a URL/path or Jinja2 template (same variables) |
@@ -370,6 +398,9 @@ sources:
 | `state_color` | object | Per-state color overrides for this entity (e.g. `{"armed_away": "#80ff87"}`) |
 | `state_icon` | object | Per-state MDI icon overrides for this entity |
 | `show_attributes` | list | Attributes shown under each event (e.g. `[temperature, brightness]`) |
+| `title_template` | string | Title template for this entity (overrides source-level) |
+| `description_template` | string | Description template for this entity (overrides source-level) |
+| `show_description` | boolean | Show/hide the description line for this entity (overrides source-level) |
 | `icon` | string | MDI icon override for this entity |
 | `color` | string | Hex color override for this entity |
 | `severity` | string | Severity override (`critical`, `warning`, `info`, `debug`) |
@@ -384,7 +415,10 @@ sources:
 |--------|------|-------------|
 | `entities` | list | Entity IDs whose logbook entries to show (required) |
 | `entity` | string | Single entity ID (shorthand) |
-| `entity_config` | object | Per-entity overrides (`name`, `icon`, `color`, `severity`, `tap_action`, `hold_action`), keyed by entity ID |
+| `title_template` | string | Custom event title with `{field}` placeholders, e.g. `"{name}"`. Default: `{name} {message}` (see [Logbook Source](#logbook-source)) |
+| `description_template` | string | Custom description, e.g. `"{message}"` or `"by {context_name}"`. Default: `{message}` |
+| `show_description` | boolean | `false` hides the description line (default `true`) |
+| `entity_config` | object | Per-entity overrides (`name`, `icon`, `color`, `severity`, `title_template`, `description_template`, `show_description`, `tap_action`, `hold_action`), keyed by entity ID |
 | `poll_interval` | number | Seconds between fetches (default: 30) |
 
 ### Source Options (Static)
@@ -486,6 +520,8 @@ appearance:
   show_severity_badge: true
   show_category: true
   animate_new_events: true
+  title_lines: 1
+  description_lines: 1
   severity_colors:
     critical: "#D32F2F"
     warning: "#FF9800"
@@ -503,6 +539,8 @@ appearance:
 | `show_severity_badge` | boolean | `true` | Show severity level badges |
 | `show_category` | boolean | `true` | Show category/label/entity tags |
 | `animate_new_events` | boolean | `true` | Slide-in animation for new events |
+| `title_lines` | number | `1` | Lines a long event title may wrap onto before it is cut off with "…" (vertical and horizontal layouts). `1` = single line, `0` = no limit |
+| `description_lines` | number | `1` | Same for the description line. Line breaks in the text (e.g. a multi-line logbook message) are kept when it wraps |
 | `severity_colors` | object | *(see above)* | Override colors per severity level |
 
 ### Actions
@@ -544,7 +582,7 @@ sources:
 
 The older button format still works: `type: service` (`service`, `serviceData`, `target`), `type: navigate` (`url`), and `type: fire-event` (`eventType`, `eventData` — fires a DOM event for other cards to catch).
 
-**Placeholders** — every string in an action (tap/hold actions and buttons) expands `{field}` placeholders against the event it belongs to: `{id}` (the raw upstream id for REST sources — e.g. the Frigate event id), `{entity}`, `{title}`, `{source}`, `{start}`, `{end}`, `{media_url}`, `{clip_url}`, `{category}`, `{severity}`, plus any scalar metadata key (e.g. `{new_state}` for history events). Unknown placeholders are left as-is.
+**Placeholders** — every string in an action (tap/hold actions and buttons) expands `{field}` placeholders against the event it belongs to: `{id}` (the raw upstream id for REST sources — e.g. the Frigate event id), `{entity}`, `{title}`, `{source}`, `{start}`, `{end}`, `{media_url}`, `{clip_url}`, `{category}`, `{severity}`, plus any scalar metadata key (e.g. `{new_state}` for history events) and dotted paths into object metadata (e.g. `{attributes.temperature}`). Unknown placeholders are left as-is.
 
 ```yaml
 tap_action:

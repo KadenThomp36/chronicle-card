@@ -3,8 +3,15 @@ import { HomeAssistant, TimeRange } from '../types';
 import { ChronicleEvent, SeverityLevel } from '../models/event';
 import { SourceConfig } from '../models/config';
 import { resolveIcon, resolveColor } from '../utils/icon-resolver';
+import { applyEventText } from '../utils/action-placeholders';
 
-/** Entry shape returned by the `logbook/get_events` WS command. */
+/**
+ * Entry shape returned by the `logbook/get_events` WS command. `logbook.log`
+ * entries carry the `name` / `message` (and optional `entity_id` / `domain`)
+ * passed to the action; state changes carry `state` and no message (HA's
+ * frontend words those itself). `context_*` describes what caused the entry
+ * (e.g. `context_name` of the triggering automation, `context_user_id`).
+ */
 interface LogbookEntry {
   when: number | string;
   name?: string;
@@ -14,8 +21,17 @@ interface LogbookEntry {
   icon?: string;
   domain?: string;
   source?: string;
-  context_service?: string;
+  context_id?: string;
+  context_user_id?: string;
+  context_entity_id?: string;
+  context_entity_id_name?: string;
   context_event_type?: string;
+  context_domain?: string;
+  context_service?: string;
+  context_state?: string;
+  context_source?: string;
+  context_name?: string;
+  context_message?: string;
 }
 
 /** Domain → Chronicle category (subset relevant to logbook entries). */
@@ -114,7 +130,8 @@ export class LogbookAdapter implements ISourceAdapter {
     const displayName = entityConf?.name || entry.name || friendlyName || entityId || 'Logbook';
 
     // Logbook entries read naturally as "<name> <message>", e.g.
-    // "Noise above 30dB triggered by state of binary_sensor.entry_sound"
+    // "Noise above 30dB triggered by state of binary_sensor.entry_sound".
+    // title_template / description_template can reshape this (applyEventText).
     const message = entry.message || (entry.state ? `→ ${entry.state}` : '');
     const title = message ? `${displayName} ${message}` : displayName;
 
@@ -127,7 +144,12 @@ export class LogbookAdapter implements ISourceAdapter {
       || resolveColor(title, category, undefined, this.config.color_map, this.config.default_color);
     const effectiveSeverity = (entityConf?.severity || this.config.default_severity || 'info') as SeverityLevel;
 
-    return {
+    // Context fields are scalars describing the cause — expose them all as placeholders
+    const context = Object.fromEntries(
+      Object.entries(entry).filter(([k, v]) => k.startsWith('context_') && v != null && typeof v !== 'object'),
+    );
+
+    return applyEventText({
       id: `logbook:${entityId || domain || 'ha'}:${startISO}`,
       sourceType: 'logbook',
       sourceId: this.config.name || 'logbook',
@@ -145,12 +167,15 @@ export class LogbookAdapter implements ISourceAdapter {
       tapAction: entityConf?.tap_action || this.config.tap_action,
       holdAction: entityConf?.hold_action || this.config.hold_action,
       metadata: {
+        ...context,
+        // Placeholders for title/description templates and actions
+        name: displayName,
+        entity_name: friendlyName || entityId || '',
+        message: entry.message ?? '',
         domain,
-        state: entry.state,
-        context_service: entry.context_service,
-        context_event_type: entry.context_event_type,
+        state: entry.state ?? '',
         source_name: this.config.name || 'logbook',
       },
-    };
+    }, entityConf, this.config);
   }
 }

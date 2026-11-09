@@ -2052,6 +2052,7 @@
         <ul class="source-features">
           <li>Captures fast automation and script triggers the history source misses</li>
           <li>Per-entity config: name, icon, color, severity, and action overrides</li>
+          <li>Custom title &amp; description templates — e.g. a short <code>logbook.log</code> headline with the details underneath</li>
           <li>Poll-based updates (default 30s interval)</li>
           <li>Mix with history sources for full coverage</li>
         </ul>
@@ -2065,7 +2066,9 @@
   - <span class="key">type</span>: <span class="str">logbook</span>
     <span class="key">name</span>: <span class="str">Noise Alerts</span>
     <span class="key">entities</span>:
-      - <span class="str">automation.noise_above_30db</span></div>
+      - <span class="str">automation.noise_above_30db</span>
+    <span class="key">title_template</span>: <span class="str">"{name}"</span>
+    <span class="key">description_template</span>: <span class="str">"{message}"</span></div>
       </div>
     </div>
   </section>
