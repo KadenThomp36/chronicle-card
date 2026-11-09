@@ -5,6 +5,7 @@ import { AppearanceConfig } from '../../models/config';
 import { relativeTime } from '../../utils/date-utils';
 import { safeColor, validIcon } from '../../utils/color-utils';
 import { handleEventAction } from '../../utils/actions';
+import { lineClampStyle } from '../../utils/line-clamp';
 import '../elements/empty-state';
 
 /** Enter/Space activates a role="button" element. */
@@ -315,7 +316,7 @@ export class HorizontalTimeline extends LitElement {
           `
         }
         <div class="card-body">
-          <div class="card-title">
+          <div class="card-title" style=${lineClampStyle(this.appearance?.title_lines)}>
             <span class="card-severity" style="background-color: ${color}"></span>
             ${event.title}
           </div>
@@ -375,7 +376,7 @@ export class HorizontalTimeline extends LitElement {
               `
             }
             <div class="card-body">
-              <div class="card-title">
+              <div class="card-title" style=${lineClampStyle(this.appearance?.title_lines)}>
                 <span class="card-severity" style="background-color: ${safeColor(event.color)}"></span>
                 ${event.title}
               </div>

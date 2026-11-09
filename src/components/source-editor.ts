@@ -75,7 +75,31 @@ const LABELS: Record<string, string> = {
   group_by: 'Group by',
   group_name: 'Group name',
   entity_config: 'Per-entity settings',
+  title_template: 'Title template',
+  description_template: 'Description template',
+  show_description: 'Show description',
 };
+
+/** title/description template helpers, per source type: placeholders and the default they replace. */
+const TEXT_HELPERS: Record<string, { title: string; description: string }> = {
+  logbook: {
+    title: 'Default: {name} {message}. Placeholders: {name}, {message}, {entity_name}, {entity_id}, {state}, {domain}, {context_name}, {title} (the default title)…',
+    description: 'Default: {message}. Same placeholders; {description} is the default.',
+  },
+  history: {
+    title: 'Default: name + new state. Placeholders: {name}, {entity_name}, {new_label}, {old_label}, {new_state}, {old_state}, {attributes.<name>}, {title} (the default title)…',
+    description: 'Default: {old_label} → {new_label}. Same placeholders; {description} is the default.',
+  },
+};
+
+/** Event text fields shared by the source level and each entity (history/logbook). */
+const TEXT_SCHEMA: Schema[] = [
+  { name: 'title_template', selector: { text: {} } },
+  { name: 'description_template', selector: { text: {} } },
+  { name: 'show_description', selector: { boolean: {} } },
+];
+
+const hasEventText = (type: SourceConfig['type']) => type === 'history' || type === 'logbook';
 
 const HELPERS: Record<string, string> = {
   name: 'Shown in the timeline and usable in filters.',
@@ -100,6 +124,7 @@ const HELPERS: Record<string, string> = {
   state_color: 'Raw state → color, e.g. {"on": "#4CAF50"}.',
   window_seconds: 'Leave empty to inherit the card-level grouping.',
   entity_config: 'Overrides for individual entities.',
+  show_description: 'Turn off to hide the description line for these events.',
 };
 
 @customElement('chronicle-source-editor')
@@ -186,9 +211,10 @@ export class SourceEditor extends LitElement {
       { name: 'tap_action', selector: { ui_action: {} } },
       { name: 'hold_action', selector: { ui_action: {} } },
     ];
-    if (type !== 'history') return [...common, ...actions];
+    if (type !== 'history') return [...common, ...TEXT_SCHEMA, ...actions];
     return [
       ...common,
+      ...TEXT_SCHEMA,
       { name: 'state_filter', selector: this._stateFilterSelector(entityId) },
       { name: 'show_attributes', selector: { select: { multiple: true, custom_value: true, mode: 'dropdown', options: this._attributeOptions([entityId]) } } },
       { name: 'state_map', selector: { object: {} } },
@@ -257,9 +283,14 @@ export class SourceEditor extends LitElement {
         }]
       : [];
 
+    const text: Schema[] = hasEventText(type)
+      ? [{ type: 'expandable', title: 'Title & description', icon: 'mdi:format-text', schema: TEXT_SCHEMA }]
+      : [];
+
     return [
       head,
       ...fields,
+      ...text,
       ...perEntity,
       {
         type: 'expandable', title: 'Interactions', icon: 'mdi:gesture-tap', schema: [
@@ -301,16 +332,30 @@ export class SourceEditor extends LitElement {
   /** Source as the form shows it: legacy `entity` folded into `entities`, colors as RGB. */
   private get _data(): Record<string, unknown> {
     const s = { ...this.source } as Record<string, unknown>;
-    if (s.type === 'history' || s.type === 'logbook') {
+    if (hasEventText(this.source.type)) {
       s.entities = this._entities;
       delete s.entity;
+      // show_description toggles display their effective (inherited) value
+      const showDescription = this.source.show_description ?? true;
+      s.show_description = showDescription;
       const ec = (this.source.entity_config ?? {}) as Record<string, Record<string, unknown>>;
       s.entity_config = Object.fromEntries(
-        this._entities.map((id) => [id, mapKeys({ ...ec[id] }, ['color'], hexToRgb)]),
+        this._entities.map((id) => [id, mapKeys({
+          ...ec[id],
+          show_description: ec[id]?.show_description ?? showDescription,
+        }, ['color'], hexToRgb)]),
       );
     }
     return mapKeys(s, ['default_color'], hexToRgb);
   }
+
+  private _computeHelper = (schema: { name?: string }): string | undefined => {
+    const name = schema.name ?? '';
+    const text = TEXT_HELPERS[this.source.type];
+    if (text && name === 'title_template') return text.title;
+    if (text && name === 'description_template') return text.description;
+    return HELPERS[name];
+  };
 
   private _hint(): string {
     const entities = this._entities;
@@ -339,7 +384,7 @@ export class SourceEditor extends LitElement {
             .data=${this._data}
             .schema=${this._schema}
             .computeLabel=${makeComputeLabel(this.hass, LABELS)}
-            .computeHelper=${(schema: { name?: string }) => HELPERS[schema.name ?? '']}
+            .computeHelper=${this._computeHelper}
             @value-changed=${this._valueChanged}
           ></ha-form>
           <button class="remove" @click=${this._remove}>
@@ -354,16 +399,33 @@ export class SourceEditor extends LitElement {
     e.stopPropagation();
     const value = mapKeys({ ...(e.detail.value as Record<string, unknown>) }, ['default_color'], rgbToHex);
 
-    if (value.type === 'history' || value.type === 'logbook') {
+    // show_description toggles are displayed as their effective value (see _data);
+    // only persist real overrides, including when the type was just switched away
+    const prevShow = this.source.show_description ?? true;
+    if (this.source.show_description === undefined && value.show_description === prevShow) {
+      delete value.show_description;
+    }
+    const rawEc = this.source.entity_config ?? {};
+    let ec = Object.fromEntries(
+      Object.entries((value.entity_config ?? {}) as Record<string, Record<string, unknown>>).map(([id, c]) => {
+        const conf = { ...c };
+        if (rawEc[id]?.show_description === undefined && conf.show_description === prevShow) {
+          delete conf.show_description;
+        }
+        return [id, conf];
+      }),
+    );
+
+    if (hasEventText(value.type as SourceConfig['type'])) {
       delete value.entity;
       const keep = new Set((value.entities as string[] | undefined) ?? []);
-      const ec = (value.entity_config ?? {}) as Record<string, Record<string, unknown>>;
-      value.entity_config = Object.fromEntries(
+      ec = Object.fromEntries(
         Object.entries(ec)
           .filter(([id]) => keep.has(id))
           .map(([id, conf]) => [id, pruneConfig(mapKeys(conf, ['color'], rgbToHex), undefined, undefined)]),
       );
     }
+    value.entity_config = ec;
 
     const source = pruneConfig(value, undefined, undefined) as unknown as SourceConfig;
     this.dispatchEvent(new CustomEvent('source-changed', {
