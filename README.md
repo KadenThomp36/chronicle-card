@@ -345,6 +345,22 @@ sources:
         severity: warning
 ```
 
+`start`, `end`, `title` and `description` can also be Jinja2 templates. They're rendered by Home Assistant on every refresh, so relative times like `now()` stay current:
+
+```yaml
+sources:
+  - type: static
+    name: Upcoming
+    events:
+      - title: "Dishwasher done"
+        start: "{{ now() + timedelta(hours=3) }}"
+      - title: "Next alarm"
+        start: "{{ states('sensor.phone_next_alarm') }}"
+        description: "{{ state_attr('sensor.phone_next_alarm', 'Package') }}"
+```
+
+Dates may be ISO strings (`2025-04-01T10:00:00`, `2025-04-01 10:00:00+01:00`), date-only (`2025-04-01`, an all-day event) or epoch seconds (`as_timestamp(...)`). An event whose start can't be parsed is skipped with a warning in the browser console. To see future events, set `days_forward`.
+
 ### Source Options (All Types)
 
 | Option | Type | Default | Description |
@@ -437,7 +453,7 @@ sources:
 
 | Option | Type | Description |
 |--------|------|-------------|
-| `events` | list | Array of event objects with `title`, `start`, and optional `description`, `end`, `icon`, `color`, `severity`, `category` |
+| `events` | list | Array of event objects with `title`, `start`, and optional `description`, `end`, `icon`, `color`, `severity`, `category`. `start`, `end`, `title` and `description` accept Jinja2 templates |
 
 ### Filters
 

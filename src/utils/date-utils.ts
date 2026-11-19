@@ -79,11 +79,29 @@ function formatter(key: string, options: Intl.DateTimeFormatOptions, machine = f
  */
 export function toDate(date: Date | string): Date {
   if (date instanceof Date) return isNaN(date.getTime()) ? new Date() : date;
-  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
-  const parsed = dateOnly
-    ? new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]))
-    : new Date(date);
-  return isNaN(parsed.getTime()) ? new Date() : parsed;
+  return parseDateString(String(date)) ?? new Date();
+}
+
+/**
+ * Parse a user/template-supplied date string. Beyond what `Date` accepts,
+ * handles Jinja/Python output: `2025-04-01 10:00:00.123456+00:00` (space
+ * separator, microseconds, which Safari rejects) and epoch seconds/ms
+ * (`as_timestamp()`). Returns null when it can't be parsed.
+ */
+export function parseDateString(value: string): Date | null {
+  const str = value.trim();
+  if (!str) return null;
+  if (/^\d{9,13}(\.\d+)?$/.test(str)) {
+    const num = Number(str);
+    return new Date(num < 1e11 ? num * 1000 : num);
+  }
+  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(str);
+  if (dateOnly) return new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]));
+  const iso = str
+    .replace(/^(\d{4}-\d{2}-\d{2})[ T](\d)/, '$1T$2')
+    .replace(/(T\d{2}:\d{2}:\d{2}\.\d{3})\d+/, '$1');
+  const parsed = new Date(iso);
+  return isNaN(parsed.getTime()) ? null : parsed;
 }
 
 export function timestampOf(date: Date | string): number {
